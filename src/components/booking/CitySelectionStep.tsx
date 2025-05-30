@@ -93,9 +93,9 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
         newCities[index].mandatoryTours = 0;
       }
       
-      // Update available tours based on selected city
+      // Update available tours based on selected city - convert TourLocation[] to string[]
       if (value && availableTours[value as string]) {
-        newCities[index].availableTours = availableTours[value as string];
+        newCities[index].availableTours = availableTours[value as string].map(tour => tour.name);
       }
       
       // Reset room selections when city changes
@@ -401,9 +401,12 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                 <h5 className="font-medium text-sm mb-2">الجولات المتاحة:</h5>
                 <div className="text-xs text-gray-600 space-y-1">
-                  {cityStay.availableTours.map((tour, tourIndex) => (
-                    <div key={tourIndex}>• {tour.name} - {tour.description}</div>
-                  ))}
+                  {cityStay.availableTours.map((tourName, tourIndex) => {
+                    const tourDetails = availableTours[cityStay.city]?.find(tour => tour.name === tourName);
+                    return (
+                      <div key={tourIndex}>• {tourName} - {tourDetails?.description || ''}</div>
+                    );
+                  })}
                 </div>
               </div>
             )}
