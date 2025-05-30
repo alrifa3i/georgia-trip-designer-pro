@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData, RoomSelection, CityStay } from '@/types/booking';
 import { hotelData, transportData, cities } from '@/data/hotels';
 import { currencies, convertFromUSD, formatCurrency } from '@/data/currencies';
-import { MapPin, Building2, Car, Users, Bed, Clock, AlertTriangle, Plus, Minus } from 'lucide-react';
+import { MapPin, Building2, Car, Users, Bed, Clock, AlertTriangle, Plus, Minus, Info } from 'lucide-react';
 
 interface CityHotelSelectionStepProps {
   data: BookingData;
@@ -19,21 +19,16 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   const [totalSelectedNights, setTotalSelectedNights] = useState(0);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   
-  console.log('CityHotelSelectionStep - data:', data);
-  console.log('CityHotelSelectionStep - selectedCities:', data.selectedCities);
-  console.log('CityHotelSelectionStep - available cities:', cities);
-  console.log('CityHotelSelectionStep - hotelData keys:', Object.keys(hotelData));
-  
   const getDuration = () => {
     if (data.arrivalDate && data.departureDate) {
       const arrival = new Date(data.arrivalDate);
       const departure = new Date(data.departureDate);
-      return Math.ceil((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      return Math.ceil((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24));
     }
     return 0;
   };
 
-  const requiredNights = getDuration() - 1;
+  const requiredNights = getDuration();
   const selectedCurrency = currencies.find(c => c.code === data.currency) || currencies[0];
 
   const getRoomTypeName = (roomType: string) => {
@@ -46,6 +41,23 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
       'trbl_v': 'غرفة ثلاثية (مع إطلالة)'
     };
     return roomTypes[roomType] || roomType;
+  };
+
+  // ترتيب الفنادق من الأرخص إلى الأغلى
+  const sortHotelsByPrice = (hotels: any[]) => {
+    return hotels.sort((a, b) => {
+      const avgPriceA = (a.dbl_wv + a.dbl_v) / 2;
+      const avgPriceB = (b.dbl_wv + b.dbl_v) / 2;
+      return avgPriceA - avgPriceB;
+    });
+  };
+
+  // ترتيب الغرف من الأرخص إلى الأغلى
+  const sortRoomsByPrice = (roomTypes: { [key: string]: number }) => {
+    const sortedRooms = Object.entries(roomTypes)
+      .filter(([key, value]) => typeof value === 'number' && ['single', 'single_v', 'dbl_wv', 'dbl_v', 'trbl_wv', 'trbl_v'].includes(key))
+      .sort(([, a], [, b]) => a - b);
+    return sortedRooms;
   };
 
   // إضافة مدينة جديدة
@@ -72,13 +84,11 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     const newCities = [...data.selectedCities];
     newCities[cityIndex] = { ...newCities[cityIndex], [field]: value };
     
-    // إعادة تعيين اختيارات الفندق والغرف عند تغيير المدينة
     if (field === 'city') {
       newCities[cityIndex].hotel = '';
       newCities[cityIndex].roomSelections = [];
     }
     
-    // إعادة تعيين اختيارات الغرف عند تغيير الفندق
     if (field === 'hotel' && value !== '') {
       newCities[cityIndex].roomSelections = [];
     }
@@ -93,8 +103,8 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
       errors.push('لم يتم تحديد أي مدن - الرجاء إضافة مدينة واحدة على الأقل');
     }
     
-    if (totalSelectedNights !== requiredNights && data.selectedCities.length > 0) {
-      errors.push(`المطلوب ${requiredNights} ليلة، تم اختيار ${totalSelectedNights} ليلة`);
+    if (totalSelectedNights !== requiredNights && data.selectedCities.length > 0 && requiredNights > 0) {
+      errors.push(`المطلوب ${requiredNights} ليلة، تم اختيار ${totalSelectedNights} ليلة - الرجاء تعديل عدد الليالي`);
     }
     
     data.selectedCities.forEach((city, index) => {
@@ -198,6 +208,35 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         </Alert>
       )}
 
+      {/* Trip Duration Info */}
+      <Alert className="bg-blue-50 border-blue-200">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-medium">مدة الرحلة: </span>
+              <span>{getDuration()} أيام</span>
+            </div>
+            <div>
+              <span className="font-medium">الليالي المطلوبة: </span>
+              <span>{requiredNights} ليلة</span>
+            </div>
+            <div>
+              <span className="font-medium">الليالي المختارة: </span>
+              <span className={totalSelectedNights === requiredNights ? 'text-green-600' : 'text-red-600'}>
+                {totalSelectedNights} ليلة
+              </span>
+            </div>
+            <div>
+              <span className="font-medium">الفرق: </span>
+              <span className={totalSelectedNights === requiredNights ? 'text-green-600' : 'text-red-600'}>
+                {totalSelectedNights - requiredNights} ليلة
+              </span>
+            </div>
+          </div>
+        </AlertDescription>
+      </Alert>
+
       {/* Add City Button */}
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">المدن المختارة ({data.selectedCities.length})</h3>
@@ -221,11 +260,8 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           </div>
         ) : (
           data.selectedCities.map((city, cityIndex) => {
-            console.log(`Processing city ${cityIndex}:`, city);
-            const cityHotels = city.city ? (hotelData[city.city] || []) : [];
-            console.log(`Hotels for ${city.city}:`, cityHotels);
+            const cityHotels = city.city ? sortHotelsByPrice(hotelData[city.city] || []) : [];
             const selectedHotel = cityHotels.find(h => h.name === city.hotel);
-            console.log(`Selected hotel:`, selectedHotel);
 
             return (
               <Card key={cityIndex} className="border-2 border-blue-200">
@@ -305,7 +341,10 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                   {/* 2. اختيار الفندق */}
                   {city.city && (
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-800 border-b pb-2">2. اختيار الفندق</h4>
+                      <h4 className="font-medium text-gray-800 border-b pb-2">
+                        2. اختيار الفندق 
+                        <span className="text-sm font-normal text-gray-600 mr-2">(مرتبة من الأرخص إلى الأغلى)</span>
+                      </h4>
                       <div className="space-y-2">
                         <label className="text-sm font-medium">الفندق *</label>
                         <Select
@@ -319,12 +358,14 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                             {cityHotels.length === 0 ? (
                               <div className="p-2 text-sm text-gray-500">لا توجد فنادق متاحة لهذه المدينة</div>
                             ) : (
-                              cityHotels.map((hotel) => (
+                              cityHotels.map((hotel, index) => (
                                 <SelectItem key={hotel.name} value={hotel.name}>
                                   <div className="flex items-center gap-2">
                                     <Building2 className="w-4 h-4" />
                                     <span>{hotel.name}</span>
                                     <span className="text-yellow-500">{'⭐'.repeat(hotel.rating)}</span>
+                                    {index === 0 && <span className="text-green-600 text-xs">(الأرخص)</span>}
+                                    {index === cityHotels.length - 1 && cityHotels.length > 1 && <span className="text-blue-600 text-xs">(الأغلى)</span>}
                                   </div>
                                 </SelectItem>
                               ))
@@ -339,7 +380,10 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                   {selectedHotel && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between border-b pb-2">
-                        <h4 className="font-medium text-gray-800">3. اختيار الغرف والأنواع</h4>
+                        <h4 className="font-medium text-gray-800">
+                          3. اختيار الغرف والأنواع
+                          <span className="text-sm font-normal text-gray-600 mr-2">(مرتبة من الأرخص إلى الأغلى)</span>
+                        </h4>
                         <Button
                           onClick={() => addRoom(cityIndex)}
                           variant="outline"
@@ -349,32 +393,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                           <Plus className="w-4 h-4 mr-1" />
                           إضافة غرفة
                         </Button>
-                      </div>
-
-                      {/* عرض أنواع الغرف المتاحة */}
-                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <h5 className="font-medium text-blue-800 mb-3">أنواع الغرف المتاحة والأسعار:</h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {Object.entries(selectedHotel).map(([key, value]) => {
-                            if (typeof value === 'number' && ['single', 'single_v', 'dbl_wv', 'dbl_v', 'trbl_wv', 'trbl_v'].includes(key)) {
-                              const convertedPrice = convertFromUSD(value, selectedCurrency.code);
-                              return (
-                                <div key={key} className="flex justify-between items-center p-3 bg-white rounded border">
-                                  <span className="text-blue-700 text-sm">{getRoomTypeName(key)}</span>
-                                  <div className="text-left">
-                                    <span className="font-medium text-blue-800">
-                                      {formatCurrency(convertedPrice, selectedCurrency.code)}
-                                    </span>
-                                    {selectedCurrency.code !== 'USD' && (
-                                      <span className="text-xs text-gray-500 block">(${ value})</span>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          })}
-                        </div>
                       </div>
 
                       {/* الغرف المحددة */}
@@ -393,53 +411,50 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          {city.roomSelections.map((room, roomIndex) => (
-                            <div key={roomIndex} className="p-4 bg-gray-50 rounded-lg border">
-                              <div className="flex items-center justify-between mb-3">
-                                <h5 className="font-medium">الغرفة {room.roomNumber}</h5>
-                                <Button
-                                  onClick={() => removeRoom(cityIndex, roomIndex)}
-                                  variant="destructive"
-                                  size="sm"
-                                >
-                                  حذف
-                                </Button>
-                              </div>
-                              
-                              <Select
-                                value={room.roomType}
-                                onValueChange={(roomType) => updateRoomType(cityIndex, roomIndex, roomType)}
-                              >
-                                <SelectTrigger className="bg-white">
-                                  <SelectValue placeholder="اختر نوع الغرفة" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-white border shadow-lg z-50">
-                                  {Object.entries(selectedHotel).map(([key, value]) => {
-                                    if (typeof value === 'number' && ['single', 'single_v', 'dbl_wv', 'dbl_v', 'trbl_wv', 'trbl_v'].includes(key)) {
-                                      const convertedPrice = convertFromUSD(value, selectedCurrency.code);
-                                      return (
-                                        <SelectItem key={key} value={key}>
-                                          <div className="flex justify-between items-center w-full">
-                                            <span>{getRoomTypeName(key)}</span>
-                                            <span className="font-medium mr-4">
-                                              {formatCurrency(convertedPrice, selectedCurrency.code)}
-                                            </span>
-                                          </div>
-                                        </SelectItem>
-                                      );
-                                    }
-                                    return null;
-                                  })}
-                                </SelectContent>
-                              </Select>
-                              
-                              {room.roomType && (
-                                <div className="mt-2 text-sm text-green-600 font-medium">
-                                  ✅ سعر الليلة: {formatCurrency(convertFromUSD(selectedHotel[room.roomType as keyof typeof selectedHotel] as number, selectedCurrency.code), selectedCurrency.code)}
+                          {city.roomSelections.map((room, roomIndex) => {
+                            const sortedRooms = sortRoomsByPrice(selectedHotel);
+                            
+                            return (
+                              <div key={roomIndex} className="p-4 bg-gray-50 rounded-lg border">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h5 className="font-medium">الغرفة {room.roomNumber}</h5>
+                                  <Button
+                                    onClick={() => removeRoom(cityIndex, roomIndex)}
+                                    variant="destructive"
+                                    size="sm"
+                                  >
+                                    حذف
+                                  </Button>
                                 </div>
-                              )}
-                            </div>
-                          ))}
+                                
+                                <Select
+                                  value={room.roomType}
+                                  onValueChange={(roomType) => updateRoomType(cityIndex, roomIndex, roomType)}
+                                >
+                                  <SelectTrigger className="bg-white">
+                                    <SelectValue placeholder="اختر نوع الغرفة" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-white border shadow-lg z-50">
+                                    {sortedRooms.map(([roomType, price], index) => (
+                                      <SelectItem key={roomType} value={roomType}>
+                                        <div className="flex justify-between items-center w-full">
+                                          <span>{getRoomTypeName(roomType)}</span>
+                                          {index === 0 && <span className="text-green-600 text-xs mr-2">(الأرخص)</span>}
+                                          {index === sortedRooms.length - 1 && sortedRooms.length > 1 && <span className="text-blue-600 text-xs mr-2">(الأغلى)</span>}
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                
+                                {room.roomType && (
+                                  <div className="mt-2 text-sm text-green-600 font-medium">
+                                    ✅ تم اختيار: {getRoomTypeName(room.roomType)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -450,7 +465,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     <div className="space-y-3">
                       <h4 className="font-medium text-gray-800 border-b pb-2">4. الجولات السياحية</h4>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">عدد الجولات السياحية</label>
+                        <label className="text-sm font-medium">عدد الجولات السياحية (اختياري)</label>
                         <div className="flex items-center gap-3">
                           <Button
                             type="button"
@@ -510,9 +525,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                   <Car className="w-8 h-8 mx-auto mb-2 text-orange-600" />
                   <h4 className="font-medium text-gray-800 mb-1">{transport.type}</h4>
                   <p className="text-sm text-gray-600 mb-2">السعة: {transport.capacity}</p>
-                  <p className="text-sm text-orange-600 font-medium">
-                    {formatCurrency(convertFromUSD(transport.price, selectedCurrency.code), selectedCurrency.code)}/يوم
-                  </p>
                   {data.carType === transport.type && (
                     <div className="text-green-600 font-medium mt-2">✅ محدد</div>
                   )}
@@ -541,7 +553,9 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
             </div>
             <div>
               <span className="text-green-700">الليالي المختارة: </span>
-              <span className="font-medium">{totalSelectedNights}</span>
+              <span className={`font-medium ${totalSelectedNights === requiredNights ? 'text-green-600' : 'text-red-600'}`}>
+                {totalSelectedNights}
+              </span>
             </div>
             <div>
               <span className="text-green-700">نوع السيارة: </span>
@@ -550,15 +564,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           </div>
         </CardContent>
       </Card>
-
-      {/* Payment Notice */}
-      <Alert className="bg-yellow-50 border-yellow-200">
-        <AlertTriangle className="h-4 w-4 text-yellow-600" />
-        <AlertDescription className="text-yellow-800">
-          <strong>ملاحظة مهمة:</strong> الأسعار معروضة بالعملة المختارة ({selectedCurrency.name}) للحساب فقط. 
-          الدفع الفعلي سيكون بالدولار الأمريكي عند الوصول إلى جورجيا.
-        </AlertDescription>
-      </Alert>
     </div>
   );
 };

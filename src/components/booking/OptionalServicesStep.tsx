@@ -1,19 +1,28 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
-import { Shield, Phone, Heart, UserCheck, Camera, Flower } from 'lucide-react';
+import { Shield, Phone, Heart, UserCheck, Camera, Flower, Info } from 'lucide-react';
 import { Plus, Minus } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface OptionalServicesStepProps {
   data: BookingData;
   updateData: (data: Partial<BookingData>) => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
-export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepProps) => {
+export const OptionalServicesStep = ({ data, updateData, onValidationChange }: OptionalServicesStepProps) => {
   const totalPeopleForInsurance = data.adults + data.children.length;
+
+  // جعل هذه المرحلة اختيارية دائماً
+  useEffect(() => {
+    if (onValidationChange) {
+      onValidationChange(true);
+    }
+  }, [onValidationChange]);
 
   const updateService = (service: string, field: string, value: any) => {
     updateData({
@@ -34,6 +43,14 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
         <p className="text-gray-600">خدمات اختيارية لجعل رحلتك أكثر راحة ومتعة</p>
       </div>
 
+      {/* Notice about optional services */}
+      <Alert className="bg-blue-50 border-blue-200">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <strong>ملاحظة:</strong> جميع الخدمات في هذه المرحلة اختيارية تماماً. يمكنك تجاوز هذه المرحلة دون اختيار أي خدمة إضافية.
+        </AlertDescription>
+      </Alert>
+
       <div className="space-y-6">
         {/* Travel Insurance */}
         <div className="p-6 border rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
@@ -42,7 +59,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
               <Shield className="w-6 h-6 text-blue-600" />
               <div>
                 <h3 className="font-bold text-blue-800">تأمين السفر</h3>
-                <p className="text-sm text-blue-600">حماية شاملة طوال فترة الرحلة</p>
+                <p className="text-sm text-blue-600">حماية شاملة طوال فترة الرحلة (اختياري)</p>
               </div>
             </div>
             <Switch
@@ -50,7 +67,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
               onCheckedChange={(checked) => {
                 updateService('travelInsurance', 'enabled', checked);
                 if (checked) {
-                  updateService('travelInsurance', 'persons', totalPeopleForInsurance);
+                  updateService('travelInsurance', 'persons', Math.min(totalPeopleForInsurance, 1));
                 } else {
                   updateService('travelInsurance', 'persons', 0);
                 }
@@ -72,7 +89,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
                   >
                     <Minus className="w-4 h-4" />
                   </Button>
-                  <span className="w-12 text-center font-semibold">
+                  <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
                     {data.additionalServices.travelInsurance.persons}
                   </span>
                   <Button
@@ -86,7 +103,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
                   </Button>
                 </div>
                 <p className="text-xs text-blue-600 mt-1">
-                  إجمالي الأشخاص في الرحلة: {totalPeopleForInsurance} (بالغين + أطفال)
+                  الحد الأقصى: {totalPeopleForInsurance} أشخاص (إجمالي المسافرين)
                 </p>
               </div>
             </div>
@@ -100,7 +117,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
               <Phone className="w-6 h-6 text-green-600" />
               <div>
                 <h3 className="font-bold text-green-800">خطوط الاتصال</h3>
-                <p className="text-sm text-green-600">خطوط هاتف محلية للتواصل المريح</p>
+                <p className="text-sm text-green-600">خطوط هاتف محلية للتواصل المريح (اختياري)</p>
               </div>
             </div>
             <Switch
@@ -109,6 +126,8 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
                 updateService('phoneLines', 'enabled', checked);
                 if (checked && data.additionalServices.phoneLines.quantity === 0) {
                   updateService('phoneLines', 'quantity', 1);
+                } else if (!checked) {
+                  updateService('phoneLines', 'quantity', 0);
                 }
               }}
             />
@@ -127,7 +146,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
-                <span className="w-12 text-center font-semibold">
+                <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
                   {data.additionalServices.phoneLines.quantity}
                 </span>
                 <Button
@@ -150,7 +169,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
               <Heart className="w-6 h-6 text-pink-600" />
               <div>
                 <h3 className="font-bold text-pink-800">تزيين الغرف (شهر العسل)</h3>
-                <p className="text-sm text-pink-600">تزيين رومانسي خاص للأزواج الجدد</p>
+                <p className="text-sm text-pink-600">تزيين رومانسي خاص للأزواج الجدد (اختياري)</p>
               </div>
             </div>
             <Switch
@@ -167,7 +186,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
               <Flower className="w-6 h-6 text-purple-600" />
               <div>
                 <h3 className="font-bold text-purple-800">الاستقبال بالورود</h3>
-                <p className="text-sm text-purple-600">استقبال خاص بباقة ورود جميلة</p>
+                <p className="text-sm text-purple-600">استقبال خاص بباقة ورود جميلة (اختياري)</p>
               </div>
             </div>
             <Switch
@@ -191,7 +210,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
               <UserCheck className="w-6 h-6 text-yellow-600" />
               <div>
                 <h3 className="font-bold text-yellow-800">الاستقبال من المطار VIP</h3>
-                <p className="text-sm text-yellow-600">استقبال مميز من المطار مع مرافق شخصي</p>
+                <p className="text-sm text-yellow-600">استقبال مميز من المطار مع مرافق شخصي (اختياري)</p>
               </div>
             </div>
             <Switch
@@ -199,7 +218,9 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
               onCheckedChange={(checked) => {
                 updateService('airportReception', 'enabled', checked);
                 if (checked && data.additionalServices.airportReception.persons === 0) {
-                  updateService('airportReception', 'persons', data.adults);
+                  updateService('airportReception', 'persons', Math.min(data.adults, 1));
+                } else if (!checked) {
+                  updateService('airportReception', 'persons', 0);
                 }
               }}
             />
@@ -218,7 +239,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
-                <span className="w-12 text-center font-semibold">
+                <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
                   {data.additionalServices.airportReception.persons}
                 </span>
                 <Button
@@ -241,7 +262,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
               <Camera className="w-6 h-6 text-indigo-600" />
               <div>
                 <h3 className="font-bold text-indigo-800">جلسة تصوير (شهر العسل)</h3>
-                <p className="text-sm text-indigo-600">جلسة تصوير احترافية لذكريات لا تُنسى</p>
+                <p className="text-sm text-indigo-600">جلسة تصوير احترافية لذكريات لا تُنسى (اختياري)</p>
               </div>
             </div>
             <Switch
@@ -260,7 +281,7 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
       </div>
 
       {/* Services Summary */}
-      {Object.values(data.additionalServices).some(service => service.enabled) && (
+      {Object.values(data.additionalServices).some(service => service.enabled) ? (
         <div className="mt-8 p-6 bg-gray-50 rounded-lg border">
           <h3 className="font-bold text-gray-800 mb-4">ملخص الخدمات المختارة:</h3>
           <div className="space-y-2 text-sm">
@@ -300,6 +321,13 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
                 <span className="text-green-600">✓</span>
               </div>
             )}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-8 p-6 bg-green-50 rounded-lg border border-green-200">
+          <div className="text-center">
+            <h3 className="font-medium text-green-800 mb-2">لم يتم اختيار خدمات إضافية</h3>
+            <p className="text-sm text-green-600">يمكنك المتابعة إلى المرحلة التالية أو اختيار خدمات إضافية حسب رغبتك</p>
           </div>
         </div>
       )}
