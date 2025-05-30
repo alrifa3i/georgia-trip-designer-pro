@@ -16,6 +16,7 @@ export interface CityStay {
   mandatoryTours: number;
   roomSelections?: RoomSelection[];
   additionalTours?: number;
+  availableTours?: string[];
 }
 
 export interface AdditionalServices {
@@ -61,22 +62,27 @@ export interface BookingData {
   discountCoupon?: string;
   discountAmount?: number;
   referenceNumber?: string;
+  passportFiles?: File[];
+  ticketFiles?: File[];
 }
 
 // Add missing types for data/hotels.ts
 export interface Hotel {
   name: string;
-  single: number;
-  single_v: number;
+  single?: number;
+  single_v?: number;
   dbl_wv: number;
   dbl_v: number;
   trbl_wv: number;
   trbl_v: number;
+  rating: number;
+  distanceFromCenter: number;
 }
 
 export interface Transport {
   type: string;
   price: number;
+  capacity: string;
   reception: {
     sameCity: number;
     differentCity: number;
@@ -89,5 +95,6 @@ export interface Transport {
 
 export interface TourLocation {
   name: string;
-  price: number;
+  price?: number;
+  description: string;
 }

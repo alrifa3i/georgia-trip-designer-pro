@@ -1,6 +1,16 @@
 
 import { Hotel, Transport, TourLocation } from '@/types/booking';
 
+export const cities = [
+  "تبليسي",
+  "باكورياني", 
+  "داشباش",
+  "باتومي",
+  "كوتايسي",
+  "كوداوري",
+  "برجومي"
+];
+
 export const hotelData: Record<string, Hotel[]> = {
   "تبليسي": [
     { name: "Marjan plaza hotel", dbl_v: 90, trbl_v: 130, dbl_wv: 80, trbl_wv: 120, rating: 4, distanceFromCenter: 2 },
@@ -46,35 +56,35 @@ export const hotelData: Record<string, Hotel[]> = {
 export const transportData: Transport[] = [
   { 
     type: "سيدان", 
-    price: 90, // Tour price for 1-3 persons
+    price: 90,
     capacity: "1-3 أشخاص",
     reception: { sameCity: 25, differentCity: 25 },
     farewell: { sameCity: 25, differentCity: 90 }
   },
   { 
     type: "ميني فان", 
-    price: 100, // Tour price for 4-6 persons
+    price: 100,
     capacity: "4-6 أشخاص",
     reception: { sameCity: 40, differentCity: 40 },
     farewell: { sameCity: 40, differentCity: 100 }
   },
   { 
     type: "فان", 
-    price: 120, // Tour price for 7-8 persons
+    price: 120,
     capacity: "7-8 أشخاص",
     reception: { sameCity: 65, differentCity: 65 },
     farewell: { sameCity: 65, differentCity: 110 }
   },
   { 
     type: "سبرنتر", 
-    price: 250, // Tour price for 9-14 persons
+    price: 250,
     capacity: "9-14 شخص",
     reception: { sameCity: 120, differentCity: 120 },
     farewell: { sameCity: 120, differentCity: 250 }
   },
   { 
     type: "باص", 
-    price: 400, // Tour price for 15+ persons
+    price: 400,
     capacity: "15+ شخص",
     reception: { sameCity: 150, differentCity: 150 },
     farewell: { sameCity: 150, differentCity: 200 }
@@ -155,7 +165,13 @@ export const additionalServicesData = {
   roomDecoration: {
     price: 100
   },
+  flowerReception: {
+    price: 50
+  },
   airportReception: {
     pricePerPerson: 240
+  },
+  photoSession: {
+    price: 200
   }
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -100,7 +99,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     if (onValidationChange) {
       onValidationChange(isValid);
     }
-  }, [data.selectedCities, data.carType, requiredNights]);
+  }, [data.selectedCities, data.carType, requiredNights, onValidationChange]);
 
   const addCity = () => {
     const newCity: CityStay = {
@@ -146,7 +145,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     if (!hotel) return;
     
     const roomTypes = ['single', 'single_v', 'dbl_wv', 'dbl_v', 'trbl_wv', 'trbl_v'];
-    const sortedRoomTypes = roomTypes.sort((a, b) => hotel[a] - hotel[b]);
+    const sortedRoomTypes = roomTypes.sort((a, b) => (hotel[a] || 0) - (hotel[b] || 0));
     
     const roomSelections = Array.from({ length: data.rooms }, (_, i) => ({
       roomNumber: i + 1,
@@ -166,19 +165,19 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
 
   const getSortedHotels = (cityName: string) => {
     const cityHotels = hotelData[cityName] || [];
-    return cityHotels.sort((a, b) => a.single - b.single); // Sort by cheapest single room price
+    return cityHotels.sort((a, b) => (a.dbl_wv || 0) - (b.dbl_wv || 0)); // Sort by cheapest double room price
   };
 
   const getSortedRoomTypes = (hotel: any) => {
     const roomTypes = [
-      { key: 'single', name: 'غرفة مفردة (بدون إطلالة)', price: hotel.single },
-      { key: 'single_v', name: 'غرفة مفردة (مع إطلالة)', price: hotel.single_v },
+      { key: 'single', name: 'غرفة مفردة (بدون إطلالة)', price: hotel.single || 0 },
+      { key: 'single_v', name: 'غرفة مفردة (مع إطلالة)', price: hotel.single_v || 0 },
       { key: 'dbl_wv', name: 'غرفة مزدوجة (بدون إطلالة)', price: hotel.dbl_wv },
       { key: 'dbl_v', name: 'غرفة مزدوجة (مع إطلالة)', price: hotel.dbl_v },
       { key: 'trbl_wv', name: 'غرفة ثلاثية (بدون إطلالة)', price: hotel.trbl_wv },
       { key: 'trbl_v', name: 'غرفة ثلاثية (مع إطلالة)', price: hotel.trbl_v }
     ];
-    return roomTypes.sort((a, b) => a.price - b.price);
+    return roomTypes.filter(rt => rt.price > 0).sort((a, b) => a.price - b.price);
   };
 
   return (
@@ -409,7 +408,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
             <SelectContent>
               {transportData.map((transport) => (
                 <SelectItem key={transport.type} value={transport.type}>
-                  {transport.type}
+                  {transport.type} - {transport.capacity}
                 </SelectItem>
               ))}
             </SelectContent>
