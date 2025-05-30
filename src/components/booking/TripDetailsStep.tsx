@@ -1,11 +1,13 @@
 
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
 import { airports, transportData } from '@/data/hotels';
-import { Plane, Car, Hotel, Info } from 'lucide-react';
+import { Plane, Car, Hotel, Info, Lightbulb, CheckCircle2 } from 'lucide-react';
 
 interface TripDetailsStepProps {
   data: BookingData;
@@ -13,13 +15,55 @@ interface TripDetailsStepProps {
 }
 
 export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
+  const [smartSuggestions, setSmartSuggestions] = useState<string[]>([]);
+
   const roomTypes = [
-    { id: 'single', label: 'غرفة مفردة (لشخص واحد)' },
-    { id: 'dbl_v', label: 'غرفة مزدوجة مع إطلالة وافطار' },
-    { id: 'dbl_wv', label: 'غرفة مزدوجة مع افطار (بدون إطلالة)' },
-    { id: 'trbl_v', label: 'غرفة ثلاثية مع إطلالة وافطار' },
-    { id: 'trbl_wv', label: 'غرفة ثلاثية مع افطار (بدون إطلالة)' }
+    { id: 'single', label: 'غرفة مفردة مع إفطار (بدون إطلالة)', capacity: 1 },
+    { id: 'single_v', label: 'غرفة مفردة مع إفطار (مع إطلالة)', capacity: 1 },
+    { id: 'dbl_wv', label: 'غرفة مزدوجة مع إفطار (بدون إطلالة)', capacity: 2 },
+    { id: 'dbl_v', label: 'غرفة مزدوجة مع إفطار (مع إطلالة)', capacity: 2 },
+    { id: 'trbl_wv', label: 'غرفة ثلاثية مع إفطار (بدون إطلالة)', capacity: 3 },
+    { id: 'trbl_v', label: 'غرفة ثلاثية مع إفطار (مع إطلالة)', capacity: 3 }
   ];
+
+  const generateSmartSuggestions = () => {
+    const totalAdults = data.adults + data.children.filter(child => child.age > 6).length;
+    const suggestions: string[] = [];
+
+    if (totalAdults === 1) {
+      suggestions.push('غرفة مفردة واحدة');
+    } else if (totalAdults === 2) {
+      suggestions.push('غرفة مزدوجة واحدة');
+      suggestions.push('غرفتين مفردة');
+    } else if (totalAdults === 3) {
+      suggestions.push('غرفة ثلاثية واحدة');
+      suggestions.push('غرفة مفردة + غرفة مزدوجة');
+      suggestions.push('3 غرف مفردة');
+    } else if (totalAdults === 4) {
+      suggestions.push('غرفتين مزدوجة');
+      suggestions.push('4 غرف مفردة');
+      suggestions.push('غرفة ثلاثية + غرفة مفردة');
+    } else if (totalAdults === 5) {
+      suggestions.push('غرفة ثلاثية + غرفة مزدوجة');
+      suggestions.push('5 غرف مفردة');
+      suggestions.push('غرفتين مزدوجة + غرفة مفردة');
+    } else if (totalAdults === 6) {
+      suggestions.push('غرفتين ثلاثية');
+      suggestions.push('3 غرف مزدوجة');
+      suggestions.push('6 غرف مفردة');
+    } else if (totalAdults > 6) {
+      const roomsNeeded = Math.ceil(totalAdults / 3);
+      suggestions.push(`${roomsNeeded} غرف ثلاثية`);
+      suggestions.push(`${Math.ceil(totalAdults / 2)} غرف مزدوجة`);
+      suggestions.push(`${totalAdults} غرف مفردة`);
+    }
+
+    setSmartSuggestions(suggestions);
+  };
+
+  useEffect(() => {
+    generateSmartSuggestions();
+  }, [data.adults, data.children]);
 
   const handleRoomTypeChange = (roomType: string, checked: boolean) => {
     const newRoomTypes = checked
@@ -43,6 +87,29 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
     const totalAdults = data.adults + data.children.filter(child => child.age > 6).length;
     const recommendedRooms = Math.ceil(totalAdults / 2);
     return data.rooms > recommendedRooms;
+  };
+
+  const applySuggestion = (suggestion: string) => {
+    // Reset room types
+    updateData({ roomTypes: [] });
+    
+    // Parse suggestion and update room types accordingly
+    if (suggestion.includes('مفردة واحدة')) {
+      updateData({ roomTypes: ['single'], rooms: 1 });
+    } else if (suggestion.includes('مزدوجة واحدة')) {
+      updateData({ roomTypes: ['dbl_wv'], rooms: 1 });
+    } else if (suggestion.includes('ثلاثية واحدة')) {
+      updateData({ roomTypes: ['trbl_wv'], rooms: 1 });
+    } else if (suggestion.includes('غرفتين مفردة')) {
+      updateData({ roomTypes: ['single'], rooms: 2 });
+    } else if (suggestion.includes('غرفتين مزدوجة')) {
+      updateData({ roomTypes: ['dbl_wv'], rooms: 2 });
+    } else if (suggestion.includes('غرفتين ثلاثية')) {
+      updateData({ roomTypes: ['trbl_wv'], rooms: 2 });
+    } else if (suggestion.includes('3 غرف مزدوجة')) {
+      updateData({ roomTypes: ['dbl_wv'], rooms: 3 });
+    }
+    // Add more parsing logic as needed
   };
 
   return (
@@ -107,6 +174,33 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
         </AlertDescription>
       </Alert>
 
+      {/* Smart Room Suggestions */}
+      {smartSuggestions.length > 0 && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
+          <div className="flex items-center gap-2 mb-4">
+            <Lightbulb className="w-5 h-5 text-blue-600" />
+            <h3 className="font-bold text-blue-800">اقتراحات ذكية لتوزيع الغرف</h3>
+          </div>
+          <p className="text-blue-700 mb-4 text-sm">
+            بناءً على عدد الأشخاص ({data.adults + data.children.filter(child => child.age > 6).length}), إليك أفضل خيارات توزيع الغرف:
+          </p>
+          <div className="grid md:grid-cols-2 gap-3">
+            {smartSuggestions.map((suggestion, index) => (
+              <Button
+                key={index}
+                variant="outline"
+                size="sm"
+                onClick={() => applySuggestion(suggestion)}
+                className="justify-start bg-white hover:bg-blue-50 border-blue-300"
+              >
+                <CheckCircle2 className="w-4 h-4 ml-2 text-blue-600" />
+                {suggestion}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Room Types */}
       <div className="space-y-4">
         <Label className="flex items-center gap-2 text-lg font-medium">
@@ -115,15 +209,18 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
         </Label>
         <div className="grid md:grid-cols-2 gap-4">
           {roomTypes.map((roomType) => (
-            <div key={roomType.id} className="flex items-center space-x-2 space-x-reverse p-3 border rounded-lg">
+            <div key={roomType.id} className="flex items-center space-x-2 space-x-reverse p-4 border-2 rounded-lg hover:border-blue-300 transition-colors">
               <Checkbox
                 id={roomType.id}
                 checked={data.roomTypes.includes(roomType.id)}
                 onCheckedChange={(checked) => handleRoomTypeChange(roomType.id, checked as boolean)}
               />
-              <Label htmlFor={roomType.id} className="text-sm cursor-pointer">
-                {roomType.label}
-              </Label>
+              <div className="flex-1">
+                <Label htmlFor={roomType.id} className="text-sm cursor-pointer font-medium">
+                  {roomType.label}
+                </Label>
+                <p className="text-xs text-gray-500">سعة: {roomType.capacity} {roomType.capacity === 1 ? 'شخص' : 'أشخاص'}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -154,7 +251,7 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
           {transportData.map((transport) => (
             <div
               key={transport.type}
-              className={`p-4 border rounded-lg cursor-pointer transition-all ${
+              className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
                 data.carType === transport.type
                   ? 'border-emerald-500 bg-emerald-50'
                   : 'border-gray-200 hover:border-gray-300'

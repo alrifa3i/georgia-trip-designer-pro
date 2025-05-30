@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
 import { currencies } from '@/data/hotels';
-import { Plus, Minus, User, Users, Calendar, AlertTriangle } from 'lucide-react';
+import { Plus, Minus, User, Users, Calendar, AlertTriangle, Shield, CheckCircle } from 'lucide-react';
 
 interface BasicInfoStepProps {
   data: BookingData;
@@ -62,21 +62,44 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
         <p className="text-gray-600">يرجى إدخال بياناتك الأساسية لبدء تصميم رحلتك</p>
       </div>
 
+      {/* Security Notice - First */}
+      <div className="bg-emerald-50 p-6 rounded-xl border-2 border-emerald-200 shadow-lg">
+        <div className="flex items-center gap-3 mb-3">
+          <Shield className="w-6 h-6 text-emerald-600" />
+          <span className="font-bold text-emerald-800 text-lg">لا يوجد دفع عبر الموقع</span>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
+            <span className="text-emerald-700 text-sm font-medium">جميع الحجوزات مؤكدة بدون دفع مقدم</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
+            <span className="text-emerald-700 text-sm font-medium">الدفع فقط عند الوصول واستلام الغرفة</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
+            <span className="text-emerald-700 text-sm font-medium">موقع آمن 100% ومحمي بأحدث تقنيات الأمان</span>
+          </div>
+        </div>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-6">
         {/* Customer Name */}
         <div className="space-y-2">
           <Label htmlFor="customerName" className="flex items-center gap-2">
             <User className="w-4 h-4" />
-            اسم العميل *
+            اسم العميل * (سيتم استخدام نفس الاسم في لوحة الاستقبال)
           </Label>
           <Input
             id="customerName"
             value={data.customerName}
             onChange={(e) => updateData({ customerName: e.target.value })}
-            placeholder="أدخل اسمك الكامل"
+            placeholder="أدخل اسمك الكامل كما هو في جواز السفر"
             className="text-right"
             required
           />
+          <p className="text-xs text-gray-500">تأكد من كتابة الاسم بنفس طريقة كتابته في جواز السفر</p>
         </div>
 
         {/* Adults Count */}
@@ -117,6 +140,16 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
             إضافة طفل
           </Button>
         </div>
+
+        {/* Children Policy Notice */}
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h4 className="font-medium text-blue-800 mb-2">سياسة الأطفال:</h4>
+          <ul className="text-sm text-blue-700 space-y-1">
+            <li>• الأطفال فوق 6 سنوات يُحسبون كأشخاص كاملي العدد</li>
+            <li>• الأطفال أقل من 6 سنوات لا يحتاجون سرير منفصل</li>
+            <li>• يُسمح بطفلين كحد أقصى (أقل من 6 سنوات) في الغرفة الواحدة</li>
+          </ul>
+        </div>
         
         {data.children.map((child, index) => (
           <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
@@ -138,7 +171,12 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
             </Select>
             {child.age <= 6 && (
               <span className="text-sm text-green-600 font-medium">
-                (لا يحتاج سرير)
+                (لا يحتاج سرير منفصل)
+              </span>
+            )}
+            {child.age > 6 && (
+              <span className="text-sm text-orange-600 font-medium">
+                (يُحسب كشخص كامل)
               </span>
             )}
             <Button
@@ -256,17 +294,6 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
             {currencies.find(c => c.code === data.currency)?.symbol}
           </span>
         </div>
-      </div>
-
-      {/* Payment Security Notice */}
-      <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-          <span className="font-medium text-green-800">دفعك آمن معنا</span>
-        </div>
-        <p className="text-green-700 text-sm">
-          لن يتم خصم أي مبالغ إلا بعد وصولك واستلام الغرفة. الموقع آمن تماماً ومحمي بأحدث تقنيات الأمان.
-        </p>
       </div>
     </div>
   );
