@@ -1,27 +1,28 @@
+
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { BasicInfoStep } from './booking/BasicInfoStep';
-import { TripDetailsStep } from './booking/TripDetailsStep';
-import { CitySelectionStep } from './booking/CitySelectionStep';
-import { AdditionalServicesStep } from './booking/AdditionalServicesStep';
-import { PricingStep } from './booking/PricingStep';
-import { ConfirmationStep } from './booking/ConfirmationStep';
+import { BasicTravelInfoStep } from './booking/BasicTravelInfoStep';
+import { CityHotelSelectionStep } from './booking/CityHotelSelectionStep';
+import { OptionalServicesStep } from './booking/OptionalServicesStep';
+import { PricingDetailsStep } from './booking/PricingDetailsStep';
+import { FinalConfirmationStep } from './booking/FinalConfirmationStep';
+import { AdvertisementSection } from './booking/AdvertisementSection';
 import { BookingData } from '@/types/booking';
 
 export const BookingWizard = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [bookingData, setBookingData] = useState<BookingData>({
     customerName: '',
-    adults: 1,
+    adults: 2,
     children: [],
     arrivalDate: '',
     departureDate: '',
     arrivalAirport: '',
     departureAirport: '',
     rooms: 1,
-    budget: 1000,
+    budget: 0, // سيتم حسابه تلقائياً
     currency: 'USD',
     roomTypes: [],
     carType: '',
@@ -31,11 +32,12 @@ export const BookingWizard = () => {
       travelInsurance: { enabled: false, persons: 0 },
       phoneLines: { enabled: false, quantity: 0 },
       roomDecoration: { enabled: false },
-      airportReception: { enabled: false, persons: 0 }
+      airportReception: { enabled: false, persons: 0 },
+      photoSession: { enabled: false } // خدمة جديدة
     }
   });
 
-  const totalSteps = 6;
+  const totalSteps = 5;
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
@@ -54,32 +56,31 @@ export const BookingWizard = () => {
   };
 
   const steps = [
-    { number: 1, title: 'المعلومات الأساسية' },
-    { number: 2, title: 'تفاصيل الرحلة' },
-    { number: 3, title: 'اختيار المدن' },
-    { number: 4, title: 'الخدمات الإضافية' },
-    { number: 5, title: 'حساب الأسعار' },
-    { number: 6, title: 'تأكيد الحجز' }
+    { number: 1, title: 'معلومات السفر الأساسية' },
+    { number: 2, title: 'المدن والفنادق' },
+    { number: 3, title: 'الخدمات الإضافية' },
+    { number: 4, title: 'تفاصيل الأسعار' },
+    { number: 5, title: 'التأكيد النهائي' }
   ];
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <BasicInfoStep data={bookingData} updateData={updateBookingData} />;
+        return <BasicTravelInfoStep data={bookingData} updateData={updateBookingData} />;
       case 2:
-        return <TripDetailsStep data={bookingData} updateData={updateBookingData} />;
+        return <CityHotelSelectionStep data={bookingData} updateData={updateBookingData} />;
       case 3:
-        return <CitySelectionStep data={bookingData} updateData={updateBookingData} />;
+        return <OptionalServicesStep data={bookingData} updateData={updateBookingData} />;
       case 4:
-        return <AdditionalServicesStep data={bookingData} updateData={updateBookingData} />;
+        return <PricingDetailsStep data={bookingData} updateData={updateBookingData} />;
       case 5:
-        return <PricingStep data={bookingData} updateData={updateBookingData} />;
-      case 6:
-        return <ConfirmationStep data={bookingData} updateData={updateBookingData} />;
+        return <FinalConfirmationStep data={bookingData} updateData={updateBookingData} />;
       default:
         return null;
     }
   };
+
+  const totalPeople = bookingData.adults + bookingData.children.length;
 
   return (
     <div className="max-w-4xl mx-auto" dir="rtl">
@@ -97,7 +98,7 @@ export const BookingWizard = () => {
               >
                 {step.number}
               </div>
-              <span className="text-sm mt-2 text-gray-700 font-medium">{step.title}</span>
+              <span className="text-sm mt-2 text-gray-700 font-medium text-center">{step.title}</span>
             </div>
           ))}
         </div>
@@ -109,13 +110,13 @@ export const BookingWizard = () => {
         </div>
       </div>
 
-      {/* Enhanced Step Content */}
+      {/* Step Content */}
       <Card className="p-8 mb-8 shadow-2xl bg-white/98 backdrop-blur-sm border-2 border-white/50">
         {renderStep()}
       </Card>
 
-      {/* Enhanced Navigation Buttons */}
-      <div className="flex justify-between">
+      {/* Navigation Buttons */}
+      <div className="flex justify-between mb-8">
         <Button
           onClick={prevStep}
           disabled={currentStep === 1}
@@ -134,6 +135,9 @@ export const BookingWizard = () => {
           <ChevronLeft className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* Advertisement Section */}
+      <AdvertisementSection peopleCount={totalPeople} />
     </div>
   );
 };

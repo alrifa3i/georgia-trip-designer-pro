@@ -28,7 +28,7 @@ export interface CityStay {
   tours: number;
   availableTours?: TourLocation[];
   mandatoryTours?: number;
-  roomSelections?: RoomSelection[]; // Added for detailed room selection
+  roomSelections?: RoomSelection[];
 }
 
 export interface RoomSelection {
@@ -47,8 +47,8 @@ export interface Hotel {
   trbl_v: number;
   dbl_wv: number;
   trbl_wv: number;
-  single?: number; // Added single room pricing
-  single_v?: number; // Added single room with view pricing
+  single?: number;
+  single_v?: number;
   rating?: number;
   distanceFromCenter?: number;
 }
@@ -82,5 +82,8 @@ export interface AdditionalServices {
   airportReception: {
     enabled: boolean;
     persons: number;
+  };
+  photoSession?: {
+    enabled: boolean;
   };
 }
