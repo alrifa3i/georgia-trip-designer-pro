@@ -12,9 +12,10 @@ import { Plus, Minus, User, Users, Calendar, Plane, Shield, CheckCircle, DollarS
 interface BasicTravelInfoStepProps {
   data: BookingData;
   updateData: (data: Partial<BookingData>) => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
-export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, updateData }) => {
+export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, updateData, onValidationChange }) => {
   const [dateError, setDateError] = useState('');
   const [tripDays, setTripDays] = useState(0);
   const [tripNights, setTripNights] = useState(0);
@@ -41,7 +42,7 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
       const arrival = new Date(data.arrivalDate);
       const departure = new Date(data.departureDate);
       const diffInTime = departure.getTime() - arrival.getTime();
-      const days = Math.ceil(diffInTime / (1000 * 60 * 60 * 24));
+      const days = Math.floor(diffInTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
       const nights = days - 1;
       
       setTripDays(days);
@@ -58,9 +59,24 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
     return true;
   };
 
+  const validateForm = () => {
+    const isValid = data.arrivalDate && 
+                   data.departureDate && 
+                   data.arrivalAirport && 
+                   data.departureAirport && 
+                   data.budget > 0 &&
+                   !dateError;
+    
+    if (onValidationChange) {
+      onValidationChange(!!isValid);
+    }
+    return !!isValid;
+  };
+
   useEffect(() => {
     calculateTripDuration();
-  }, [data.arrivalDate, data.departureDate]);
+    validateForm();
+  }, [data.arrivalDate, data.departureDate, data.arrivalAirport, data.departureAirport, data.budget]);
 
   const selectedCurrency = currencies.find(c => c.code === data.currency);
 
@@ -291,14 +307,14 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
         <h3 className="font-bold text-purple-800 text-lg mb-4 flex items-center gap-2">
           <DollarSign className="w-5 h-5" />
-          الميزانية المطلوبة *
+          الميزانية المناسبة لك *
         </h3>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>المبلغ المتوقع *</Label>
+            <Label>الميزانية المطلوبة *</Label>
             <Input
               type="number"
-              placeholder="أدخل ميزانيتك المتوقعة"
+              placeholder="أدخل ميزانيتك المطلوبة"
               value={data.budget || ''}
               onChange={(e) => updateData({ budget: parseFloat(e.target.value) || 0 })}
               required

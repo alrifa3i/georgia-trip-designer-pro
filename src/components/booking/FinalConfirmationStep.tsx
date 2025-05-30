@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
 import { currencies } from '@/data/hotels';
-import { CheckCircle, Upload, Phone, User, Clock, Shield, IdCard } from 'lucide-react';
+import { CheckCircle, Upload, Phone, User, Clock, Shield, IdCard, MessageCircle, Plus, Minus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface FinalConfirmationStepProps {
@@ -22,10 +22,17 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
   const [verificationCode, setVerificationCode] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const [passportFile, setPassportFile] = useState<File | null>(null);
-  const [ticketFile, setTicketFile] = useState<File | null>(null);
+  const [passportFiles, setPassportFiles] = useState<File[]>([]);
+  const [ticketFiles, setTicketFiles] = useState<File[]>([]);
+  const [showReferenceNumber, setShowReferenceNumber] = useState(false);
+  const [referenceNumber, setReferenceNumber] = useState('');
 
   const selectedCurrency = currencies.find(c => c.code === data.currency);
+  const totalPeople = data.adults + data.children.length;
+
+  const generateReferenceNumber = () => {
+    return Math.random().toString().slice(2, 14).padStart(12, '0');
+  };
 
   const sendVerificationCode = () => {
     if (!phone.trim()) {
@@ -60,11 +67,35 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
     }
   };
 
-  const handleFileUpload = (type: 'passport' | 'ticket', file: File | null) => {
-    if (type === 'passport') {
-      setPassportFile(file);
+  const handlePassportUpload = (index: number, file: File | null) => {
+    const newFiles = [...passportFiles];
+    if (file) {
+      newFiles[index] = file;
     } else {
-      setTicketFile(file);
+      newFiles.splice(index, 1);
+    }
+    setPassportFiles(newFiles);
+  };
+
+  const handleTicketUpload = (index: number, file: File | null) => {
+    const newFiles = [...ticketFiles];
+    if (file) {
+      newFiles[index] = file;
+    } else {
+      newFiles.splice(index, 1);
+    }
+    setTicketFiles(newFiles);
+  };
+
+  const addPassportSlot = () => {
+    if (passportFiles.length < totalPeople) {
+      setPassportFiles([...passportFiles, new File([], '')]);
+    }
+  };
+
+  const addTicketSlot = () => {
+    if (ticketFiles.length < 2) {
+      setTicketFiles([...ticketFiles, new File([], '')]);
     }
   };
 
@@ -96,25 +127,78 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
       return;
     }
 
-    if (!passportFile) {
+    if (passportFiles.length === 0 || !passportFiles[0] || passportFiles[0].size === 0) {
       toast({
         title: "مطلوب",
-        description: "يرجى رفع صورة جواز السفر",
+        description: "يرجى رفع جواز السفر الأول على الأقل",
         variant: "destructive"
       });
       return;
     }
 
-    // تحديث البيانات النهائية
+    if (ticketFiles.length === 0 || !ticketFiles[0] || ticketFiles[0].size === 0) {
+      toast({
+        title: "مطلوب",
+        description: "يرجى رفع تذكرة السفر",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Generate reference number
+    const refNumber = generateReferenceNumber();
+    setReferenceNumber(refNumber);
+    setShowReferenceNumber(true);
+
+    // Update booking data
     updateData({ 
-      customerName: passportName 
+      customerName: passportName,
+      referenceNumber: refNumber
     });
 
     toast({
       title: "تم تأكيد الحجز بنجاح! 🎉",
-      description: "سيتم التواصل معك خلال 24 ساعة عمل لتأكيد التفاصيل"
+      description: `رقمك المرجعي: ${refNumber}`
     });
   };
+
+  const sendToWhatsApp = () => {
+    const message = `السلام عليكم لقد قمت بحجز مبدئي على اداة تصميم الحجز برقم مرجعي (${referenceNumber}) الرجاء تأكيد الحجز و بانتظار الحجوزات`;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=995514000668&text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  if (showReferenceNumber) {
+    return (
+      <div className="space-y-6 text-center">
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-8 rounded-xl border-2 border-green-200">
+          <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+          <h2 className="text-3xl font-bold text-green-800 mb-4">تم تأكيد الحجز بنجاح! 🎉</h2>
+          <div className="bg-white p-6 rounded-lg border-2 border-green-300 mb-6">
+            <p className="text-gray-700 text-lg mb-2">رقمك المرجعي</p>
+            <p className="text-4xl font-bold text-green-600 tracking-wider">{referenceNumber}</p>
+          </div>
+          <p className="text-green-700 mb-6">احفظ هذا الرقم للمراجعة</p>
+          
+          <Button
+            onClick={sendToWhatsApp}
+            size="lg"
+            className="bg-green-600 hover:bg-green-700 px-8 py-3 text-lg font-bold"
+          >
+            <MessageCircle className="w-5 h-5 ml-2" />
+            إرسال للواتساب
+          </Button>
+        </div>
+        
+        <Alert>
+          <Clock className="h-4 w-4" />
+          <AlertDescription>
+            سيتم التواصل معك خلال 24 ساعة عمل لتأكيد التفاصيل النهائية
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -246,38 +330,89 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
             رفع المستندات المطلوبة
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Passport Upload */}
           <div>
-            <Label htmlFor="passport">صورة جواز السفر (مطلوب) *</Label>
-            <Input
-              id="passport"
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleFileUpload('passport', e.target.files?.[0] || null)}
-              className="mt-1"
-              required
-            />
-            {passportFile && (
-              <p className="text-sm text-green-600 mt-1">
-                ✅ تم رفع: {passportFile.name}
-              </p>
-            )}
+            <div className="flex items-center justify-between mb-3">
+              <Label>جوازات السفر (الأول مطلوب) *</Label>
+              <Button
+                onClick={addPassportSlot}
+                variant="outline"
+                size="sm"
+                disabled={passportFiles.length >= totalPeople}
+              >
+                <Plus className="w-4 h-4 ml-1" />
+                إضافة جواز
+              </Button>
+            </div>
+            
+            <div className="space-y-3">
+              {Array.from({ length: Math.max(1, passportFiles.length) }, (_, index) => (
+                <div key={index}>
+                  <Label htmlFor={`passport-${index}`}>
+                    جواز السفر {index + 1} {index === 0 ? '(مطلوب)' : '(اختياري)'}
+                  </Label>
+                  <Input
+                    id={`passport-${index}`}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handlePassportUpload(index, e.target.files?.[0] || null)}
+                    className="mt-1"
+                    required={index === 0}
+                  />
+                  {passportFiles[index] && passportFiles[index].size > 0 && (
+                    <p className="text-sm text-green-600 mt-1">
+                      ✅ تم رفع: {passportFiles[index].name}
+                    </p>
+                  )}
+                </div>
+              ))}
+              
+              {passportFiles.length < totalPeople && (
+                <p className="text-xs text-gray-500">
+                  يمكن رفع حتى {totalPeople} جواز سفر (عدد المسافرين)
+                </p>
+              )}
+            </div>
           </div>
           
+          {/* Ticket Upload */}
           <div>
-            <Label htmlFor="tickets">تذاكر السفر (اختياري)</Label>
-            <Input
-              id="tickets"
-              type="file"
-              accept="image/*,.pdf"
-              onChange={(e) => handleFileUpload('ticket', e.target.files?.[0] || null)}
-              className="mt-1"
-            />
-            {ticketFile && (
-              <p className="text-sm text-green-600 mt-1">
-                ✅ تم رفع: {ticketFile.name}
-              </p>
-            )}
+            <div className="flex items-center justify-between mb-3">
+              <Label>تذاكر السفر (الأولى مطلوبة) *</Label>
+              <Button
+                onClick={addTicketSlot}
+                variant="outline"
+                size="sm"
+                disabled={ticketFiles.length >= 2}
+              >
+                <Plus className="w-4 h-4 ml-1" />
+                إضافة تذكرة
+              </Button>
+            </div>
+            
+            <div className="space-y-3">
+              {Array.from({ length: Math.max(1, ticketFiles.length) }, (_, index) => (
+                <div key={index}>
+                  <Label htmlFor={`ticket-${index}`}>
+                    تذكرة السفر {index + 1} {index === 0 ? '(مطلوبة)' : '(اختيارية)'}
+                  </Label>
+                  <Input
+                    id={`ticket-${index}`}
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => handleTicketUpload(index, e.target.files?.[0] || null)}
+                    className="mt-1"
+                    required={index === 0}
+                  />
+                  {ticketFiles[index] && ticketFiles[index].size > 0 && (
+                    <p className="text-sm text-green-600 mt-1">
+                      ✅ تم رفع: {ticketFiles[index].name}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -298,11 +433,15 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
-              <span>إمكانية الإلغاء المجاني حتى 48 ساعة قبل السفر</span>
+              <span>إمكانية الإلغاء المجاني حتى 72 ساعة قبل السفر</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
               <span>ضمان استرداد كامل في حالة عدم الحصول على الخدمة</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>جميع المستندات محفوظة بشكل آمن على Google Drive</span>
             </div>
           </div>
         </CardContent>
@@ -319,6 +458,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
               <li>• أيام السبت والأحد عطلة رسمية</li>
               <li>• سيتم التواصل معك عبر الواتساب المحدد</li>
               <li>• يمكن تعديل التفاصيل قبل التأكيد النهائي</li>
+              <li>• سيتم حفظ المستندات على Google Drive بشكل آمن</li>
             </ul>
           </div>
         </AlertDescription>
@@ -330,7 +470,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
           onClick={confirmBooking}
           size="lg"
           className="bg-emerald-600 hover:bg-emerald-700 px-8 py-3 text-lg font-bold"
-          disabled={!isVerified || !passportFile || !passportName.trim() || !receptionName.trim()}
+          disabled={!isVerified || passportFiles.length === 0 || ticketFiles.length === 0 || !passportName.trim() || !receptionName.trim()}
         >
           🎉 تأكيد الحجز النهائي 🎉
         </Button>

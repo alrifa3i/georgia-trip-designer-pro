@@ -13,6 +13,7 @@ import { BookingData } from '@/types/booking';
 
 export const BookingWizard = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [stepValidations, setStepValidations] = useState<{[key: number]: boolean}>({});
   const [bookingData, setBookingData] = useState<BookingData>({
     customerName: '',
     adults: 2,
@@ -22,7 +23,7 @@ export const BookingWizard = () => {
     arrivalAirport: '',
     departureAirport: '',
     rooms: 1,
-    budget: 0, // سيتم حسابه تلقائياً
+    budget: 0,
     currency: 'USD',
     roomTypes: [],
     carType: '',
@@ -33,14 +34,19 @@ export const BookingWizard = () => {
       phoneLines: { enabled: false, quantity: 0 },
       roomDecoration: { enabled: false },
       airportReception: { enabled: false, persons: 0 },
-      photoSession: { enabled: false } // خدمة جديدة
+      photoSession: { enabled: false },
+      flowerReception: { enabled: false }
     }
   });
 
   const totalSteps = 5;
 
+  const updateStepValidation = (step: number, isValid: boolean) => {
+    setStepValidations(prev => ({ ...prev, [step]: isValid }));
+  };
+
   const nextStep = () => {
-    if (currentStep < totalSteps) {
+    if (currentStep < totalSteps && stepValidations[currentStep]) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -66,9 +72,17 @@ export const BookingWizard = () => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <BasicTravelInfoStep data={bookingData} updateData={updateBookingData} />;
+        return <BasicTravelInfoStep 
+          data={bookingData} 
+          updateData={updateBookingData}
+          onValidationChange={(isValid) => updateStepValidation(1, isValid)}
+        />;
       case 2:
-        return <CityHotelSelectionStep data={bookingData} updateData={updateBookingData} />;
+        return <CityHotelSelectionStep 
+          data={bookingData} 
+          updateData={updateBookingData}
+          onValidationChange={(isValid) => updateStepValidation(2, isValid)}
+        />;
       case 3:
         return <OptionalServicesStep data={bookingData} updateData={updateBookingData} />;
       case 4:
@@ -128,8 +142,8 @@ export const BookingWizard = () => {
         </Button>
         <Button
           onClick={nextStep}
-          disabled={currentStep === totalSteps}
-          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg"
+          disabled={currentStep === totalSteps || !stepValidations[currentStep]}
+          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg disabled:opacity-50"
         >
           التالي
           <ChevronLeft className="w-4 h-4" />

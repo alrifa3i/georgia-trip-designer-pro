@@ -51,6 +51,8 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
                 updateService('travelInsurance', 'enabled', checked);
                 if (checked) {
                   updateService('travelInsurance', 'persons', totalPeopleForInsurance);
+                } else {
+                  updateService('travelInsurance', 'persons', 0);
                 }
               }}
             />
@@ -77,7 +79,8 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => updateService('travelInsurance', 'persons', data.additionalServices.travelInsurance.persons + 1)}
+                    onClick={() => updateService('travelInsurance', 'persons', Math.min(totalPeopleForInsurance, data.additionalServices.travelInsurance.persons + 1))}
+                    disabled={data.additionalServices.travelInsurance.persons >= totalPeopleForInsurance}
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
@@ -102,7 +105,12 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
             </div>
             <Switch
               checked={data.additionalServices.phoneLines.enabled}
-              onCheckedChange={(checked) => updateService('phoneLines', 'enabled', checked)}
+              onCheckedChange={(checked) => {
+                updateService('phoneLines', 'enabled', checked);
+                if (checked && data.additionalServices.phoneLines.quantity === 0) {
+                  updateService('phoneLines', 'quantity', 1);
+                }
+              }}
             />
           </div>
 
@@ -188,7 +196,12 @@ export const OptionalServicesStep = ({ data, updateData }: OptionalServicesStepP
             </div>
             <Switch
               checked={data.additionalServices.airportReception.enabled}
-              onCheckedChange={(checked) => updateService('airportReception', 'enabled', checked)}
+              onCheckedChange={(checked) => {
+                updateService('airportReception', 'enabled', checked);
+                if (checked && data.additionalServices.airportReception.persons === 0) {
+                  updateService('airportReception', 'persons', data.adults);
+                }
+              }}
             />
           </div>
 

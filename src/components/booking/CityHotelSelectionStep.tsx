@@ -1,118 +1,115 @@
 
-import React, { useState, useEffect } from 'react';
-import { Label } from '@/components/ui/label';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BookingData, CityStay, RoomSelection } from '@/types/booking';
-import { hotelData, transportData, airportCityMapping } from '@/data/hotels';
-import { Plus, Minus, MapPin, Building2, Car, Hotel, AlertTriangle, Info, Star } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { BookingData, CityStay } from '@/types/booking';
+import { cities, hotelData, transportData } from '@/data/hotels';
+import { MapPin, Hotel, Car, Plus, Minus, Info, AlertCircle } from 'lucide-react';
 
 interface CityHotelSelectionStepProps {
   data: BookingData;
   updateData: (data: Partial<BookingData>) => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
-export const CityHotelSelectionStep = ({ data, updateData }: CityHotelSelectionStepProps) => {
-  const availableCities = Object.keys(hotelData);
+export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }: CityHotelSelectionStepProps) => {
+  const [totalSelectedNights, setTotalSelectedNights] = useState(0);
+  const [requiredNights, setRequiredNights] = useState(0);
 
-  // Room types sorted by price (cheapest to most expensive)
-  const roomTypes = [
-    { id: 'dbl_wv', label: 'غرفة مزدوجة مع إفطار (بدون إطلالة) - الأرخص', capacity: 2 },
-    { id: 'dbl_v', label: 'غرفة مزدوجة مع إفطار (مع إطلالة)', capacity: 2 },
-    { id: 'single', label: 'غرفة مفردة مع إفطار (بدون إطلالة)', capacity: 1 },
-    { id: 'single_v', label: 'غرفة مفردة مع إفطار (مع إطلالة)', capacity: 1 },
-    { id: 'trbl_wv', label: 'غرفة ثلاثية مع إفطار (بدون إطلالة)', capacity: 3 },
-    { id: 'trbl_v', label: 'غرفة ثلاثية مع إفطار (مع إطلالة) - الأغلى', capacity: 3 }
-  ];
-
-  // Get total nights from dates
-  const getTotalNights = () => {
-    if (data.arrivalDate && data.departureDate) {
-      const arrival = new Date(data.arrivalDate);
-      const departure = new Date(data.departureDate);
-      const diffInTime = departure.getTime() - arrival.getTime();
-      return Math.max(0, Math.ceil(diffInTime / (1000 * 60 * 60 * 24)) - 1);
-    }
-    return 0;
+  const getTripNights = () => {
+    if (!data.arrivalDate || !data.departureDate) return 0;
+    const arrival = new Date(data.arrivalDate);
+    const departure = new Date(data.departureDate);
+    return Math.floor((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  const totalNights = getTotalNights();
-  const currentNights = data.selectedCities.reduce((sum, city) => sum + city.nights, 0);
-
-  // Sort hotels by price (cheapest to most expensive)
-  const getSortedHotels = (cityName: string) => {
-    const hotels = hotelData[cityName] || [];
-    return hotels.sort((a, b) => {
-      const aPrice = Math.min(a.dbl_wv || 999, a.dbl_v || 999, a.single || 999);
-      const bPrice = Math.min(b.dbl_wv || 999, b.dbl_v || 999, b.single || 999);
-      return aPrice - bPrice;
-    });
+  const getArrivalCity = () => {
+    if (data.arrivalAirport === 'تبليسي') return 'تبليسي';
+    if (data.arrivalAirport === 'باتومي') return 'باتومي';
+    return 'تبليسي'; // default
   };
 
-  // Auto-add airport cities when component loads
+  const getDepartureCity = () => {
+    if (data.departureAirport === 'تبليسي') return 'تبليسي';
+    if (data.departureAirport === 'باتومي') return 'باتومي';
+    return 'تبليسي'; // default
+  };
+
   useEffect(() => {
-    if (data.arrivalAirport && data.departureAirport && data.selectedCities.length === 0) {
-      const firstNightCity = airportCityMapping[data.arrivalAirport];
-      const lastNightCity = airportCityMapping[data.departureAirport];
-      
+    const nights = getTripNights();
+    setRequiredNights(nights);
+    
+    // Auto-add arrival and departure cities if not already added
+    const arrivalCity = getArrivalCity();
+    const departureCity = getDepartureCity();
+    
+    if (data.selectedCities.length === 0 && nights > 0) {
       const newCities: CityStay[] = [];
       
-      if (firstNightCity) {
+      // Add arrival city
+      if (arrivalCity === departureCity) {
         newCities.push({
-          city: firstNightCity,
-          nights: 1,
+          city: arrivalCity,
+          nights: Math.min(nights, 3),
           hotel: '',
-          tours: 0,
-          mandatoryTours: firstNightCity === 'باتومي' ? 2 : 1,
+          tours: 1,
+          mandatoryTours: arrivalCity === 'باتومي' ? 2 : 1,
+          additionalTours: 0,
           roomSelections: []
         });
-      }
-      
-      if (lastNightCity && lastNightCity !== firstNightCity) {
+      } else {
         newCities.push({
-          city: lastNightCity,
-          nights: 1,
+          city: arrivalCity,
+          nights: Math.floor(nights / 2),
           hotel: '',
-          tours: 0,
-          mandatoryTours: lastNightCity === 'باتومي' ? 2 : 1,
+          tours: 1,
+          mandatoryTours: arrivalCity === 'باتومي' ? 2 : 1,
+          additionalTours: 0,
           roomSelections: []
         });
+        
+        if (departureCity !== arrivalCity) {
+          newCities.push({
+            city: departureCity,
+            nights: Math.ceil(nights / 2),
+            hotel: '',
+            tours: 1,
+            mandatoryTours: departureCity === 'باتومي' ? 2 : 1,
+            additionalTours: 0,
+            roomSelections: []
+          });
+        }
       }
       
       updateData({ selectedCities: newCities });
     }
-  }, [data.arrivalAirport, data.departureAirport]);
+  }, [data.arrivalDate, data.departureDate, data.arrivalAirport, data.departureAirport]);
 
-  // Auto-calculate recommended rooms and car type
   useEffect(() => {
-    const totalAdults = data.adults + data.children.filter(child => child.age > 6).length;
-    const recommendedRooms = Math.ceil(totalAdults / 2);
+    const total = data.selectedCities.reduce((sum, city) => sum + city.nights, 0);
+    setTotalSelectedNights(total);
     
-    if (data.rooms !== recommendedRooms) {
-      updateData({ rooms: recommendedRooms });
+    // Validate the step
+    const isValid = total === requiredNights && 
+                   data.selectedCities.every(city => city.hotel && city.roomSelections && city.roomSelections.length > 0) &&
+                   data.carType;
+    
+    if (onValidationChange) {
+      onValidationChange(isValid);
     }
-
-    const totalPeople = data.adults + data.children.filter(child => child.age > 6).length;
-    let recommendedCar = 'سيدان';
-    if (totalPeople <= 3) recommendedCar = 'سيدان';
-    else if (totalPeople <= 6) recommendedCar = 'ميني فان';
-    else if (totalPeople <= 8) recommendedCar = 'فان';
-    else if (totalPeople <= 14) recommendedCar = 'سبرنتر';
-    else recommendedCar = 'باص';
-
-    if (data.carType !== recommendedCar) {
-      updateData({ carType: recommendedCar });
-    }
-  }, [data.adults, data.children]);
+  }, [data.selectedCities, data.carType, requiredNights]);
 
   const addCity = () => {
     const newCity: CityStay = {
       city: '',
-      nights: 2,
+      nights: 1,
       hotel: '',
-      tours: 0,
+      tours: 1,
       mandatoryTours: 1,
+      additionalTours: 0,
       roomSelections: []
     };
     updateData({
@@ -125,31 +122,41 @@ export const CityHotelSelectionStep = ({ data, updateData }: CityHotelSelectionS
     updateData({ selectedCities: newCities });
   };
 
-  const updateCity = (index: number, field: keyof CityStay, value: string | number) => {
+  const updateCity = (index: number, updates: Partial<CityStay>) => {
     const newCities = [...data.selectedCities];
-    newCities[index] = { ...newCities[index], [field]: value };
+    newCities[index] = { ...newCities[index], ...updates };
     
-    // Set mandatory tours based on city
-    if (field === 'city') {
-      newCities[index].mandatoryTours = value === 'باتومي' ? 2 : 1;
-    }
-    
-    // Initialize room selections when hotel is selected
-    if (field === 'hotel' && value !== '') {
-      const roomSelections: RoomSelection[] = [];
-      for (let i = 0; i < data.rooms; i++) {
-        roomSelections.push({
-          roomNumber: i + 1,
-          roomType: 'dbl_wv' // Default to cheapest option
-        });
-      }
-      newCities[index].roomSelections = roomSelections;
+    // Update mandatory tours based on city
+    if (updates.city) {
+      newCities[index].mandatoryTours = updates.city === 'باتومي' ? 2 : 1;
+      newCities[index].tours = newCities[index].mandatoryTours + (newCities[index].additionalTours || 0);
     }
     
     updateData({ selectedCities: newCities });
   };
 
-  const updateRoomSelection = (cityIndex: number, roomIndex: number, roomType: string) => {
+  const updateAdditionalTours = (index: number, additionalTours: number) => {
+    const newCities = [...data.selectedCities];
+    newCities[index].additionalTours = additionalTours;
+    newCities[index].tours = newCities[index].mandatoryTours + additionalTours;
+    updateData({ selectedCities: newCities });
+  };
+
+  const generateRoomSelections = (cityIndex: number, hotel: any) => {
+    if (!hotel) return;
+    
+    const roomTypes = ['single', 'single_v', 'dbl_wv', 'dbl_v', 'trbl_wv', 'trbl_v'];
+    const sortedRoomTypes = roomTypes.sort((a, b) => hotel[a] - hotel[b]);
+    
+    const roomSelections = Array.from({ length: data.rooms }, (_, i) => ({
+      roomNumber: i + 1,
+      roomType: sortedRoomTypes[0] // Default to cheapest room type
+    }));
+    
+    updateCity(cityIndex, { roomSelections });
+  };
+
+  const updateRoomType = (cityIndex: number, roomIndex: number, roomType: string) => {
     const newCities = [...data.selectedCities];
     if (newCities[cityIndex].roomSelections) {
       newCities[cityIndex].roomSelections![roomIndex].roomType = roomType;
@@ -157,71 +164,247 @@ export const CityHotelSelectionStep = ({ data, updateData }: CityHotelSelectionS
     }
   };
 
+  const getSortedHotels = (cityName: string) => {
+    const cityHotels = hotelData[cityName] || [];
+    return cityHotels.sort((a, b) => a.single - b.single); // Sort by cheapest single room price
+  };
+
+  const getSortedRoomTypes = (hotel: any) => {
+    const roomTypes = [
+      { key: 'single', name: 'غرفة مفردة (بدون إطلالة)', price: hotel.single },
+      { key: 'single_v', name: 'غرفة مفردة (مع إطلالة)', price: hotel.single_v },
+      { key: 'dbl_wv', name: 'غرفة مزدوجة (بدون إطلالة)', price: hotel.dbl_wv },
+      { key: 'dbl_v', name: 'غرفة مزدوجة (مع إطلالة)', price: hotel.dbl_v },
+      { key: 'trbl_wv', name: 'غرفة ثلاثية (بدون إطلالة)', price: hotel.trbl_wv },
+      { key: 'trbl_v', name: 'غرفة ثلاثية (مع إطلالة)', price: hotel.trbl_v }
+    ];
+    return roomTypes.sort((a, b) => a.price - b.price);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">المدن والفنادق</h2>
-        <p className="text-gray-600">اختر المدن التي تريد زيارتها والفنادق المناسبة</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">اختيار المدن والفنادق</h2>
+        <p className="text-gray-600">حدد المدن التي تريد زيارتها والفنادق المفضلة</p>
       </div>
 
-      {/* Nights Balance Alert */}
-      {totalNights > 0 && (
-        <Alert className={currentNights === totalNights ? "border-green-500 bg-green-50" : "border-orange-500 bg-orange-50"}>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            {currentNights === totalNights ? (
-              <span className="text-green-700">✅ عدد الليالي متطابق: {currentNights} من {totalNights} ليلة</span>
-            ) : (
-              <span className="text-orange-700">
-                ⚠️ عدد الليالي غير متطابق: {currentNights} من {totalNights} ليلة مطلوبة
-                {currentNights < totalNights && ` (نقص ${totalNights - currentNights} ليالي)`}
-                {currentNights > totalNights && ` (زيادة ${currentNights - totalNights} ليالي)`}
-              </span>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Room Count and Car Type */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
-          <div className="flex items-center gap-2 mb-2">
-            <Hotel className="w-5 h-5 text-blue-600" />
-            <h3 className="font-bold text-blue-800">عدد الغرف المقترح</h3>
+      {/* Night Count Info */}
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="flex items-center gap-2 mb-2">
+          <Info className="w-5 h-5 text-blue-600" />
+          <span className="font-medium text-blue-800">معلومات الإقامة</span>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4 text-sm">
+          <div>
+            <span className="text-blue-700">إجمالي الليالي المطلوبة: </span>
+            <span className="font-bold text-blue-800">{requiredNights} ليلة</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => updateData({ rooms: Math.max(1, data.rooms - 1) })}
-              disabled={data.rooms <= 1}
-            >
-              <Minus className="w-4 h-4" />
-            </Button>
-            <span className="w-12 text-center font-semibold text-lg">{data.rooms}</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => updateData({ rooms: data.rooms + 1 })}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
+          <div>
+            <span className="text-blue-700">الليالي المحددة: </span>
+            <span className="font-bold text-blue-800">{totalSelectedNights} ليلة</span>
+          </div>
+          <div>
+            <span className="text-blue-700">عدد الغرف: </span>
+            <span className="font-bold text-blue-800">{data.rooms} غرفة</span>
           </div>
         </div>
+        {totalSelectedNights !== requiredNights && (
+          <Alert className="mt-3">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              يجب أن يتطابق عدد الليالي المحددة ({totalSelectedNights}) مع إجمالي ليالي الرحلة ({requiredNights})
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
 
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200">
-          <div className="flex items-center gap-2 mb-2">
-            <Car className="w-5 h-5 text-green-600" />
-            <h3 className="font-bold text-green-800">نوع السيارة المقترح</h3>
-          </div>
+      {/* Hotel and Room Type Sorting Notice */}
+      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+        <div className="flex items-center gap-2 mb-2">
+          <Info className="w-4 h-4 text-yellow-600" />
+          <span className="font-medium text-yellow-800">ملاحظة</span>
+        </div>
+        <p className="text-sm text-yellow-700">
+          الفنادق مرتبة من الأرخص إلى الأغلى • أنواع الغرف مرتبة من الأرخص إلى الأغلى
+        </p>
+      </div>
+
+      {/* Cities Selection */}
+      <div className="space-y-4">
+        {data.selectedCities.map((city, cityIndex) => (
+          <Card key={cityIndex} className="border-2">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  المدينة {cityIndex + 1}
+                </div>
+                {data.selectedCities.length > 1 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => removeCity(cityIndex)}
+                  >
+                    حذف المدينة
+                  </Button>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <Label>اختر المدينة</Label>
+                  <Select
+                    value={city.city}
+                    onValueChange={(value) => updateCity(cityIndex, { city: value, hotel: '', roomSelections: [] })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر المدينة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cities.map((cityName) => (
+                        <SelectItem key={cityName} value={cityName}>
+                          {cityName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>عدد الليالي</Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateCity(cityIndex, { nights: Math.max(1, city.nights - 1) })}
+                      disabled={city.nights <= 1}
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <span className="w-12 text-center font-semibold">{city.nights}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateCity(cityIndex, { nights: city.nights + 1 })}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>الجولات</Label>
+                  <div className="space-y-2">
+                    <div className="text-sm text-gray-600">
+                      إجبارية: {city.mandatoryTours}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">إضافية:</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateAdditionalTours(cityIndex, Math.max(0, (city.additionalTours || 0) - 1))}
+                        disabled={(city.additionalTours || 0) <= 0}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <span className="w-8 text-center">{city.additionalTours || 0}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateAdditionalTours(cityIndex, (city.additionalTours || 0) + 1)}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="text-sm font-medium">
+                      المجموع: {city.tours} جولة
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {city.city && (
+                <div>
+                  <Label>اختر الفندق</Label>
+                  <Select
+                    value={city.hotel}
+                    onValueChange={(value) => {
+                      const selectedHotel = getSortedHotels(city.city).find(h => h.name === value);
+                      updateCity(cityIndex, { hotel: value });
+                      if (selectedHotel) {
+                        generateRoomSelections(cityIndex, selectedHotel);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر الفندق" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getSortedHotels(city.city).map((hotel) => (
+                        <SelectItem key={hotel.name} value={hotel.name}>
+                          {hotel.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {city.hotel && city.roomSelections && (
+                <div className="space-y-3">
+                  <Label>أنواع الغرف</Label>
+                  {city.roomSelections.map((room, roomIndex) => {
+                    const selectedHotel = getSortedHotels(city.city).find(h => h.name === city.hotel);
+                    return (
+                      <div key={roomIndex} className="flex items-center gap-4">
+                        <span className="w-20 text-sm">الغرفة {room.roomNumber}:</span>
+                        <Select
+                          value={room.roomType}
+                          onValueChange={(value) => updateRoomType(cityIndex, roomIndex, value)}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedHotel && getSortedRoomTypes(selectedHotel).map((roomType) => (
+                              <SelectItem key={roomType.key} value={roomType.key}>
+                                {roomType.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+
+        <Button onClick={addCity} className="w-full" variant="outline">
+          <Plus className="w-4 h-4 ml-2" />
+          إضافة مدينة جديدة
+        </Button>
+      </div>
+
+      {/* Car Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Car className="w-5 h-5" />
+            نوع السيارة
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
           <Select
             value={data.carType}
             onValueChange={(value) => updateData({ carType: value })}
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="اختر نوع السيارة" />
             </SelectTrigger>
             <SelectContent>
               {transportData.map((transport) => (
@@ -231,190 +414,8 @@ export const CityHotelSelectionStep = ({ data, updateData }: CityHotelSelectionS
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
-
-      {/* Pricing Notice */}
-      <Alert className="bg-blue-50 border-blue-200">
-        <Info className="h-4 w-4" />
-        <AlertDescription className="text-blue-700">
-          <strong>ملاحظة:</strong> الفنادق والغرف مرتبة من الأرخص إلى الأغلى لمساعدتك في الاختيار المناسب لميزانيتك
-        </AlertDescription>
-      </Alert>
-
-      {/* Add City Button */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">المدن المختارة</h3>
-        <Button onClick={addCity} variant="outline" size="sm">
-          <Plus className="w-4 h-4 mr-2" />
-          إضافة مدينة
-        </Button>
-      </div>
-
-      {/* Cities List */}
-      <div className="space-y-4">
-        {data.selectedCities.map((cityStay, index) => (
-          <div key={index} className="p-6 border rounded-lg bg-white shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <h4 className="font-medium text-lg">المدينة {index + 1}</h4>
-              {data.selectedCities.length > 1 && (
-                <Button
-                  onClick={() => removeCity(index)}
-                  variant="destructive"
-                  size="sm"
-                >
-                  <Minus className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4">
-              {/* City Selection */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  اختر المدينة
-                </Label>
-                <Select
-                  value={cityStay.city}
-                  onValueChange={(value) => updateCity(index, 'city', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر المدينة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableCities.map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Number of Nights */}
-              <div className="space-y-2">
-                <Label>عدد الليالي</Label>
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => updateCity(index, 'nights', Math.max(1, cityStay.nights - 1))}
-                    disabled={cityStay.nights <= 1}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <span className="w-12 text-center font-semibold">{cityStay.nights}</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => updateCity(index, 'nights', cityStay.nights + 1)}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Hotel Selection */}
-              {cityStay.city && (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4" />
-                    اختر الفندق (مرتب من الأرخص)
-                  </Label>
-                  <Select
-                    value={cityStay.hotel}
-                    onValueChange={(value) => updateCity(index, 'hotel', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الفندق" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getSortedHotels(cityStay.city).map((hotel, hotelIndex) => (
-                        <SelectItem key={hotel.name} value={hotel.name}>
-                          <div className="flex justify-between items-center w-full">
-                            <span>{hotel.name}</span>
-                            <div className="flex items-center gap-2 mr-4">
-                              {hotelIndex === 0 && <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">الأرخص</span>}
-                              {hotel.rating && (
-                                <span className="text-sm text-gray-500">
-                                  {hotel.rating} نجوم
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-
-            {/* Tours Display */}
-            {cityStay.city && (
-              <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <h5 className="font-medium text-yellow-800 mb-2 flex items-center gap-2">
-                  <Star className="w-4 h-4" />
-                  الجولات السياحية
-                </h5>
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-yellow-700">الجولات الإجبارية: </span>
-                    <span className="font-bold">{cityStay.mandatoryTours}</span>
-                    {cityStay.city === 'باتومي' && (
-                      <span className="text-xs text-yellow-600 block">(باتومي تتطلب جولتين إجباريتين)</span>
-                    )}
-                  </div>
-                  <div>
-                    <span className="font-medium text-yellow-700">الجولات الإضافية: </span>
-                    <span>{cityStay.tours || 0}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Room Type Selection */}
-            {cityStay.hotel && cityStay.roomSelections && (
-              <div className="mt-6 space-y-4">
-                <h5 className="font-medium text-gray-800">اختيار نوع الغرف (مرتبة من الأرخص):</h5>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {cityStay.roomSelections.map((roomSelection, roomIndex) => (
-                    <div key={roomIndex} className="p-4 bg-gray-50 rounded-lg">
-                      <Label className="block mb-2">الغرفة {roomSelection.roomNumber}:</Label>
-                      <Select
-                        value={roomSelection.roomType}
-                        onValueChange={(value) => updateRoomSelection(index, roomIndex, value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر نوع الغرفة" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roomTypes.map((roomType) => (
-                            <SelectItem key={roomType.id} value={roomType.id}>
-                              {roomType.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {data.selectedCities.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-          <p>سيتم إضافة مدن الإقامة تلقائياً حسب المطارات المختارة</p>
-          <p className="text-sm">يمكنك إضافة مدن إضافية باستخدام زر "إضافة مدينة"</p>
-        </div>
-      )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

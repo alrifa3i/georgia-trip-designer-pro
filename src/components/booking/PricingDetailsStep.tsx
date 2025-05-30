@@ -2,9 +2,12 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
 import { hotelData, transportData, currencies } from '@/data/hotels';
-import { Calculator, Users, Hotel, Car, MapPin, Calendar } from 'lucide-react';
+import { Calculator, Users, Hotel, Car, MapPin, Calendar, Percent, Tag } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface PricingDetailsStepProps {
   data: BookingData;
@@ -17,16 +20,25 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
     toursTotal: 0,
     transportTotal: 0,
     additionalServicesTotal: 0,
+    subtotal: 0,
+    discountAmount: 0,
     finalTotal: 0
   });
+  const [couponCode, setCouponCode] = useState('');
 
   const selectedCurrency = currencies.find(c => c.code === data.currency);
+
+  const discountCoupons = {
+    'lwiat10%': { type: 'percentage', value: 10, description: 'خصم 10%' },
+    'lwiat15%com': { type: 'percentage', value: 15, description: 'خصم 15%' },
+    'alfakhama': { type: 'service', value: 'airportReception', description: 'استقبال مجاناً' }
+  };
 
   const calculatePricing = () => {
     let accommodationTotal = 0;
     let toursTotal = 0;
 
-    // حساب تكلفة الإقامة مع هامش الربح
+    // حساب تكلفة الإقامة
     data.selectedCities.forEach(city => {
       if (city.hotel && city.roomSelections) {
         const hotel = hotelData[city.city]?.find(h => h.name === city.hotel);
@@ -39,10 +51,10 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
       }
     });
 
-    // إضافة هامش الربح على الإقامة
+    // إضافة هامش الربح على الإقامة (22%)
     accommodationTotal = accommodationTotal * 1.22;
 
-    // حساب تكلفة الجولات مع النقل والاستقبال
+    // حساب تكلفة الجولات
     const transport = transportData.find(t => t.type === data.carType);
     if (transport) {
       data.selectedCities.forEach(city => {
@@ -54,7 +66,7 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
       toursTotal += transport.reception.sameCity + transport.farewell.sameCity;
     }
 
-    // إضافة هامش الربح على الجولات والنقل
+    // إضافة هامش الربح على الجولات (22%)
     toursTotal = toursTotal * 1.22;
 
     // حساب الخدمات الإضافية
@@ -70,39 +82,82 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
     }
 
     if (data.additionalServices.roomDecoration.enabled) {
-      additionalServicesTotal += 100; // Updated price
+      additionalServicesTotal += 100;
     }
 
     if (data.additionalServices.flowerReception?.enabled) {
-      additionalServicesTotal += 50; // New service
+      additionalServicesTotal += 50;
     }
 
+    let airportReceptionCost = 0;
     if (data.additionalServices.airportReception.enabled) {
-      additionalServicesTotal += 280 * data.additionalServices.airportReception.persons;
+      airportReceptionCost = 280 * data.additionalServices.airportReception.persons;
+      // Check if alfakhama coupon is applied
+      if (data.discountCoupon !== 'alfakhama') {
+        additionalServicesTotal += airportReceptionCost;
+      }
     }
 
     if (data.additionalServices.photoSession?.enabled) {
       additionalServicesTotal += 150;
     }
 
-    const finalTotal = accommodationTotal + toursTotal + additionalServicesTotal;
+    const subtotal = accommodationTotal + toursTotal + additionalServicesTotal;
+    
+    // حساب الخصم
+    let discountAmount = 0;
+    if (data.discountCoupon && discountCoupons[data.discountCoupon as keyof typeof discountCoupons]) {
+      const coupon = discountCoupons[data.discountCoupon as keyof typeof discountCoupons];
+      if (coupon.type === 'percentage') {
+        discountAmount = subtotal * (coupon.value / 100);
+      }
+    }
+
+    const finalTotal = subtotal - discountAmount;
 
     setCalculations({
       accommodationTotal,
       toursTotal,
-      transportTotal: 0, // Now included in tours
+      transportTotal: 0,
       additionalServicesTotal,
+      subtotal,
+      discountAmount,
       finalTotal
     });
 
     updateData({ totalCost: finalTotal });
   };
 
+  const applyCoupon = () => {
+    if (discountCoupons[couponCode as keyof typeof discountCoupons]) {
+      updateData({ discountCoupon: couponCode });
+      toast({
+        title: "تم تطبيق الكوبون",
+        description: discountCoupons[couponCode as keyof typeof discountCoupons].description
+      });
+    } else {
+      toast({
+        title: "كود خطأ",
+        description: "كود الخصم غير صحيح",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const removeCoupon = () => {
+    updateData({ discountCoupon: '', discountAmount: 0 });
+    setCouponCode('');
+    toast({
+      title: "تم إلغاء الكوبون",
+      description: "تم إزالة كود الخصم"
+    });
+  };
+
   const calculateTripDays = () => {
     if (!data.arrivalDate || !data.departureDate) return 0;
     const arrival = new Date(data.arrivalDate);
     const departure = new Date(data.departureDate);
-    return Math.ceil((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.floor((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
   const getTotalNights = () => {
@@ -203,6 +258,53 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
         </Card>
       )}
 
+      {/* Discount Coupon Section */}
+      <Card className="border-2 border-purple-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-purple-800">
+            <Tag className="w-5 h-5" />
+            كوبون الخصم
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!data.discountCoupon ? (
+            <div className="flex gap-2">
+              <Input
+                placeholder="أدخل كود الخصم"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={applyCoupon} variant="outline">
+                <Percent className="w-4 h-4 ml-2" />
+                تطبيق
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-green-600" />
+                <span className="text-green-800 font-medium">
+                  {discountCoupons[data.discountCoupon as keyof typeof discountCoupons]?.description}
+                </span>
+              </div>
+              <Button onClick={removeCoupon} variant="outline" size="sm">
+                إلغاء
+              </Button>
+            </div>
+          )}
+          
+          <div className="bg-purple-50 p-3 rounded-lg">
+            <p className="text-sm text-purple-700 font-medium mb-2">الكوبونات المتاحة:</p>
+            <ul className="text-xs text-purple-600 space-y-1">
+              <li>• lwiat10% - خصم 10%</li>
+              <li>• lwiat15%com - خصم 15%</li>
+              <li>• alfakhama - استقبال مجاناً</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Cost Breakdown */}
       <Card className="border-2 border-emerald-200">
         <CardHeader>
@@ -219,7 +321,7 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
             </div>
             
             <div className="flex justify-between items-center">
-              <span>السيارة مع الاستقبال والتوديع</span>
+              <span>إجمالي الجولات السياحية</span>
               <span className="font-medium">{Math.round(calculations.toursTotal)} {selectedCurrency?.symbol}</span>
             </div>
             
@@ -232,11 +334,43 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
             
             <Separator className="my-4" />
             
+            <div className="flex justify-between items-center text-lg font-semibold">
+              <span>المجموع الفرعي</span>
+              <span>{Math.round(calculations.subtotal)} {selectedCurrency?.symbol}</span>
+            </div>
+            
+            {calculations.discountAmount > 0 && (
+              <div className="flex justify-between items-center text-green-600">
+                <span>قيمة الخصم</span>
+                <span>-{Math.round(calculations.discountAmount)} {selectedCurrency?.symbol}</span>
+              </div>
+            )}
+            
+            <Separator className="my-4" />
+            
             <div className="flex justify-between items-center text-2xl font-bold text-emerald-600 bg-emerald-50 p-4 rounded-lg">
               <span>المبلغ الكلي النهائي</span>
               <span>{Math.round(calculations.finalTotal)} {selectedCurrency?.symbol}</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Privacy Policy */}
+      <Card className="bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-gray-800">سياسة الخصوصية والشروط</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-gray-700">
+          <ul className="space-y-2">
+            <li>• الإلغاء مجاناً قبل 72 ساعة من موعد السفر</li>
+            <li>• لا يمكن اختيار خدمة دون أخرى في الباقة الواحدة</li>
+            <li>• يجب أن تكون المدخلات صحيحة للمعلومات المقدمة</li>
+            <li>• في حال كان الفندق غير متوفر تحتفظ الشركة المنفذة بحق تغيير الفندق مع إشعاركم قبل الوصول</li>
+            <li>• جميع الأسعار شاملة للضرائب والرسوم</li>
+            <li>• الدفع فقط عند الوصول واستلام الغرفة</li>
+            <li>• خصوصية معلوماتك مضمونة ولن يتم مشاركتها مع أطراف ثالثة</li>
+          </ul>
         </CardContent>
       </Card>
 
