@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
-import { hotelData, transportData, currencies } from '@/data/hotels';
+import { hotelData, transportData, currencies, additionalServicesData } from '@/data/hotels';
 import { DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface PricingStepProps {
@@ -19,14 +19,13 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
       if (cityStay.city && cityStay.hotel) {
         const hotel = hotelData[cityStay.city]?.find(h => h.name === cityStay.hotel);
         if (hotel) {
-          // Calculate based on room types selected
           let nightlyCost = 0;
           data.roomTypes.forEach(roomType => {
             if (roomType === 'dbl_v') nightlyCost += hotel.dbl_v;
             if (roomType === 'dbl_wv') nightlyCost += hotel.dbl_wv;
             if (roomType === 'trbl_v') nightlyCost += hotel.trbl_v;
             if (roomType === 'trbl_wv') nightlyCost += hotel.trbl_wv;
-            if (roomType === 'single') nightlyCost += hotel.dbl_v * 0.7; // Single room discount
+            if (roomType === 'single') nightlyCost += hotel.dbl_v; // Single room same as double
           });
           totalHotelCost += nightlyCost * cityStay.nights;
         }
@@ -38,20 +37,70 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
 
   const calculateTransportCosts = () => {
     const transport = transportData.find(t => t.type === data.carType);
-    const totalDays = data.selectedCities.reduce((total, city) => total + city.nights, 0) + 1; // +1 for arrival day
-    return transport ? transport.price * totalDays : 0;
+    if (!transport) return 0;
+
+    const totalDays = data.selectedCities.reduce((total, city) => total + city.nights, 0) + 1;
+    let transportCost = transport.price * totalDays;
+
+    // Add reception and farewell costs
+    const isSameCity = data.arrivalAirport === data.departureAirport;
+    transportCost += transport.reception[isSameCity ? 'sameCity' : 'differentCity'];
+    transportCost += transport.farewell[isSameCity ? 'sameCity' : 'differentCity'];
+
+    return transportCost;
   };
 
   const calculateTourCosts = () => {
-    const tourPricePerDay = 50; // Base tour price per day
+    const tourPricePerDay = 50;
     const totalTours = data.selectedCities.reduce((total, city) => total + city.tours, 0);
     return totalTours * tourPricePerDay;
+  };
+
+  const calculateAdditionalServicesCosts = () => {
+    let totalCost = 0;
+    const duration = getDuration();
+
+    // Travel Insurance
+    if (data.additionalServices.travelInsurance.enabled) {
+      totalCost += data.additionalServices.travelInsurance.persons * 
+                   additionalServicesData.travelInsurance.pricePerPersonPerDay * 
+                   duration;
+    }
+
+    // Phone Lines
+    if (data.additionalServices.phoneLines.enabled) {
+      totalCost += data.additionalServices.phoneLines.quantity * 
+                   additionalServicesData.phoneLines.pricePerLine;
+    }
+
+    // Room Decoration
+    if (data.additionalServices.roomDecoration.enabled) {
+      totalCost += additionalServicesData.roomDecoration.price;
+    }
+
+    // Airport Reception
+    if (data.additionalServices.airportReception.enabled) {
+      totalCost += data.additionalServices.airportReception.persons * 
+                   additionalServicesData.airportReception.pricePerPerson;
+    }
+
+    return totalCost;
+  };
+
+  const getDuration = () => {
+    if (data.arrivalDate && data.departureDate) {
+      const arrival = new Date(data.arrivalDate);
+      const departure = new Date(data.departureDate);
+      return Math.ceil((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    }
+    return 0;
   };
 
   const hotelCosts = calculateHotelCosts();
   const transportCosts = calculateTransportCosts();
   const tourCosts = calculateTourCosts();
-  const subtotal = hotelCosts + transportCosts + tourCosts;
+  const additionalServicesCosts = calculateAdditionalServicesCosts();
+  const subtotal = hotelCosts + transportCosts + tourCosts + additionalServicesCosts;
   
   // Add 22% profit margin
   const profitMargin = 0.22;
@@ -68,7 +117,8 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     'تقليل عدد الليالي في بعض المدن',
     'اختيار فنادق بفئة أقل',
     'تقليل عدد الجولات السياحية',
-    'تغيير نوع السيارة لخيار أوفر'
+    'تغيير نوع السيارة لخيار أوفر',
+    'إلغاء بعض الخدمات الإضافية'
   ];
 
   return (
@@ -138,13 +188,19 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
               <span className="font-medium">{Math.round(hotelCosts)} {selectedCurrency?.symbol}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span>تكلفة النقل</span>
+              <span>تكلفة النقل والاستقبال</span>
               <span className="font-medium">{Math.round(transportCosts)} {selectedCurrency?.symbol}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
               <span>تكلفة الجولات</span>
               <span className="font-medium">{Math.round(tourCosts)} {selectedCurrency?.symbol}</span>
             </div>
+            {additionalServicesCosts > 0 && (
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>الخدمات الإضافية</span>
+                <span className="font-medium">{Math.round(additionalServicesCosts)} {selectedCurrency?.symbol}</span>
+              </div>
+            )}
             <div className="flex justify-between items-center py-2 border-b font-medium">
               <span>المجموع الفرعي</span>
               <span>{Math.round(subtotal)} {selectedCurrency?.symbol}</span>
@@ -183,12 +239,13 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div>
               <p><strong>المسافرون:</strong> {data.adults} بالغ، {data.children.length} طفل</p>
-              <p><strong>المدة:</strong> {data.selectedCities.reduce((total, city) => total + city.nights, 0)} ليلة</p>
+              <p><strong>المدة:</strong> {getDuration()} أيام، {data.selectedCities.reduce((total, city) => total + city.nights, 0)} ليلة</p>
               <p><strong>عدد الغرف:</strong> {data.rooms}</p>
             </div>
             <div>
               <p><strong>نوع السيارة:</strong> {data.carType}</p>
-              <p><strong>المطار:</strong> {data.airport}</p>
+              <p><strong>مطار الوصول:</strong> {data.arrivalAirport}</p>
+              <p><strong>مطار المغادرة:</strong> {data.departureAirport}</p>
               <p><strong>إجمالي الجولات:</strong> {data.selectedCities.reduce((total, city) => total + city.tours, 0)}</p>
             </div>
           </div>

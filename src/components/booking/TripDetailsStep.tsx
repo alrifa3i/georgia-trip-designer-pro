@@ -2,9 +2,10 @@
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
 import { airports, transportData } from '@/data/hotels';
-import { Plane, Car, Hotel } from 'lucide-react';
+import { Plane, Car, Hotel, Info } from 'lucide-react';
 
 interface TripDetailsStepProps {
   data: BookingData;
@@ -14,10 +15,10 @@ interface TripDetailsStepProps {
 export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
   const roomTypes = [
     { id: 'single', label: 'غرفة مفردة (لشخص واحد)' },
-    { id: 'dbl_v', label: 'غرفة مزدوجة (dbl_v)' },
-    { id: 'dbl_wv', label: 'غرفة مزدوجة (dbl_wv)' },
-    { id: 'trbl_v', label: 'غرفة ثلاثية (trbl_v)' },
-    { id: 'trbl_wv', label: 'غرفة ثلاثية (trbl_wv)' }
+    { id: 'dbl_v', label: 'غرفة مزدوجة مع إطلالة وافطار' },
+    { id: 'dbl_wv', label: 'غرفة مزدوجة مع افطار (بدون إطلالة)' },
+    { id: 'trbl_v', label: 'غرفة ثلاثية مع إطلالة وافطار' },
+    { id: 'trbl_wv', label: 'غرفة ثلاثية مع افطار (بدون إطلالة)' }
   ];
 
   const handleRoomTypeChange = (roomType: string, checked: boolean) => {
@@ -38,6 +39,12 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
 
   const recommendedCar = getRecommendedCarType();
 
+  const shouldShowRoomWarning = () => {
+    const totalAdults = data.adults + data.children.filter(child => child.age > 6).length;
+    const recommendedRooms = Math.ceil(totalAdults / 2);
+    return data.rooms > recommendedRooms;
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -46,33 +53,65 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
       </div>
 
       {/* Airport Selection */}
-      <div className="space-y-2">
-        <Label className="flex items-center gap-2">
-          <Plane className="w-4 h-4" />
-          مطار الوصول والمغادرة
-        </Label>
-        <Select
-          value={data.airport}
-          onValueChange={(value) => updateData({ airport: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="اختر المطار" />
-          </SelectTrigger>
-          <SelectContent>
-            {airports.map((airport) => (
-              <SelectItem key={airport} value={airport}>
-                {airport}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Plane className="w-4 h-4" />
+            مطار الوصول *
+          </Label>
+          <Select
+            value={data.arrivalAirport}
+            onValueChange={(value) => updateData({ arrivalAirport: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="اختر مطار الوصول" />
+            </SelectTrigger>
+            <SelectContent>
+              {airports.map((airport) => (
+                <SelectItem key={airport} value={airport}>
+                  {airport}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Plane className="w-4 h-4" />
+            مطار المغادرة *
+          </Label>
+          <Select
+            value={data.departureAirport}
+            onValueChange={(value) => updateData({ departureAirport: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="اختر مطار المغادرة" />
+            </SelectTrigger>
+            <SelectContent>
+              {airports.map((airport) => (
+                <SelectItem key={airport} value={airport}>
+                  {airport}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {/* Airport Notice */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          يمكنك اختيار مطار وصول مختلف عن مطار المغادرة حسب برنامجك السياحي
+        </AlertDescription>
+      </Alert>
 
       {/* Room Types */}
       <div className="space-y-4">
         <Label className="flex items-center gap-2 text-lg font-medium">
           <Hotel className="w-4 h-4" />
-          نوع الغرف المطلوبة
+          نوع الغرف المطلوبة *
         </Label>
         <div className="grid md:grid-cols-2 gap-4">
           {roomTypes.map((roomType) => (
@@ -90,11 +129,21 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
         </div>
       </div>
 
+      {/* Room Count Warning */}
+      {shouldShowRoomWarning() && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            تنبيه: عدد الغرف المختارة أكثر من المطلوب للعدد الحالي من المسافرين. يمكنك المتابعة أو تعديل العدد.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Car Type */}
       <div className="space-y-4">
         <Label className="flex items-center gap-2 text-lg font-medium">
           <Car className="w-4 h-4" />
-          نوع السيارة
+          نوع السيارة *
         </Label>
         <div className="bg-blue-50 p-4 rounded-lg mb-4">
           <p className="text-sm text-blue-800">
@@ -115,7 +164,7 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium">{transport.type}</h3>
-                  <p className="text-sm text-gray-600">${transport.price}/يوم</p>
+                  <p className="text-sm text-gray-600">خدمة يومية شاملة</p>
                 </div>
                 {transport.type === recommendedCar && (
                   <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">

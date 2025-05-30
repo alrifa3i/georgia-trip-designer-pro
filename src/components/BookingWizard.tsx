@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { BasicInfoStep } from './booking/BasicInfoStep';
 import { TripDetailsStep } from './booking/TripDetailsStep';
 import { CitySelectionStep } from './booking/CitySelectionStep';
+import { AdditionalServicesStep } from './booking/AdditionalServicesStep';
 import { PricingStep } from './booking/PricingStep';
 import { ConfirmationStep } from './booking/ConfirmationStep';
 import { BookingData } from '@/types/booking';
@@ -18,17 +19,24 @@ export const BookingWizard = () => {
     children: [],
     arrivalDate: '',
     departureDate: '',
+    arrivalAirport: '',
+    departureAirport: '',
     rooms: 1,
     budget: 1000,
     currency: 'USD',
-    airport: '',
     roomTypes: [],
     carType: '',
     selectedCities: [],
-    totalCost: 0
+    totalCost: 0,
+    additionalServices: {
+      travelInsurance: { enabled: false, persons: 0 },
+      phoneLines: { enabled: false, quantity: 0 },
+      roomDecoration: { enabled: false },
+      airportReception: { enabled: false, persons: 0 }
+    }
   });
 
-  const totalSteps = 5;
+  const totalSteps = 6;
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
@@ -50,8 +58,9 @@ export const BookingWizard = () => {
     { number: 1, title: 'المعلومات الأساسية' },
     { number: 2, title: 'تفاصيل الرحلة' },
     { number: 3, title: 'اختيار المدن' },
-    { number: 4, title: 'حساب الأسعار' },
-    { number: 5, title: 'تأكيد الحجز' }
+    { number: 4, title: 'الخدمات الإضافية' },
+    { number: 5, title: 'حساب الأسعار' },
+    { number: 6, title: 'تأكيد الحجز' }
   ];
 
   const renderStep = () => {
@@ -63,8 +72,10 @@ export const BookingWizard = () => {
       case 3:
         return <CitySelectionStep data={bookingData} updateData={updateBookingData} />;
       case 4:
-        return <PricingStep data={bookingData} updateData={updateBookingData} />;
+        return <AdditionalServicesStep data={bookingData} updateData={updateBookingData} />;
       case 5:
+        return <PricingStep data={bookingData} updateData={updateBookingData} />;
+      case 6:
         return <ConfirmationStep data={bookingData} updateData={updateBookingData} />;
       default:
         return null;
@@ -72,7 +83,7 @@ export const BookingWizard = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto" dir="rtl">
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">

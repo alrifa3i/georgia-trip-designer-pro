@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
 import { currencies } from '@/data/hotels';
-import { CheckCircle, Upload, Phone, User, Clock } from 'lucide-react';
+import { CheckCircle, Upload, Phone, User, Clock, Shield } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface ConfirmationStepProps {
@@ -35,7 +35,6 @@ export const ConfirmationStep = ({ data, updateData }: ConfirmationStepProps) =>
       return;
     }
     
-    // Simulate sending WhatsApp verification code
     setIsCodeSent(true);
     toast({
       title: "تم الإرسال",
@@ -44,7 +43,7 @@ export const ConfirmationStep = ({ data, updateData }: ConfirmationStepProps) =>
   };
 
   const verifyCode = () => {
-    if (verificationCode === '1234') { // Demo verification code
+    if (verificationCode === '1234') {
       setIsVerified(true);
       toast({
         title: "تم التحقق",
@@ -99,6 +98,36 @@ export const ConfirmationStep = ({ data, updateData }: ConfirmationStepProps) =>
         <p className="text-gray-600">المرحلة الأخيرة لإتمام حجز رحلتك إلى جورجيا</p>
       </div>
 
+      {/* Security and Payment Notice */}
+      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <Shield className="w-5 h-5" />
+            ضمان الأمان والدفع
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 text-green-700">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>دفعك آمن معنا - لن يتم خصم أي مبالغ إلا بعد وصولك واستلام الغرفة</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>الموقع محمي بأحدث تقنيات التشفير والأمان</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>إمكانية الإلغاء المجاني حتى 48 ساعة قبل السفر</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>ضمان استرداد كامل في حالة عدم الحصول على الخدمة</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Booking Summary */}
       <Card className="bg-gradient-to-r from-emerald-50 to-teal-50">
         <CardHeader>
@@ -116,7 +145,8 @@ export const ConfirmationStep = ({ data, updateData }: ConfirmationStepProps) =>
               <p><strong>عدد الغرف:</strong> {data.rooms}</p>
             </div>
             <div className="space-y-2">
-              <p><strong>مطار الوصول:</strong> {data.airport}</p>
+              <p><strong>مطار الوصول:</strong> {data.arrivalAirport}</p>
+              <p><strong>مطار المغادرة:</strong> {data.departureAirport}</p>
               <p><strong>نوع السيارة:</strong> {data.carType}</p>
               <p><strong>عدد المدن:</strong> {data.selectedCities.length}</p>
               <p className="text-lg font-bold text-emerald-600">
@@ -132,7 +162,7 @@ export const ConfirmationStep = ({ data, updateData }: ConfirmationStepProps) =>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Phone className="w-5 h-5" />
-            التحقق من رقم الهاتف
+            التحقق من رقم الهاتف *
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -143,6 +173,7 @@ export const ConfirmationStep = ({ data, updateData }: ConfirmationStepProps) =>
               onChange={(e) => setPhone(e.target.value)}
               disabled={isVerified}
               className="flex-1"
+              required
             />
             <Button 
               onClick={sendVerificationCode}
@@ -181,18 +212,19 @@ export const ConfirmationStep = ({ data, updateData }: ConfirmationStepProps) =>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />
-            رفع المستندات
+            رفع المستندات المطلوبة
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="passport">صورة جواز السفر (مطلوب)</Label>
+            <Label htmlFor="passport">صورة جواز السفر (مطلوب) *</Label>
             <Input
               id="passport"
               type="file"
               accept="image/*"
               onChange={(e) => handleFileUpload('passport', e.target.files?.[0] || null)}
               className="mt-1"
+              required
             />
             {passportFile && (
               <p className="text-sm text-green-600 mt-1">
@@ -230,6 +262,7 @@ export const ConfirmationStep = ({ data, updateData }: ConfirmationStepProps) =>
               <li>• أيام السبت والأحد عطلة رسمية</li>
               <li>• سيتم التواصل معك عبر الواتساب المحدد</li>
               <li>• يمكن تعديل التفاصيل قبل التأكيد النهائي</li>
+              <li>• جميع البيانات محمية ومشفرة بالكامل</li>
             </ul>
           </div>
         </AlertDescription>
@@ -245,6 +278,9 @@ export const ConfirmationStep = ({ data, updateData }: ConfirmationStepProps) =>
         >
           تأكيد الحجز النهائي
         </Button>
+        <p className="text-xs text-gray-500 mt-2">
+          بالضغط على "تأكيد الحجز" فإنك توافق على شروط وأحكام الخدمة
+        </p>
       </div>
     </div>
   );

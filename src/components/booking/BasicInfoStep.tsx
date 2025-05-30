@@ -1,11 +1,13 @@
 
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
 import { currencies } from '@/data/hotels';
-import { Plus, Minus, User, Users, Calendar } from 'lucide-react';
+import { Plus, Minus, User, Users, Calendar, AlertTriangle } from 'lucide-react';
 
 interface BasicInfoStepProps {
   data: BookingData;
@@ -13,6 +15,8 @@ interface BasicInfoStepProps {
 }
 
 export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
+  const [dateError, setDateError] = useState('');
+
   const addChild = () => {
     updateData({
       children: [...data.children, { age: 0 }]
@@ -30,6 +34,27 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
     updateData({ children: newChildren });
   };
 
+  const validateDateDuration = () => {
+    if (data.arrivalDate && data.departureDate) {
+      const arrival = new Date(data.arrivalDate);
+      const departure = new Date(data.departureDate);
+      const diffInDays = Math.ceil((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffInDays < 3) {
+        setDateError('الحد الأدنى للإقامة 3 أيام لضمان أفضل تجربة');
+        return false;
+      } else {
+        setDateError('');
+        return true;
+      }
+    }
+    return true;
+  };
+
+  useEffect(() => {
+    validateDateDuration();
+  }, [data.arrivalDate, data.departureDate]);
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -42,7 +67,7 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
         <div className="space-y-2">
           <Label htmlFor="customerName" className="flex items-center gap-2">
             <User className="w-4 h-4" />
-            اسم العميل
+            اسم العميل *
           </Label>
           <Input
             id="customerName"
@@ -50,6 +75,7 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
             onChange={(e) => updateData({ customerName: e.target.value })}
             placeholder="أدخل اسمك الكامل"
             className="text-right"
+            required
           />
         </div>
 
@@ -57,7 +83,7 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
         <div className="space-y-2">
           <Label className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            عدد البالغين
+            عدد البالغين *
           </Label>
           <div className="flex items-center gap-3">
             <Button
@@ -87,7 +113,7 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
         <div className="flex items-center justify-between">
           <Label className="text-lg font-medium">الأطفال</Label>
           <Button type="button" onClick={addChild} variant="outline" size="sm">
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 ml-2" />
             إضافة طفل
           </Button>
         </div>
@@ -132,13 +158,14 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
         <div className="space-y-2">
           <Label htmlFor="arrivalDate" className="flex items-center gap-2">
             <Calendar className="w-4 h-4" />
-            تاريخ الوصول
+            تاريخ الوصول *
           </Label>
           <Input
             id="arrivalDate"
             type="date"
             value={data.arrivalDate}
             onChange={(e) => updateData({ arrivalDate: e.target.value })}
+            required
           />
         </div>
 
@@ -146,21 +173,30 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
         <div className="space-y-2">
           <Label htmlFor="departureDate" className="flex items-center gap-2">
             <Calendar className="w-4 h-4" />
-            تاريخ المغادرة
+            تاريخ المغادرة *
           </Label>
           <Input
             id="departureDate"
             type="date"
             value={data.departureDate}
             onChange={(e) => updateData({ departureDate: e.target.value })}
+            required
           />
         </div>
       </div>
 
+      {/* Date Validation Alert */}
+      {dateError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{dateError}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid md:grid-cols-2 gap-6">
         {/* Number of Rooms */}
         <div className="space-y-2">
-          <Label>عدد الغرف المطلوبة</Label>
+          <Label>عدد الغرف المطلوبة *</Label>
           <div className="flex items-center gap-3">
             <Button
               type="button"
@@ -185,7 +221,7 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
 
         {/* Currency */}
         <div className="space-y-2">
-          <Label>العملة</Label>
+          <Label>العملة *</Label>
           <Select
             value={data.currency}
             onValueChange={(value) => updateData({ currency: value })}
@@ -206,7 +242,7 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
 
       {/* Budget */}
       <div className="space-y-2">
-        <Label htmlFor="budget">الميزانية المطلوبة</Label>
+        <Label htmlFor="budget">الميزانية المطلوبة *</Label>
         <div className="flex items-center gap-2">
           <Input
             id="budget"
@@ -214,11 +250,23 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
             value={data.budget}
             onChange={(e) => updateData({ budget: parseInt(e.target.value) || 0 })}
             placeholder="أدخل الميزانية"
+            required
           />
           <span className="text-gray-600">
             {currencies.find(c => c.code === data.currency)?.symbol}
           </span>
         </div>
+      </div>
+
+      {/* Payment Security Notice */}
+      <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+          <span className="font-medium text-green-800">دفعك آمن معنا</span>
+        </div>
+        <p className="text-green-700 text-sm">
+          لن يتم خصم أي مبالغ إلا بعد وصولك واستلام الغرفة. الموقع آمن تماماً ومحمي بأحدث تقنيات الأمان.
+        </p>
       </div>
     </div>
   );
