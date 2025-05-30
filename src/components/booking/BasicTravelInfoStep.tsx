@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ interface BasicTravelInfoStepProps {
   updateData: (data: Partial<BookingData>) => void;
 }
 
-export const BasicTravelInfoStep = ({ data, updateData }: BasicTravelInfoStepProps) => {
+export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, updateData }) => {
   const [dateError, setDateError] = useState('');
 
   const addChild = () => {
