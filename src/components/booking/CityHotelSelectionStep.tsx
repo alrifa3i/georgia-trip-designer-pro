@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData, RoomSelection } from '@/types/booking';
-import { hotelData, transportData, availableTours } from '@/data/hotels';
+import { hotelData, transportData } from '@/data/hotels';
 import { currencies, convertFromUSD, formatCurrency } from '@/data/currencies';
 import { MapPin, Building2, Car, Users, Bed, Clock, AlertTriangle } from 'lucide-react';
 
@@ -20,8 +20,8 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   
   console.log('CityHotelSelectionStep - data:', data);
-  console.log('CityHotelSelectionStep - hotelData:', hotelData);
   console.log('CityHotelSelectionStep - selectedCities:', data.selectedCities);
+  console.log('CityHotelSelectionStep - hotelData:', hotelData);
   
   const getDuration = () => {
     if (data.arrivalDate && data.departureDate) {
@@ -33,7 +33,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   };
 
   const requiredNights = getDuration() - 1;
-
   const selectedCurrency = currencies.find(c => c.code === data.currency) || currencies[0];
 
   const getRoomTypeName = (roomType: string) => {
@@ -51,7 +50,11 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   const validateStep = () => {
     const errors: string[] = [];
     
-    if (totalSelectedNights !== requiredNights) {
+    if (data.selectedCities.length === 0) {
+      errors.push('لم يتم تحديد أي مدن - الرجاء العودة للخطوة السابقة');
+    }
+    
+    if (totalSelectedNights !== requiredNights && data.selectedCities.length > 0) {
       errors.push(`المطلوب ${requiredNights} ليلة، تم اختيار ${totalSelectedNights} ليلة`);
     }
     
@@ -146,20 +149,13 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         </Alert>
       )}
 
-      {/* Debug Information */}
-      <div className="bg-blue-50 p-4 rounded-lg text-sm">
-        <p>المدن المحددة: {data.selectedCities.length}</p>
-        <p>المدن المتاحة في البيانات: {Object.keys(hotelData).length}</p>
-        <p>العملة المختارة: {data.currency}</p>
-      </div>
-
       {/* Cities and Hotels */}
       <div className="space-y-6">
         {data.selectedCities.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-600 mb-2">لا توجد مدن محددة</p>
-            <p className="text-sm text-gray-500">الرجاء العودة للخطوة السابقة وتحديد المدن</p>
+            <p className="text-sm text-gray-500">الرجاء العودة للخطوة السابقة وتحديد المدن والليالي</p>
           </div>
         ) : (
           data.selectedCities.map((city, cityIndex) => {
@@ -365,7 +361,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
       <Alert className="bg-yellow-50 border-yellow-200">
         <AlertTriangle className="h-4 w-4 text-yellow-600" />
         <AlertDescription className="text-yellow-800">
-          <strong>ملاحظة مهمة:</strong> الأسعار معروضة بالعملة المختارة للحساب فقط. 
+          <strong>ملاحظة مهمة:</strong> الأسعار معروضة بالعملة المختارة ({selectedCurrency.name}) للحساب فقط. 
           الدفع الفعلي سيكون بالدولار الأمريكي عند الوصول إلى جورجيا.
         </AlertDescription>
       </Alert>
