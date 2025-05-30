@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData, RoomSelection } from '@/types/booking';
-import { hotelData, transportData, cityTours } from '@/data/hotels';
+import { hotelData, transportData, availableTours } from '@/data/hotels';
 import { currencies, convertFromUSD, formatCurrency } from '@/data/currencies';
 import { MapPin, Building2, Car, Users, Bed, Clock, AlertTriangle } from 'lucide-react';
 
