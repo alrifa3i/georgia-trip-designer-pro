@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
-import { airports, currencies } from '@/data/hotels';
-import { Plus, Minus, User, Users, Calendar, Plane, Shield, CheckCircle, DollarSign, Clock } from 'lucide-react';
+import { airports } from '@/data/hotels';
+import { currencies } from '@/data/currencies';
+import { Plus, Minus, User, Users, Calendar, Plane, Shield, CheckCircle, DollarSign, Clock, AlertTriangle } from 'lucide-react';
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
@@ -18,6 +19,7 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
   const [dateError, setDateError] = useState('');
   const [tripDays, setTripDays] = useState(0);
   const [tripNights, setTripNights] = useState(0);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const addChild = () => {
     updateData({
@@ -59,17 +61,39 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
   };
 
   const validateForm = () => {
-    const isValid = data.arrivalDate && 
-                   data.departureDate && 
-                   data.arrivalAirport && 
-                   data.departureAirport && 
-                   data.budget > 0 &&
-                   !dateError;
+    const errors: string[] = [];
+    
+    if (!data.arrivalDate) {
+      errors.push('تاريخ الوصول مطلوب');
+    }
+    
+    if (!data.departureDate) {
+      errors.push('تاريخ المغادرة مطلوب');
+    }
+    
+    if (!data.arrivalAirport) {
+      errors.push('مطار الوصول مطلوب');
+    }
+    
+    if (!data.departureAirport) {
+      errors.push('مطار المغادرة مطلوب');
+    }
+    
+    if (!data.budget || data.budget <= 0) {
+      errors.push('الميزانية مطلوبة ويجب أن تكون أكبر من صفر');
+    }
+    
+    if (dateError) {
+      errors.push(dateError);
+    }
+    
+    setValidationErrors(errors);
+    const isValid = errors.length === 0;
     
     if (onValidationChange) {
-      onValidationChange(!!isValid);
+      onValidationChange(isValid);
     }
-    return !!isValid;
+    return isValid;
   };
 
   useEffect(() => {
@@ -90,6 +114,23 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
         <p className="text-gray-600">معلومات بسيطة لبدء تصميم رحلتك المثالية</p>
       </div>
 
+      {/* Validation Errors */}
+      {validationErrors.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-1">
+              <p className="font-medium">الرجاء إكمال البيانات التالية:</p>
+              <ul className="text-sm space-y-1">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>• {error}</li>
+                ))}
+              </ul>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Security Notice */}
       <div className="bg-emerald-50 p-6 rounded-xl border-2 border-emerald-200 shadow-lg">
         <div className="flex items-center gap-3 mb-3">
@@ -104,6 +145,10 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-emerald-600" />
             <span className="text-emerald-700 text-sm font-medium">خصوصية معلوماتك مضمونة</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
+            <span className="text-emerald-700 text-sm font-medium">العملات المختلفة لحساب التكلفة فقط - الدفع بالدولار الأمريكي</span>
           </div>
         </div>
       </div>
@@ -306,7 +351,7 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
         </div>
       )}
 
-      {/* Budget Section - USD Focus */}
+      {/* Budget Section - Enhanced with Multiple Currencies */}
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
         <h3 className="font-bold text-purple-800 text-lg mb-4 flex items-center gap-2">
           <DollarSign className="w-5 h-5" />
@@ -314,10 +359,10 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
         </h3>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>الميزانية المطلوبة (بالدولار الأمريكي) *</Label>
+            <Label>الميزانية المطلوبة *</Label>
             <Input
               type="number"
-              placeholder="أدخل ميزانيتك بالدولار الأمريكي"
+              placeholder="أدخل ميزانيتك"
               value={data.budget || ''}
               onChange={(e) => updateData({ budget: parseFloat(e.target.value) || 0 })}
               required
@@ -325,7 +370,7 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
             />
           </div>
           <div className="space-y-2">
-            <Label>العملة (الافتراضية: دولار أمريكي)</Label>
+            <Label>العملة للحساب (الدفع بالدولار الأمريكي)</Label>
             <Select
               value={data.currency || 'USD'}
               onValueChange={(value) => updateData({ currency: value })}
@@ -334,15 +379,24 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="USD">$ - دولار أمريكي (العملة الأساسية)</SelectItem>
+                {currencies.map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    {currency.symbol} - {currency.nameAr}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
         </div>
-        {data.budget > 0 && (
+        {data.budget > 0 && selectedCurrency && (
           <div className="mt-3 p-3 bg-purple-100 rounded-lg">
             <p className="text-purple-700 text-sm">
-              ميزانيتك: <span className="font-bold">${data.budget} USD</span>
+              ميزانيتك: <span className="font-bold">{data.budget} {selectedCurrency.symbol}</span>
+              {selectedCurrency.code !== 'USD' && (
+                <span className="text-purple-600 text-xs mr-2">
+                  (≈ ${Math.round(data.budget / selectedCurrency.exchangeRate)} USD)
+                </span>
+              )}
             </p>
             <p className="text-purple-600 text-xs mt-1">
               الدفع سيتم بالدولار الأمريكي عند الوصول إلى جورجيا

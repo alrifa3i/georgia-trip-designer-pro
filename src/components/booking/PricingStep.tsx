@@ -1,9 +1,9 @@
-
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
 import { hotelData, transportData, additionalServicesData } from '@/data/hotels';
+import { currencies, convertFromUSD, formatCurrency } from '@/data/currencies';
 import { DollarSign, AlertTriangle, CheckCircle, MapPin, Building2, Car } from 'lucide-react';
 
 interface PricingStepProps {
@@ -12,6 +12,8 @@ interface PricingStepProps {
 }
 
 export const PricingStep = ({ data, updateData }: PricingStepProps) => {
+  const selectedCurrency = currencies.find(c => c.code === data.currency) || currencies[0];
+
   const calculateHotelCosts = () => {
     const cityBreakdown: Array<{
       city: string;
@@ -210,7 +212,8 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
   const subtotal = hotelCostData.total + tourCostData.total + transportCosts + additionalServicesCosts;
   
   const profitMargin = 0.22;
-  const totalCost = subtotal * (1 + profitMargin);
+  const totalCostUSD = subtotal * (1 + profitMargin);
+  const totalCostLocal = convertFromUSD(totalCostUSD, selectedCurrency.code);
 
   console.log('=== COST BREAKDOWN ===');
   console.log('Hotel costs:', hotelCostData.total);
@@ -218,13 +221,15 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
   console.log('Transport costs:', transportCosts);
   console.log('Additional services:', additionalServicesCosts);
   console.log('Subtotal:', subtotal);
-  console.log('Total with margin:', totalCost);
+  console.log('Total USD:', totalCostUSD);
+  console.log('Total Local Currency:', totalCostLocal);
 
   useEffect(() => {
-    updateData({ totalCost });
-  }, [totalCost]);
+    updateData({ totalCost: totalCostUSD });
+  }, [totalCostUSD]);
 
-  const isOverBudget = totalCost > data.budget;
+  const budgetInUSD = data.budget / selectedCurrency.exchangeRate;
+  const isOverBudget = totalCostUSD > budgetInUSD;
 
   return (
     <div className="space-y-6">
@@ -245,7 +250,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-green-700 font-medium">جميع الأسعار محسوبة بالدولار الأمريكي (USD)</span>
+              <span className="text-green-700 font-medium">الأسعار محسوبة بـ {selectedCurrency.nameAr} للوضوح</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-600" />
@@ -272,14 +277,20 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             <div>
               <p className="text-sm text-gray-600 mb-1">الميزانية المحددة</p>
               <p className="text-2xl font-bold text-blue-600">
-                ${data.budget} USD
+                {formatCurrency(data.budget, selectedCurrency.code)}
               </p>
+              {selectedCurrency.code !== 'USD' && (
+                <p className="text-sm text-gray-500">≈ ${Math.round(budgetInUSD)} USD</p>
+              )}
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">التكلفة الإجمالية</p>
               <p className={`text-2xl font-bold ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
-                ${Math.round(totalCost)} USD
+                {formatCurrency(totalCostLocal, selectedCurrency.code)}
               </p>
+              {selectedCurrency.code !== 'USD' && (
+                <p className="text-sm text-gray-500">≈ ${Math.round(totalCostUSD)} USD</p>
+              )}
             </div>
           </div>
           
@@ -290,7 +301,8 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                 <span className="font-medium text-red-800">تجاوزت التكلفة الميزانية المحددة</span>
               </div>
               <p className="text-red-700 text-sm">
-                الفرق: ${Math.round(totalCost - data.budget)} USD
+                الفرق: {formatCurrency(totalCostLocal - data.budget, selectedCurrency.code)}
+                {selectedCurrency.code !== 'USD' && ` (≈ $${Math.round(totalCostUSD - budgetInUSD)} USD)`}
               </p>
             </div>
           ) : (
@@ -300,10 +312,69 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                 <span className="font-medium text-green-800">التكلفة تناسب ميزانيتك</span>
               </div>
               <p className="text-green-700 text-sm">
-                المتبقي: ${Math.round(data.budget - totalCost)} USD
+                المتبقي: {formatCurrency(data.budget - totalCostLocal, selectedCurrency.code)}
+                {selectedCurrency.code !== 'USD' && ` (≈ $${Math.round(budgetInUSD - totalCostUSD)} USD)`}
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Cost Summary with Currency Display */}
+      <Card>
+        <CardHeader>
+          <CardTitle>ملخص التكلفة</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-2 border-b">
+              <span>تكلفة الإقامة</span>
+              <div className="text-left">
+                <span className="font-medium">{formatCurrency(convertFromUSD(hotelCostData.total, selectedCurrency.code), selectedCurrency.code)}</span>
+                {selectedCurrency.code !== 'USD' && (
+                  <div className="text-xs text-gray-500">${Math.round(hotelCostData.total)} USD</div>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span>تكلفة الجولات</span>
+              <div className="text-left">
+                <span className="font-medium">{formatCurrency(convertFromUSD(tourCostData.total, selectedCurrency.code), selectedCurrency.code)}</span>
+                {selectedCurrency.code !== 'USD' && (
+                  <div className="text-xs text-gray-500">${Math.round(tourCostData.total)} USD</div>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span>تكلفة النقل والاستقبال</span>
+              <div className="text-left">
+                <span className="font-medium">{formatCurrency(convertFromUSD(transportCosts, selectedCurrency.code), selectedCurrency.code)}</span>
+                {selectedCurrency.code !== 'USD' && (
+                  <div className="text-xs text-gray-500">${Math.round(transportCosts)} USD</div>
+                )}
+              </div>
+            </div>
+            {additionalServicesCosts > 0 && (
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>الخدمات الإضافية</span>
+                <div className="text-left">
+                  <span className="font-medium">{formatCurrency(convertFromUSD(additionalServicesCosts, selectedCurrency.code), selectedCurrency.code)}</span>
+                  {selectedCurrency.code !== 'USD' && (
+                    <div className="text-xs text-gray-500">${Math.round(additionalServicesCosts)} USD</div>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-between items-center py-2 text-lg font-bold border-t-2">
+              <span>الإجمالي النهائي</span>
+              <div className="text-left">
+                <span>{formatCurrency(totalCostLocal, selectedCurrency.code)}</span>
+                <div className="text-sm text-green-600 font-medium">
+                  الدفع: ${Math.round(totalCostUSD)} USD
+                </div>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -387,43 +458,6 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             <div className="flex justify-between items-center py-2 font-bold text-lg border-t-2">
               <span>إجمالي الجولات</span>
               <span>${Math.round(tourCostData.total)} USD</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Cost Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>ملخص التكلفة (بالدولار الأمريكي)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center py-2 border-b">
-              <span>تكلفة الإقامة</span>
-              <span className="font-medium">${Math.round(hotelCostData.total)} USD</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span>تكلفة الجولات</span>
-              <span className="font-medium">${Math.round(tourCostData.total)} USD</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span>تكلفة النقل والاستقبال</span>
-              <span className="font-medium">${Math.round(transportCosts)} USD</span>
-            </div>
-            {additionalServicesCosts > 0 && (
-              <div className="flex justify-between items-center py-2 border-b">
-                <span>الخدمات الإضافية</span>
-                <span className="font-medium">${Math.round(additionalServicesCosts)} USD</span>
-              </div>
-            )}
-            <div className="flex justify-between items-center py-2 border-b font-medium">
-              <span>المجموع الفرعي</span>
-              <span>${Math.round(subtotal)} USD</span>
-            </div>
-            <div className="flex justify-between items-center py-2 text-lg font-bold">
-              <span>الإجمالي النهائي</span>
-              <span>${Math.round(totalCost)} USD</span>
             </div>
           </div>
         </CardContent>
