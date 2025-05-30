@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
-import { airports } from '@/data/hotels';
-import { Plus, Minus, User, Users, Calendar, Plane, Shield, CheckCircle } from 'lucide-react';
+import { airports, currencies } from '@/data/hotels';
+import { Plus, Minus, User, Users, Calendar, Plane, Shield, CheckCircle, DollarSign, Clock } from 'lucide-react';
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
@@ -16,6 +16,8 @@ interface BasicTravelInfoStepProps {
 
 export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, updateData }) => {
   const [dateError, setDateError] = useState('');
+  const [tripDays, setTripDays] = useState(0);
+  const [tripNights, setTripNights] = useState(0);
 
   const addChild = () => {
     updateData({
@@ -34,13 +36,18 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
     updateData({ children: newChildren });
   };
 
-  const validateDateDuration = () => {
+  const calculateTripDuration = () => {
     if (data.arrivalDate && data.departureDate) {
       const arrival = new Date(data.arrivalDate);
       const departure = new Date(data.departureDate);
-      const diffInDays = Math.ceil((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24));
+      const diffInTime = departure.getTime() - arrival.getTime();
+      const days = Math.ceil(diffInTime / (1000 * 60 * 60 * 24));
+      const nights = days - 1;
       
-      if (diffInDays < 3) {
+      setTripDays(days);
+      setTripNights(Math.max(0, nights));
+      
+      if (days < 3) {
         setDateError('الحد الأدنى للإقامة 3 أيام لضمان أفضل تجربة');
         return false;
       } else {
@@ -52,8 +59,10 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
   };
 
   useEffect(() => {
-    validateDateDuration();
+    calculateTripDuration();
   }, [data.arrivalDate, data.departureDate]);
+
+  const selectedCurrency = currencies.find(c => c.code === data.currency);
 
   return (
     <div className="space-y-6">
@@ -154,6 +163,26 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
           </Select>
         </div>
       </div>
+
+      {/* Trip Duration Display */}
+      {data.arrivalDate && data.departureDate && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="w-6 h-6 text-blue-600" />
+            <span className="font-bold text-blue-800 text-lg">مدة الرحلة</span>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-800">{tripDays}</div>
+              <div className="text-blue-600 font-medium">أيام</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-800">{tripNights}</div>
+              <div className="text-blue-600 font-medium">ليالي</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Date Validation Alert */}
       {dateError && (
@@ -258,10 +287,50 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
         </div>
       )}
 
-      {/* Budget Notice */}
+      {/* Budget Section - Required */}
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
-        <h3 className="font-bold text-purple-800 text-lg mb-2">الميزانية</h3>
-        <p className="text-purple-700">سيتم حساب التكلفة الإجمالية تلقائياً بناءً على اختياراتك في الخطوات التالية</p>
+        <h3 className="font-bold text-purple-800 text-lg mb-4 flex items-center gap-2">
+          <DollarSign className="w-5 h-5" />
+          الميزانية المطلوبة *
+        </h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>المبلغ المتوقع *</Label>
+            <Input
+              type="number"
+              placeholder="أدخل ميزانيتك المتوقعة"
+              value={data.budget || ''}
+              onChange={(e) => updateData({ budget: parseFloat(e.target.value) || 0 })}
+              required
+              min="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>العملة</Label>
+            <Select
+              value={data.currency}
+              onValueChange={(value) => updateData({ currency: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {currencies.map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    {currency.symbol} - {currency.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {data.budget > 0 && (
+          <div className="mt-3 p-3 bg-purple-100 rounded-lg">
+            <p className="text-purple-700 text-sm">
+              ميزانيتك: <span className="font-bold">{data.budget} {selectedCurrency?.symbol}</span>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

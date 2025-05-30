@@ -17,7 +17,6 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
     toursTotal: 0,
     transportTotal: 0,
     additionalServicesTotal: 0,
-    subtotal: 0,
     finalTotal: 0
   });
 
@@ -27,7 +26,7 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
     let accommodationTotal = 0;
     let toursTotal = 0;
 
-    // حساب تكلفة الإقامة
+    // حساب تكلفة الإقامة مع هامش الربح
     data.selectedCities.forEach(city => {
       if (city.hotel && city.roomSelections) {
         const hotel = hotelData[city.city]?.find(h => h.name === city.hotel);
@@ -40,20 +39,23 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
       }
     });
 
-    // حساب تكلفة الجولات
+    // إضافة هامش الربح على الإقامة
+    accommodationTotal = accommodationTotal * 1.22;
+
+    // حساب تكلفة الجولات مع النقل والاستقبال
     const transport = transportData.find(t => t.type === data.carType);
     if (transport) {
       data.selectedCities.forEach(city => {
         const totalTours = city.tours + (city.mandatoryTours || 0);
         toursTotal += totalTours * transport.price;
       });
+
+      // إضافة تكلفة النقل (الاستقبال والتوديع)
+      toursTotal += transport.reception.sameCity + transport.farewell.sameCity;
     }
 
-    // حساب تكلفة النقل (الاستقبال والتوديع)
-    let transportTotal = 0;
-    if (transport) {
-      transportTotal = transport.reception.sameCity + transport.farewell.sameCity;
-    }
+    // إضافة هامش الربح على الجولات والنقل
+    toursTotal = toursTotal * 1.22;
 
     // حساب الخدمات الإضافية
     let additionalServicesTotal = 0;
@@ -68,7 +70,11 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
     }
 
     if (data.additionalServices.roomDecoration.enabled) {
-      additionalServicesTotal += 50;
+      additionalServicesTotal += 100; // Updated price
+    }
+
+    if (data.additionalServices.flowerReception?.enabled) {
+      additionalServicesTotal += 50; // New service
     }
 
     if (data.additionalServices.airportReception.enabled) {
@@ -79,15 +85,13 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
       additionalServicesTotal += 150;
     }
 
-    const subtotal = accommodationTotal + toursTotal + transportTotal + additionalServicesTotal;
-    const finalTotal = subtotal * 1.22; // هامش ربح 22%
+    const finalTotal = accommodationTotal + toursTotal + additionalServicesTotal;
 
     setCalculations({
       accommodationTotal,
       toursTotal,
-      transportTotal,
+      transportTotal: 0, // Now included in tours
       additionalServicesTotal,
-      subtotal,
       finalTotal
     });
 
@@ -162,7 +166,7 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
         </CardContent>
       </Card>
 
-      {/* Room Types Summary */}
+      {/* Room Types Summary with Nights */}
       {data.selectedCities.some(city => city.roomSelections && city.roomSelections.length > 0) && (
         <Card>
           <CardHeader>
@@ -173,7 +177,9 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
               {data.selectedCities.map((city, cityIndex) => (
                 city.roomSelections && city.roomSelections.length > 0 && (
                   <div key={cityIndex} className="border-l-4 border-emerald-500 pl-4">
-                    <h4 className="font-medium text-gray-800 mb-2">{city.city} - {city.hotel}</h4>
+                    <h4 className="font-medium text-gray-800 mb-2">
+                      {city.city} - {city.hotel} ({city.nights} ليالي)
+                    </h4>
                     <div className="grid md:grid-cols-2 gap-2 text-sm">
                       {city.roomSelections.map((room, roomIndex) => (
                         <div key={roomIndex} className="flex justify-between">
@@ -213,31 +219,16 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
             </div>
             
             <div className="flex justify-between items-center">
-              <span>إجمالي تكلفة الجولات السياحية</span>
+              <span>السيارة مع الاستقبال والتوديع</span>
               <span className="font-medium">{Math.round(calculations.toursTotal)} {selectedCurrency?.symbol}</span>
             </div>
             
-            <div className="flex justify-between items-center">
-              <span>تكلفة النقل (استقبال + توديع)</span>
-              <span className="font-medium">{Math.round(calculations.transportTotal)} {selectedCurrency?.symbol}</span>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span>الخدمات الإضافية</span>
-              <span className="font-medium">{Math.round(calculations.additionalServicesTotal)} {selectedCurrency?.symbol}</span>
-            </div>
-            
-            <Separator />
-            
-            <div className="flex justify-between items-center text-lg">
-              <span className="font-medium">المجموع الفرعي</span>
-              <span className="font-bold">{Math.round(calculations.subtotal)} {selectedCurrency?.symbol}</span>
-            </div>
-            
-            <div className="flex justify-between items-center text-sm text-gray-600">
-              <span>هامش الربح (22%)</span>
-              <span>+{Math.round(calculations.finalTotal - calculations.subtotal)} {selectedCurrency?.symbol}</span>
-            </div>
+            {calculations.additionalServicesTotal > 0 && (
+              <div className="flex justify-between items-center">
+                <span>إجمالي الخدمات الإضافية</span>
+                <span className="font-medium">{Math.round(calculations.additionalServicesTotal)} {selectedCurrency?.symbol}</span>
+              </div>
+            )}
             
             <Separator className="my-4" />
             
