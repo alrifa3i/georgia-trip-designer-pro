@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
-import { hotelData, transportData, currencies, additionalServicesData } from '@/data/hotels';
+import { hotelData, transportData, additionalServicesData } from '@/data/hotels';
 import { DollarSign, AlertTriangle, CheckCircle, MapPin, Building2, Car } from 'lucide-react';
 
 interface PricingStepProps {
@@ -224,7 +224,6 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     updateData({ totalCost });
   }, [totalCost]);
 
-  const selectedCurrency = currencies.find(c => c.code === data.currency);
   const isOverBudget = totalCost > data.budget;
 
   return (
@@ -233,6 +232,32 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
         <h2 className="text-2xl font-bold text-gray-800 mb-2">حساب الأسعار والميزانية</h2>
         <p className="text-gray-600">مراجعة تكلفة رحلتك والمقارنة مع الميزانية</p>
       </div>
+
+      {/* USD Payment Notice */}
+      <Card className="border-2 border-green-200 bg-green-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <DollarSign className="w-5 h-5" />
+            معلومات الدفع المهمة
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-green-700 font-medium">جميع الأسعار محسوبة بالدولار الأمريكي (USD)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-green-700 font-medium">الدفع سيتم بالدولار الأمريكي عند الوصول إلى جورجيا</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-green-700 font-medium">لا يوجد دفع مسبق أو دفع عبر الإنترنت</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Budget vs Cost Comparison */}
       <Card className={`border-2 ${isOverBudget ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
@@ -247,13 +272,13 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             <div>
               <p className="text-sm text-gray-600 mb-1">الميزانية المحددة</p>
               <p className="text-2xl font-bold text-blue-600">
-                {data.budget} {selectedCurrency?.symbol}
+                ${data.budget} USD
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">التكلفة الإجمالية</p>
               <p className={`text-2xl font-bold ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
-                {Math.round(totalCost)} {selectedCurrency?.symbol}
+                ${Math.round(totalCost)} USD
               </p>
             </div>
           </div>
@@ -265,7 +290,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                 <span className="font-medium text-red-800">تجاوزت التكلفة الميزانية المحددة</span>
               </div>
               <p className="text-red-700 text-sm">
-                الفرق: {Math.round(totalCost - data.budget)} {selectedCurrency?.symbol}
+                الفرق: ${Math.round(totalCost - data.budget)} USD
               </p>
             </div>
           ) : (
@@ -275,7 +300,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                 <span className="font-medium text-green-800">التكلفة تناسب ميزانيتك</span>
               </div>
               <p className="text-green-700 text-sm">
-                المتبقي: {Math.round(data.budget - totalCost)} {selectedCurrency?.symbol}
+                المتبقي: ${Math.round(data.budget - totalCost)} USD
               </p>
             </div>
           )}
@@ -298,7 +323,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-medium">{city.city}</span>
                     <span className="font-medium">
-                      {Math.round(city.totalCost)} {selectedCurrency?.symbol}
+                      ${Math.round(city.totalCost)} USD
                     </span>
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
@@ -306,7 +331,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                       <div key={detailIndex}>• {detail}</div>
                     ))}
                     <div className="font-medium">
-                      إجمالي الليلة: {city.roomCost} {selectedCurrency?.symbol} × {city.nights} ليلة
+                      إجمالي الليلة: ${city.roomCost} USD × {city.nights} ليلة
                     </div>
                   </div>
                 </div>
@@ -318,7 +343,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             )}
             <div className="flex justify-between items-center py-2 font-bold text-lg border-t-2">
               <span>إجمالي الإقامة</span>
-              <span>{Math.round(hotelCostData.total)} {selectedCurrency?.symbol}</span>
+              <span>${Math.round(hotelCostData.total)} USD</span>
             </div>
           </div>
         </CardContent>
@@ -340,7 +365,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-medium">{city.city}</span>
                     <span className="font-medium">
-                      {Math.round(city.totalCost)} {selectedCurrency?.symbol}
+                      ${Math.round(city.totalCost)} USD
                     </span>
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
@@ -361,7 +386,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             )}
             <div className="flex justify-between items-center py-2 font-bold text-lg border-t-2">
               <span>إجمالي الجولات</span>
-              <span>{Math.round(tourCostData.total)} {selectedCurrency?.symbol}</span>
+              <span>${Math.round(tourCostData.total)} USD</span>
             </div>
           </div>
         </CardContent>
@@ -370,35 +395,35 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
       {/* Cost Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>ملخص التكلفة</CardTitle>
+          <CardTitle>ملخص التكلفة (بالدولار الأمريكي)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex justify-between items-center py-2 border-b">
               <span>تكلفة الإقامة</span>
-              <span className="font-medium">{Math.round(hotelCostData.total)} {selectedCurrency?.symbol}</span>
+              <span className="font-medium">${Math.round(hotelCostData.total)} USD</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
               <span>تكلفة الجولات</span>
-              <span className="font-medium">{Math.round(tourCostData.total)} {selectedCurrency?.symbol}</span>
+              <span className="font-medium">${Math.round(tourCostData.total)} USD</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
               <span>تكلفة النقل والاستقبال</span>
-              <span className="font-medium">{Math.round(transportCosts)} {selectedCurrency?.symbol}</span>
+              <span className="font-medium">${Math.round(transportCosts)} USD</span>
             </div>
             {additionalServicesCosts > 0 && (
               <div className="flex justify-between items-center py-2 border-b">
                 <span>الخدمات الإضافية</span>
-                <span className="font-medium">{Math.round(additionalServicesCosts)} {selectedCurrency?.symbol}</span>
+                <span className="font-medium">${Math.round(additionalServicesCosts)} USD</span>
               </div>
             )}
             <div className="flex justify-between items-center py-2 border-b font-medium">
               <span>المجموع الفرعي</span>
-              <span>{Math.round(subtotal)} {selectedCurrency?.symbol}</span>
+              <span>${Math.round(subtotal)} USD</span>
             </div>
             <div className="flex justify-between items-center py-2 text-lg font-bold">
               <span>الإجمالي النهائي</span>
-              <span>{Math.round(totalCost)} {selectedCurrency?.symbol}</span>
+              <span>${Math.round(totalCost)} USD</span>
             </div>
           </div>
         </CardContent>
@@ -413,6 +438,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
           </div>
           <p className="text-green-700 text-sm">
             لا يتم مشاركة معلوماتك مع أي جهة خارجية. فقط الفنادق المختارة ستحصل على بياناتك لتأكيد الحجز.
+            الدفع سيتم بالدولار الأمريكي عند الوصول إلى جورجيا مباشرة.
           </p>
         </CardContent>
       </Card>

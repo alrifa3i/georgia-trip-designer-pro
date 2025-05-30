@@ -146,11 +146,11 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     if (!hotel) return;
     
     const roomTypes = ['single', 'single_v', 'dbl_wv', 'dbl_v', 'trbl_wv', 'trbl_v'];
-    const sortedRoomTypes = roomTypes.sort((a, b) => (hotel[a] || 0) - (hotel[b] || 0));
+    const sortedRoomTypes = roomTypes.filter(type => hotel[type] && hotel[type] > 0).sort((a, b) => (hotel[a] || 0) - (hotel[b] || 0));
     
     const roomSelections = Array.from({ length: data.rooms }, (_, i) => ({
       roomNumber: i + 1,
-      roomType: sortedRoomTypes[0] // Default to cheapest room type
+      roomType: sortedRoomTypes[0] || 'dbl_wv' // Default to cheapest available room type
     }));
     
     updateCity(cityIndex, { roomSelections });
@@ -173,10 +173,10 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     const roomTypes = [
       { key: 'single', name: 'غرفة مفردة (بدون إطلالة)', price: hotel.single || 0 },
       { key: 'single_v', name: 'غرفة مفردة (مع إطلالة)', price: hotel.single_v || 0 },
-      { key: 'dbl_wv', name: 'غرفة مزدوجة (بدون إطلالة)', price: hotel.dbl_wv },
-      { key: 'dbl_v', name: 'غرفة مزدوجة (مع إطلالة)', price: hotel.dbl_v },
-      { key: 'trbl_wv', name: 'غرفة ثلاثية (بدون إطلالة)', price: hotel.trbl_wv },
-      { key: 'trbl_v', name: 'غرفة ثلاثية (مع إطلالة)', price: hotel.trbl_v }
+      { key: 'dbl_wv', name: 'غرفة مزدوجة (بدون إطلالة)', price: hotel.dbl_wv || 0 },
+      { key: 'dbl_v', name: 'غرفة مزدوجة (مع إطلالة)', price: hotel.dbl_v || 0 },
+      { key: 'trbl_wv', name: 'غرفة ثلاثية (بدون إطلالة)', price: hotel.trbl_wv || 0 },
+      { key: 'trbl_v', name: 'غرفة ثلاثية (مع إطلالة)', price: hotel.trbl_v || 0 }
     ];
     return roomTypes.filter(rt => rt.price > 0).sort((a, b) => a.price - b.price);
   };
@@ -186,6 +186,17 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">اختيار المدن والفنادق</h2>
         <p className="text-gray-600">حدد المدن التي تريد زيارتها والفنادق المفضلة</p>
+      </div>
+
+      {/* USD Currency Notice */}
+      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+        <div className="flex items-center gap-2 mb-2">
+          <Info className="w-5 h-5 text-green-600" />
+          <span className="font-medium text-green-800">العملة المستخدمة</span>
+        </div>
+        <p className="text-sm text-green-700">
+          جميع الأسعار المعروضة بالدولار الأمريكي (USD) والدفع سيتم بالدولار الأمريكي عند الوصول إلى جورجيا
+        </p>
       </div>
 
       {/* Night Count Info */}
@@ -225,7 +236,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           <span className="font-medium text-yellow-800">ملاحظة</span>
         </div>
         <p className="text-sm text-yellow-700">
-          الفنادق مرتبة من الأرخص إلى الأغلى • أنواع الغرف مرتبة من الأرخص إلى الأغلى
+          الفنادق مرتبة من الأرخص إلى الأغلى • أنواع الغرف مرتبة من الأرخص إلى الأغلى • جميع الأسعار بالدولار الأمريكي
         </p>
       </div>
 
@@ -344,7 +355,10 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     <SelectContent>
                       {getSortedHotels(city.city).map((hotel) => (
                         <SelectItem key={hotel.name} value={hotel.name}>
-                          {hotel.name}
+                          <div className="flex justify-between items-center w-full">
+                            <span>{hotel.name}</span>
+                            <span className="text-sm text-gray-500">من ${hotel.dbl_wv}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -352,11 +366,12 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                 </div>
               )}
 
-              {city.hotel && city.roomSelections && (
+              {city.hotel && city.roomSelections && city.roomSelections.length > 0 && (
                 <div className="space-y-3">
                   <Label>أنواع الغرف</Label>
                   {city.roomSelections.map((room, roomIndex) => {
                     const selectedHotel = getSortedHotels(city.city).find(h => h.name === city.hotel);
+                    const roomTypes = selectedHotel ? getSortedRoomTypes(selectedHotel) : [];
                     return (
                       <div key={roomIndex} className="flex items-center gap-4">
                         <span className="w-20 text-sm">الغرفة {room.roomNumber}:</span>
@@ -368,9 +383,12 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {selectedHotel && getSortedRoomTypes(selectedHotel).map((roomType) => (
+                            {roomTypes.map((roomType) => (
                               <SelectItem key={roomType.key} value={roomType.key}>
-                                {roomType.name}
+                                <div className="flex justify-between items-center w-full">
+                                  <span>{roomType.name}</span>
+                                  <span className="text-sm text-gray-500 ml-2">${roomType.price}</span>
+                                </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -409,7 +427,10 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
             <SelectContent>
               {transportData.map((transport) => (
                 <SelectItem key={transport.type} value={transport.type}>
-                  {transport.type} - {transport.capacity}
+                  <div className="flex justify-between items-center w-full">
+                    <span>{transport.type} - {transport.capacity}</span>
+                    <span className="text-sm text-gray-500 ml-2">${transport.price}/جولة</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>

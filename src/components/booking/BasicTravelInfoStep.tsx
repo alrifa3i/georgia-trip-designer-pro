@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,6 +75,10 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
   useEffect(() => {
     calculateTripDuration();
     validateForm();
+    // Set USD as default currency if not already set
+    if (!data.currency) {
+      updateData({ currency: 'USD' });
+    }
   }, [data.arrivalDate, data.departureDate, data.arrivalAirport, data.departureAirport, data.budget]);
 
   const selectedCurrency = currencies.find(c => c.code === data.currency);
@@ -96,7 +99,7 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-emerald-600" />
-            <span className="text-emerald-700 text-sm font-medium">الدفع فقط عند الوصول واستلام الغرفة</span>
+            <span className="text-emerald-700 text-sm font-medium">الدفع فقط عند الوصول واستلام الغرفة بالدولار الأمريكي</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-emerald-600" />
@@ -303,7 +306,7 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
         </div>
       )}
 
-      {/* Budget Section - Required */}
+      {/* Budget Section - USD Focus */}
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
         <h3 className="font-bold text-purple-800 text-lg mb-4 flex items-center gap-2">
           <DollarSign className="w-5 h-5" />
@@ -311,10 +314,10 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
         </h3>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>الميزانية المطلوبة *</Label>
+            <Label>الميزانية المطلوبة (بالدولار الأمريكي) *</Label>
             <Input
               type="number"
-              placeholder="أدخل ميزانيتك المطلوبة"
+              placeholder="أدخل ميزانيتك بالدولار الأمريكي"
               value={data.budget || ''}
               onChange={(e) => updateData({ budget: parseFloat(e.target.value) || 0 })}
               required
@@ -322,20 +325,16 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
             />
           </div>
           <div className="space-y-2">
-            <Label>العملة</Label>
+            <Label>العملة (الافتراضية: دولار أمريكي)</Label>
             <Select
-              value={data.currency}
+              value={data.currency || 'USD'}
               onValueChange={(value) => updateData({ currency: value })}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {currencies.map((currency) => (
-                  <SelectItem key={currency.code} value={currency.code}>
-                    {currency.symbol} - {currency.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="USD">$ - دولار أمريكي (العملة الأساسية)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -343,7 +342,10 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
         {data.budget > 0 && (
           <div className="mt-3 p-3 bg-purple-100 rounded-lg">
             <p className="text-purple-700 text-sm">
-              ميزانيتك: <span className="font-bold">{data.budget} {selectedCurrency?.symbol}</span>
+              ميزانيتك: <span className="font-bold">${data.budget} USD</span>
+            </p>
+            <p className="text-purple-600 text-xs mt-1">
+              الدفع سيتم بالدولار الأمريكي عند الوصول إلى جورجيا
             </p>
           </div>
         )}
