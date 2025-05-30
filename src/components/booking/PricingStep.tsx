@@ -39,46 +39,50 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     const transport = transportData.find(t => t.type === data.carType);
     if (!transport) return 0;
 
-    const totalDays = data.selectedCities.reduce((total, city) => total + city.nights, 0) + 1;
-    let transportCost = transport.price * totalDays;
+    let totalTransportCost = 0;
 
-    // Add reception and farewell costs
+    // Reception and farewell costs (internal pricing - not shown to customer)
     const isSameCity = data.arrivalAirport === data.departureAirport;
-    transportCost += transport.reception[isSameCity ? 'sameCity' : 'differentCity'];
-    transportCost += transport.farewell[isSameCity ? 'sameCity' : 'differentCity'];
+    const receptionCost = transport.reception[isSameCity ? 'sameCity' : 'differentCity'];
+    const farewellCost = transport.farewell[isSameCity ? 'sameCity' : 'differentCity'];
+    
+    totalTransportCost += receptionCost + farewellCost;
 
-    return transportCost;
+    return totalTransportCost;
   };
 
   const calculateTourCosts = () => {
-    const tourPricePerDay = 50;
+    const transport = transportData.find(t => t.type === data.carType);
+    if (!transport) return 0;
+
+    // Tour pricing based on vehicle type (internal pricing - not shown to customer)
     const totalTours = data.selectedCities.reduce((total, city) => total + city.tours, 0);
-    return totalTours * tourPricePerDay;
+    return totalTours * transport.price;
   };
 
   const calculateAdditionalServicesCosts = () => {
     let totalCost = 0;
     const duration = getDuration();
 
-    // Travel Insurance
+    // Travel Insurance (5$ per person per day)
     if (data.additionalServices.travelInsurance.enabled) {
       totalCost += data.additionalServices.travelInsurance.persons * 
                    additionalServicesData.travelInsurance.pricePerPersonPerDay * 
                    duration;
     }
 
-    // Phone Lines
+    // Phone Lines (15$ per line for 7 days)
     if (data.additionalServices.phoneLines.enabled) {
       totalCost += data.additionalServices.phoneLines.quantity * 
                    additionalServicesData.phoneLines.pricePerLine;
     }
 
-    // Room Decoration
+    // Room Decoration (100$ - internal price)
     if (data.additionalServices.roomDecoration.enabled) {
       totalCost += additionalServicesData.roomDecoration.price;
     }
 
-    // Airport Reception
+    // Airport Reception (240$ per person - internal price)
     if (data.additionalServices.airportReception.enabled) {
       totalCost += data.additionalServices.airportReception.persons * 
                    additionalServicesData.airportReception.pricePerPerson;

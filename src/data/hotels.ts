@@ -46,31 +46,36 @@ export const hotelData: Record<string, Hotel[]> = {
 export const transportData: Transport[] = [
   { 
     type: "سيدان", 
-    price: 90,
+    price: 90, // Tour price for 1-3 persons
+    capacity: "1-3 أشخاص",
     reception: { sameCity: 25, differentCity: 25 },
     farewell: { sameCity: 25, differentCity: 90 }
   },
   { 
     type: "ميني فان", 
-    price: 100,
+    price: 100, // Tour price for 4-6 persons
+    capacity: "4-6 أشخاص",
     reception: { sameCity: 40, differentCity: 40 },
     farewell: { sameCity: 40, differentCity: 100 }
   },
   { 
     type: "فان", 
-    price: 110,
+    price: 120, // Tour price for 7-8 persons
+    capacity: "7-8 أشخاص",
     reception: { sameCity: 65, differentCity: 65 },
     farewell: { sameCity: 65, differentCity: 110 }
   },
   { 
     type: "سبرنتر", 
-    price: 250,
-    reception: { sameCity: 100, differentCity: 100 },
-    farewell: { sameCity: 100, differentCity: 150 }
+    price: 250, // Tour price for 9-14 persons
+    capacity: "9-14 شخص",
+    reception: { sameCity: 120, differentCity: 120 },
+    farewell: { sameCity: 120, differentCity: 250 }
   },
   { 
     type: "باص", 
-    price: 400,
+    price: 400, // Tour price for 15+ persons
+    capacity: "15+ شخص",
     reception: { sameCity: 150, differentCity: 150 },
     farewell: { sameCity: 150, differentCity: 200 }
   }

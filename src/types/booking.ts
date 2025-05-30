@@ -40,7 +40,8 @@ export interface Hotel {
 
 export interface Transport {
   type: string;
-  price: number;
+  price: number; // Tour price per day
+  capacity: string;
   reception: {
     sameCity: number;
     differentCity: number;
