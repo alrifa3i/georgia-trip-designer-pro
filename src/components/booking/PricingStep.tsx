@@ -55,8 +55,14 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     const transport = transportData.find(t => t.type === data.carType);
     if (!transport) return 0;
 
+    // Calculate total tours including mandatory tours
+    const totalTours = data.selectedCities.reduce((total, city) => {
+      const regularTours = city.tours || 0;
+      const mandatoryTours = city.mandatoryTours || 0;
+      return total + regularTours + mandatoryTours;
+    }, 0);
+
     // Tour pricing based on vehicle type (internal pricing - not shown to customer)
-    const totalTours = data.selectedCities.reduce((total, city) => total + city.tours, 0);
     return totalTours * transport.price;
   };
 
@@ -124,6 +130,11 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     'تغيير نوع السيارة لخيار أوفر',
     'إلغاء بعض الخدمات الإضافية'
   ];
+
+  // Calculate total tours for display
+  const totalRegularTours = data.selectedCities.reduce((total, city) => total + (city.tours || 0), 0);
+  const totalMandatoryTours = data.selectedCities.reduce((total, city) => total + (city.mandatoryTours || 0), 0);
+  const totalAllTours = totalRegularTours + totalMandatoryTours;
 
   return (
     <div className="space-y-6">
@@ -196,9 +207,21 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
               <span className="font-medium">{Math.round(transportCosts)} {selectedCurrency?.symbol}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span>تكلفة الجولات</span>
+              <span>تكلفة الجولات ({totalAllTours} جولة)</span>
               <span className="font-medium">{Math.round(tourCosts)} {selectedCurrency?.symbol}</span>
             </div>
+            {totalMandatoryTours > 0 && (
+              <div className="flex justify-between items-center py-1 text-sm text-gray-600 border-b border-gray-200">
+                <span className="mr-4">• جولات اختيارية: {totalRegularTours}</span>
+                <span></span>
+              </div>
+            )}
+            {totalMandatoryTours > 0 && (
+              <div className="flex justify-between items-center py-1 text-sm text-gray-600 border-b border-gray-200">
+                <span className="mr-4">• جولات إجبارية: {totalMandatoryTours}</span>
+                <span></span>
+              </div>
+            )}
             {additionalServicesCosts > 0 && (
               <div className="flex justify-between items-center py-2 border-b">
                 <span>الخدمات الإضافية</span>
@@ -214,6 +237,19 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
               <span>{Math.round(totalCost)} {selectedCurrency?.symbol}</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Security Notice */}
+      <Card className="border-green-200 bg-green-50">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <span className="font-medium text-green-800">دفعك آمن معنا</span>
+          </div>
+          <p className="text-green-700 text-sm">
+            لن يتم خصم أي مبالغ إلا بعد وصولك واستلام الغرفة. نحن نضمن لك أفضل تجربة وأعلى مستويات الأمان.
+          </p>
         </CardContent>
       </Card>
 
@@ -250,7 +286,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
               <p><strong>نوع السيارة:</strong> {data.carType}</p>
               <p><strong>مطار الوصول:</strong> {data.arrivalAirport}</p>
               <p><strong>مطار المغادرة:</strong> {data.departureAirport}</p>
-              <p><strong>إجمالي الجولات:</strong> {data.selectedCities.reduce((total, city) => total + city.tours, 0)}</p>
+              <p><strong>إجمالي الجولات:</strong> {totalAllTours} ({totalRegularTours} اختيارية + {totalMandatoryTours} إجبارية)</p>
             </div>
           </div>
         </CardContent>

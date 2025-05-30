@@ -4,8 +4,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BookingData, CityStay } from '@/types/booking';
-import { hotelData } from '@/data/hotels';
-import { Plus, Minus, MapPin, Building2, Car } from 'lucide-react';
+import { hotelData, availableTours, airportCityMapping } from '@/data/hotels';
+import { Plus, Minus, MapPin, Building2, Car, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CitySelectionStepProps {
   data: BookingData;
@@ -15,12 +16,47 @@ interface CitySelectionStepProps {
 export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) => {
   const availableCities = Object.keys(hotelData);
 
+  // Auto-add first and last night cities based on airports
+  const autoAddAirportCities = () => {
+    const firstNightCity = airportCityMapping[data.arrivalAirport];
+    const lastNightCity = airportCityMapping[data.departureAirport];
+    
+    const newCities = [...data.selectedCities];
+    
+    // Check if first night city is already added
+    const hasFirstNightCity = newCities.some(city => city.city === firstNightCity);
+    if (!hasFirstNightCity && firstNightCity) {
+      newCities.unshift({
+        city: firstNightCity,
+        nights: 1,
+        hotel: '',
+        tours: 0,
+        mandatoryTours: 0
+      });
+    }
+    
+    // Check if last night city is already added and different from first
+    const hasLastNightCity = newCities.some(city => city.city === lastNightCity);
+    if (!hasLastNightCity && lastNightCity && lastNightCity !== firstNightCity) {
+      newCities.push({
+        city: lastNightCity,
+        nights: 1,
+        hotel: '',
+        tours: 0,
+        mandatoryTours: 0
+      });
+    }
+    
+    updateData({ selectedCities: newCities });
+  };
+
   const addCity = () => {
     const newCity: CityStay = {
       city: '',
       nights: 1,
       hotel: '',
-      tours: 0
+      tours: 0,
+      mandatoryTours: 0
     };
     updateData({
       selectedCities: [...data.selectedCities, newCity]
@@ -35,6 +71,22 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
   const updateCity = (index: number, field: keyof CityStay, value: string | number) => {
     const newCities = [...data.selectedCities];
     newCities[index] = { ...newCities[index], [field]: value };
+    
+    // Add mandatory tours when city is not arrival airport city
+    if (field === 'city') {
+      const arrivalCity = airportCityMapping[data.arrivalAirport];
+      if (value !== arrivalCity && value !== '') {
+        newCities[index].mandatoryTours = 1; // Add one mandatory tour
+      } else {
+        newCities[index].mandatoryTours = 0;
+      }
+      
+      // Update available tours based on selected city
+      if (value && availableTours[value as string]) {
+        newCities[index].availableTours = availableTours[value as string];
+      }
+    }
+    
     updateData({ selectedCities: newCities });
   };
 
@@ -43,13 +95,21 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
   };
 
   const getMinimumNights = () => {
+    if (!data.arrivalDate || !data.departureDate) return 3;
     const arrivalDate = new Date(data.arrivalDate);
     const departureDate = new Date(data.departureDate);
     const diffTime = Math.abs(departureDate.getTime() - arrivalDate.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) - 1; // nights = days - 1
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) - 1;
   };
 
   const minimumNights = getMinimumNights();
+
+  // Auto-add airport cities when component loads or airports change
+  React.useEffect(() => {
+    if (data.arrivalAirport && data.departureAirport) {
+      autoAddAirportCities();
+    }
+  }, [data.arrivalAirport, data.departureAirport]);
 
   return (
     <div className="space-y-6">
@@ -62,9 +122,9 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       <div className="bg-blue-50 p-4 rounded-lg">
         <p className="text-blue-800">
           <strong>مدة الرحلة:</strong> {minimumNights} ليلة 
-          {minimumNights < 2 && (
+          {minimumNights < 3 && (
             <span className="text-red-600 mr-2">
-              (الحد الأدنى 2 ليلة)
+              (الحد الأدنى 3 ليالي)
             </span>
           )}
         </p>
@@ -72,6 +132,21 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
           مجموع الليالي المحددة: {getTotalNights()} ليلة
         </p>
       </div>
+
+      {/* Airport-based accommodation notice */}
+      {data.arrivalAirport && data.departureAirport && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-1">
+              <p><strong>الليلة الأولى:</strong> ستكون في {airportCityMapping[data.arrivalAirport]} (حسب مطار الوصول)</p>
+              {data.arrivalAirport !== data.departureAirport && (
+                <p><strong>الليلة الأخيرة:</strong> ستكون في {airportCityMapping[data.departureAirport]} (حسب مطار المغادرة)</p>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Add City Button */}
       <div className="flex justify-between items-center">
@@ -166,9 +241,11 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
                       <SelectItem key={hotel.name} value={hotel.name}>
                         <div className="flex justify-between items-center w-full">
                           <span>{hotel.name}</span>
-                          <span className="text-sm text-gray-500 mr-4">
-                            من ${Math.min(hotel.dbl_v, hotel.dbl_wv)}
-                          </span>
+                          {hotel.rating && (
+                            <span className="text-sm text-gray-500 mr-4">
+                              {hotel.rating} نجوم
+                            </span>
+                          )}
                         </div>
                       </SelectItem>
                     ))}
@@ -182,6 +259,11 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
               <Label className="flex items-center gap-2">
                 <Car className="w-4 h-4" />
                 عدد الجولات السياحية
+                {cityStay.mandatoryTours > 0 && (
+                  <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
+                    +{cityStay.mandatoryTours} جولة إجبارية
+                  </span>
+                )}
               </Label>
               <div className="flex items-center gap-3">
                 <Button
@@ -204,9 +286,21 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
                 </Button>
               </div>
               <p className="text-sm text-gray-500">
-                أو اختر خدمة الاستقبال والتوديع فقط (0 جولات)
+                المجموع الفعلي: {cityStay.tours + (cityStay.mandatoryTours || 0)} جولة
               </p>
             </div>
+
+            {/* Available Tours Display */}
+            {cityStay.availableTours && cityStay.availableTours.length > 0 && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <h5 className="font-medium text-sm mb-2">الجولات المتاحة:</h5>
+                <div className="text-xs text-gray-600 space-y-1">
+                  {cityStay.availableTours.map((tour, tourIndex) => (
+                    <div key={tourIndex}>• {tour.name} - {tour.description}</div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -214,8 +308,8 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       {data.selectedCities.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-          <p>لم تقم بإضافة أي مدن بعد</p>
-          <p className="text-sm">اضغط على "إضافة مدينة" لبدء تخطيط رحلتك</p>
+          <p>سيتم إضافة مدن الإقامة تلقائياً حسب المطارات المختارة</p>
+          <p className="text-sm">يمكنك إضافة مدن إضافية باستخدام زر "إضافة مدينة"</p>
         </div>
       )}
     </div>

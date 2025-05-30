@@ -26,6 +26,13 @@ export interface CityStay {
   nights: number;
   hotel: string;
   tours: number;
+  availableTours?: TourLocation[];
+  mandatoryTours?: number; // Tours added automatically based on logic
+}
+
+export interface TourLocation {
+  name: string;
+  description: string;
 }
 
 export interface Hotel {

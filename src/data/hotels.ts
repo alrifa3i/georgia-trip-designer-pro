@@ -1,5 +1,5 @@
 
-import { Hotel, Transport } from '@/types/booking';
+import { Hotel, Transport, TourLocation } from '@/types/booking';
 
 export const hotelData: Record<string, Hotel[]> = {
   "تبليسي": [
@@ -80,6 +80,54 @@ export const transportData: Transport[] = [
     farewell: { sameCity: 150, differentCity: 200 }
   }
 ];
+
+// Available tours based on accommodation location
+export const availableTours: Record<string, TourLocation[]> = {
+  "تبليسي": [
+    { name: "تبليسي", description: "جولة في العاصمة الجورجية" },
+    { name: "جبال القوقاز (كوداوري)", description: "جولة في جبال القوقاز الشاهقة" },
+    { name: "باكورياني", description: "منتجع تزلج شتوي ومناظر خلابة" },
+    { name: "برجومي", description: "مدينة المياه المعدنية الشهيرة" },
+    { name: "كاخيتي", description: "منطقة النبيذ الجورجي" },
+    { name: "داش باش", description: "منتجع جبلي مع مناظر طبيعية" },
+    { name: "متسخيتا", description: "العاصمة القديمة لجورجيا" },
+    { name: "غوري", description: "مدينة ستالين التاريخية" }
+  ],
+  "باتومي": [
+    { name: "باتومي", description: "مدينة ساحلية على البحر الأسود" },
+    { name: "شلالات باتومي", description: "شلالات طبيعية خلابة" },
+    { name: "الحدائق والبحيرات", description: "حدائق نباتية وبحيرات طبيعية" }
+  ],
+  "برجومي": [
+    { name: "برجومي", description: "مدينة المياه المعدنية" },
+    { name: "باكورياني", description: "منتجع تزلج قريب" }
+  ],
+  "باكورياني": [
+    { name: "باكورياني", description: "منتجع التزلج الشتوي" },
+    { name: "برجومي", description: "مدينة المياه المعدنية القريبة" }
+  ],
+  "كوتايسي": [
+    { name: "كوتايسي", description: "ثاني أكبر مدن جورجيا" },
+    { name: "كهوف ساتابليا", description: "كهوف طبيعية مذهلة" },
+    { name: "وادي أوكاتسي", description: "وادي طبيعي خلاب" }
+  ],
+  "كوداوري": [
+    { name: "كوداوري", description: "منتجع التزلج الأشهر في جورجيا" },
+    { name: "تبليسي", description: "العاصمة الجورجية" }
+  ],
+  "داشباش": [
+    { name: "داش باش", description: "منتجع جبلي هادئ" },
+    { name: "تبليسي", description: "العاصمة الجورجية" }
+  ]
+};
+
+// Airport to city mapping for accommodation
+export const airportCityMapping: Record<string, string> = {
+  "تبليسي": "تبليسي",
+  "باتومي": "باتومي", 
+  "كوتايسي": "كوتايسي",
+  "الحدود البرية": "تبليسي" // Default to Tbilisi for land border
+};
 
 export const currencies = [
   { code: 'USD', name: 'دولار أمريكي', symbol: '$' },
