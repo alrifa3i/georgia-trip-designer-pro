@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -92,10 +91,10 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     const total = data.selectedCities.reduce((sum, city) => sum + city.nights, 0);
     setTotalSelectedNights(total);
     
-    // Validate the step
+    // Validate the step - Fixed: Convert carType string check to boolean
     const isValid = total === requiredNights && 
                    data.selectedCities.every(city => city.hotel && city.roomSelections && city.roomSelections.length > 0) &&
-                   data.carType;
+                   Boolean(data.carType);
     
     if (onValidationChange) {
       onValidationChange(isValid);
