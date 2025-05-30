@@ -79,7 +79,7 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-emerald-600" />
-            <span className="text-emerald-700 text-sm font-medium">موقع آمن 100% ومحمي بأحدث تقنيات الأمان</span>
+            <span className="text-emerald-700 text-sm font-medium">خصوصية معلوماتك ولا يتم مشاركتها مع اي جهة فقط الفنادق</span>
           </div>
         </div>
       </div>
@@ -141,11 +141,10 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
           </Button>
         </div>
 
-        {/* Children Policy Notice */}
+        {/* Children Policy Notice - Simplified for user */}
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
           <h4 className="font-medium text-blue-800 mb-2">سياسة الأطفال:</h4>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• الأطفال فوق 6 سنوات يُحسبون كأشخاص كاملي العدد</li>
             <li>• الأطفال أقل من 6 سنوات لا يحتاجون سرير منفصل</li>
             <li>• يُسمح بطفلين كحد أقصى (أقل من 6 سنوات) في الغرفة الواحدة</li>
           </ul>
@@ -176,7 +175,7 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
             )}
             {child.age > 6 && (
               <span className="text-sm text-orange-600 font-medium">
-                (يُحسب كشخص كامل)
+                (سيتم اضافة سرير)
               </span>
             )}
             <Button
@@ -232,31 +231,6 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Number of Rooms */}
-        <div className="space-y-2">
-          <Label>عدد الغرف المطلوبة *</Label>
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => updateData({ rooms: Math.max(1, data.rooms - 1) })}
-              disabled={data.rooms <= 1}
-            >
-              <Minus className="w-4 h-4" />
-            </Button>
-            <span className="w-12 text-center font-semibold">{data.rooms}</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => updateData({ rooms: data.rooms + 1 })}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
         {/* Currency */}
         <div className="space-y-2">
           <Label>العملة *</Label>
@@ -276,23 +250,23 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
             </SelectContent>
           </Select>
         </div>
-      </div>
 
-      {/* Budget */}
-      <div className="space-y-2">
-        <Label htmlFor="budget">الميزانية المطلوبة *</Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id="budget"
-            type="number"
-            value={data.budget}
-            onChange={(e) => updateData({ budget: parseInt(e.target.value) || 0 })}
-            placeholder="أدخل الميزانية"
-            required
-          />
-          <span className="text-gray-600">
-            {currencies.find(c => c.code === data.currency)?.symbol}
-          </span>
+        {/* Budget */}
+        <div className="space-y-2">
+          <Label htmlFor="budget">الميزانية المطلوبة *</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="budget"
+              type="number"
+              value={data.budget || ''}
+              onChange={(e) => updateData({ budget: parseInt(e.target.value) || 0 })}
+              placeholder="ادخل سعر رحلتك المتوقعة"
+              required
+            />
+            <span className="text-gray-600">
+              {currencies.find(c => c.code === data.currency)?.symbol}
+            </span>
+          </div>
         </div>
       </div>
     </div>

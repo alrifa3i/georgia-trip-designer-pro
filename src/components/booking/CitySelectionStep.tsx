@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BookingData, CityStay } from '@/types/booking';
+import { BookingData, CityStay, RoomSelection } from '@/types/booking';
 import { hotelData, availableTours, airportCityMapping } from '@/data/hotels';
-import { Plus, Minus, MapPin, Building2, Car, Info } from 'lucide-react';
+import { Plus, Minus, MapPin, Building2, Car, Info, Hotel } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CitySelectionStepProps {
@@ -15,6 +15,15 @@ interface CitySelectionStepProps {
 
 export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) => {
   const availableCities = Object.keys(hotelData);
+
+  const roomTypes = [
+    { id: 'single', label: 'غرفة مفردة مع إفطار (بدون إطلالة)', capacity: 1 },
+    { id: 'single_v', label: 'غرفة مفردة مع إفطار (مع إطلالة)', capacity: 1 },
+    { id: 'dbl_wv', label: 'غرفة مزدوجة مع إفطار (بدون إطلالة)', capacity: 2 },
+    { id: 'dbl_v', label: 'غرفة مزدوجة مع إفطار (مع إطلالة)', capacity: 2 },
+    { id: 'trbl_wv', label: 'غرفة ثلاثية مع إفطار (بدون إطلالة)', capacity: 3 },
+    { id: 'trbl_v', label: 'غرفة ثلاثية مع إفطار (مع إطلالة)', capacity: 3 }
+  ];
 
   // Auto-add first and last night cities based on airports
   const autoAddAirportCities = () => {
@@ -31,7 +40,8 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
         nights: 1,
         hotel: '',
         tours: 0,
-        mandatoryTours: 0
+        mandatoryTours: 0,
+        roomSelections: []
       });
     }
     
@@ -43,7 +53,8 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
         nights: 1,
         hotel: '',
         tours: 0,
-        mandatoryTours: 0
+        mandatoryTours: 0,
+        roomSelections: []
       });
     }
     
@@ -56,7 +67,8 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       nights: 1,
       hotel: '',
       tours: 0,
-      mandatoryTours: 0
+      mandatoryTours: 0,
+      roomSelections: []
     };
     updateData({
       selectedCities: [...data.selectedCities, newCity]
@@ -76,7 +88,7 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
     if (field === 'city') {
       const arrivalCity = airportCityMapping[data.arrivalAirport];
       if (value !== arrivalCity && value !== '') {
-        newCities[index].mandatoryTours = 1; // Add one mandatory tour
+        newCities[index].mandatoryTours = 1;
       } else {
         newCities[index].mandatoryTours = 0;
       }
@@ -85,9 +97,38 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       if (value && availableTours[value as string]) {
         newCities[index].availableTours = availableTours[value as string];
       }
+      
+      // Reset room selections when city changes
+      newCities[index].roomSelections = [];
+    }
+    
+    // Initialize room selections when hotel is selected
+    if (field === 'hotel' && value !== '') {
+      const roomSelections: RoomSelection[] = [];
+      for (let i = 0; i < data.rooms; i++) {
+        roomSelections.push({
+          roomNumber: i + 1,
+          roomType: ''
+        });
+      }
+      newCities[index].roomSelections = roomSelections;
     }
     
     updateData({ selectedCities: newCities });
+  };
+
+  const updateRoomSelection = (cityIndex: number, roomIndex: number, roomType: string) => {
+    const newCities = [...data.selectedCities];
+    if (newCities[cityIndex].roomSelections) {
+      newCities[cityIndex].roomSelections![roomIndex].roomType = roomType;
+      updateData({ selectedCities: newCities });
+    }
+  };
+
+  const shouldShowRoomWarning = () => {
+    const totalAdults = data.adults + data.children.filter(child => child.age > 6).length;
+    const recommendedRooms = Math.ceil(totalAdults / 2);
+    return data.rooms > recommendedRooms;
   };
 
   const getTotalNights = () => {
@@ -105,7 +146,7 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
   const minimumNights = getMinimumNights();
 
   // Auto-add airport cities when component loads or airports change
-  React.useEffect(() => {
+  useEffect(() => {
     if (data.arrivalAirport && data.departureAirport) {
       autoAddAirportCities();
     }
@@ -132,6 +173,44 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
           مجموع الليالي المحددة: {getTotalNights()} ليلة
         </p>
       </div>
+
+      {/* Room Count Selection */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border-2 border-purple-200">
+        <div className="flex items-center gap-2 mb-4">
+          <Hotel className="w-5 h-5 text-purple-600" />
+          <h3 className="font-bold text-purple-800">عدد الغرف المطلوبة</h3>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => updateData({ rooms: Math.max(1, data.rooms - 1) })}
+            disabled={data.rooms <= 1}
+          >
+            <Minus className="w-4 h-4" />
+          </Button>
+          <span className="w-12 text-center font-semibold text-lg">{data.rooms}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => updateData({ rooms: data.rooms + 1 })}
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Room Count Warning */}
+      {shouldShowRoomWarning() && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            تنبيه: عدد الغرف المختارة أكثر من المطلوب للعدد الحالي من المسافرين. يمكنك المتابعة أو تعديل العدد.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Airport-based accommodation notice */}
       {data.arrivalAirport && data.departureAirport && (
@@ -251,6 +330,33 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {/* Room Type Selection - Show after hotel is selected */}
+            {cityStay.hotel && cityStay.roomSelections && (
+              <div className="mt-6 space-y-4">
+                <h5 className="font-medium text-gray-800">اختيار نوع الغرف:</h5>
+                {cityStay.roomSelections.map((roomSelection, roomIndex) => (
+                  <div key={roomIndex} className="p-4 bg-gray-50 rounded-lg">
+                    <Label className="block mb-2">الغرفة {roomSelection.roomNumber}:</Label>
+                    <Select
+                      value={roomSelection.roomType}
+                      onValueChange={(value) => updateRoomSelection(index, roomIndex, value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر نوع الغرفة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roomTypes.map((roomType) => (
+                          <SelectItem key={roomType.id} value={roomType.id}>
+                            {roomType.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
               </div>
             )}
 

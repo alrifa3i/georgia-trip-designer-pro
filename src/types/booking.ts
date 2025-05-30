@@ -27,7 +27,13 @@ export interface CityStay {
   hotel: string;
   tours: number;
   availableTours?: TourLocation[];
-  mandatoryTours?: number; // Tours added automatically based on logic
+  mandatoryTours?: number;
+  roomSelections?: RoomSelection[]; // Added for detailed room selection
+}
+
+export interface RoomSelection {
+  roomNumber: number;
+  roomType: string;
 }
 
 export interface TourLocation {
@@ -41,13 +47,15 @@ export interface Hotel {
   trbl_v: number;
   dbl_wv: number;
   trbl_wv: number;
+  single?: number; // Added single room pricing
+  single_v?: number; // Added single room with view pricing
   rating?: number;
   distanceFromCenter?: number;
 }
 
 export interface Transport {
   type: string;
-  price: number; // Tour price per day
+  price: number;
   capacity: string;
   reception: {
     sameCity: number;

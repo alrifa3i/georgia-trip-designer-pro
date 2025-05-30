@@ -2,12 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
 import { airports, transportData } from '@/data/hotels';
-import { Plane, Car, Hotel, Info, Lightbulb, CheckCircle2 } from 'lucide-react';
+import { Plane, Car, Info, Lightbulb, CheckCircle2 } from 'lucide-react';
 
 interface TripDetailsStepProps {
   data: BookingData;
@@ -17,16 +16,8 @@ interface TripDetailsStepProps {
 export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
   const [smartSuggestions, setSmartSuggestions] = useState<string[]>([]);
 
-  const roomTypes = [
-    { id: 'single', label: 'غرفة مفردة مع إفطار (بدون إطلالة)', capacity: 1 },
-    { id: 'single_v', label: 'غرفة مفردة مع إفطار (مع إطلالة)', capacity: 1 },
-    { id: 'dbl_wv', label: 'غرفة مزدوجة مع إفطار (بدون إطلالة)', capacity: 2 },
-    { id: 'dbl_v', label: 'غرفة مزدوجة مع إفطار (مع إطلالة)', capacity: 2 },
-    { id: 'trbl_wv', label: 'غرفة ثلاثية مع إفطار (بدون إطلالة)', capacity: 3 },
-    { id: 'trbl_v', label: 'غرفة ثلاثية مع إفطار (مع إطلالة)', capacity: 3 }
-  ];
-
   const generateSmartSuggestions = () => {
+    // Calculate total people including children over 6 (internal logic)
     const totalAdults = data.adults + data.children.filter(child => child.age > 6).length;
     const suggestions: string[] = [];
 
@@ -58,6 +49,9 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
       suggestions.push(`${totalAdults} غرف مفردة`);
     }
 
+    // Add "other" option
+    suggestions.push('غير ذلك');
+
     setSmartSuggestions(suggestions);
   };
 
@@ -65,14 +59,8 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
     generateSmartSuggestions();
   }, [data.adults, data.children]);
 
-  const handleRoomTypeChange = (roomType: string, checked: boolean) => {
-    const newRoomTypes = checked
-      ? [...data.roomTypes, roomType]
-      : data.roomTypes.filter(type => type !== roomType);
-    updateData({ roomTypes: newRoomTypes });
-  };
-
   const getRecommendedCarType = () => {
+    // Internal calculation including children over 6
     const totalPeople = data.adults + data.children.filter(child => child.age > 6).length;
     if (totalPeople <= 3) return 'سيدان';
     if (totalPeople <= 6) return 'ميني فان';
@@ -83,31 +71,27 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
 
   const recommendedCar = getRecommendedCarType();
 
-  const shouldShowRoomWarning = () => {
-    const totalAdults = data.adults + data.children.filter(child => child.age > 6).length;
-    const recommendedRooms = Math.ceil(totalAdults / 2);
-    return data.rooms > recommendedRooms;
-  };
-
   const applySuggestion = (suggestion: string) => {
-    // Reset room types
-    updateData({ roomTypes: [] });
+    if (suggestion === 'غير ذلك') {
+      // Don't auto-set rooms, let user choose manually
+      return;
+    }
     
-    // Parse suggestion and update room types accordingly
+    // Parse suggestion and update room count accordingly
     if (suggestion.includes('مفردة واحدة')) {
-      updateData({ roomTypes: ['single'], rooms: 1 });
+      updateData({ rooms: 1 });
     } else if (suggestion.includes('مزدوجة واحدة')) {
-      updateData({ roomTypes: ['dbl_wv'], rooms: 1 });
+      updateData({ rooms: 1 });
     } else if (suggestion.includes('ثلاثية واحدة')) {
-      updateData({ roomTypes: ['trbl_wv'], rooms: 1 });
+      updateData({ rooms: 1 });
     } else if (suggestion.includes('غرفتين مفردة')) {
-      updateData({ roomTypes: ['single'], rooms: 2 });
+      updateData({ rooms: 2 });
     } else if (suggestion.includes('غرفتين مزدوجة')) {
-      updateData({ roomTypes: ['dbl_wv'], rooms: 2 });
+      updateData({ rooms: 2 });
     } else if (suggestion.includes('غرفتين ثلاثية')) {
-      updateData({ roomTypes: ['trbl_wv'], rooms: 2 });
+      updateData({ rooms: 2 });
     } else if (suggestion.includes('3 غرف مزدوجة')) {
-      updateData({ roomTypes: ['dbl_wv'], rooms: 3 });
+      updateData({ rooms: 3 });
     }
     // Add more parsing logic as needed
   };
@@ -116,7 +100,7 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">تفاصيل البرنامج السياحي</h2>
-        <p className="text-gray-600">اختر تفاصيل رحلتك ونوع الإقامة والنقل</p>
+        <p className="text-gray-600">اختر تفاصيل رحلتك ونوع النقل</p>
       </div>
 
       {/* Airport Selection */}
@@ -201,41 +185,6 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
         </div>
       )}
 
-      {/* Room Types */}
-      <div className="space-y-4">
-        <Label className="flex items-center gap-2 text-lg font-medium">
-          <Hotel className="w-4 h-4" />
-          نوع الغرف المطلوبة *
-        </Label>
-        <div className="grid md:grid-cols-2 gap-4">
-          {roomTypes.map((roomType) => (
-            <div key={roomType.id} className="flex items-center space-x-2 space-x-reverse p-4 border-2 rounded-lg hover:border-blue-300 transition-colors">
-              <Checkbox
-                id={roomType.id}
-                checked={data.roomTypes.includes(roomType.id)}
-                onCheckedChange={(checked) => handleRoomTypeChange(roomType.id, checked as boolean)}
-              />
-              <div className="flex-1">
-                <Label htmlFor={roomType.id} className="text-sm cursor-pointer font-medium">
-                  {roomType.label}
-                </Label>
-                <p className="text-xs text-gray-500">سعة: {roomType.capacity} {roomType.capacity === 1 ? 'شخص' : 'أشخاص'}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Room Count Warning */}
-      {shouldShowRoomWarning() && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            تنبيه: عدد الغرف المختارة أكثر من المطلوب للعدد الحالي من المسافرين. يمكنك المتابعة أو تعديل العدد.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Car Type */}
       <div className="space-y-4">
         <Label className="flex items-center gap-2 text-lg font-medium">
@@ -284,9 +233,6 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
           <li>• سبرنتر: 9-14 شخص</li>
           <li>• باص: 15+ أشخاص</li>
         </ul>
-        <p className="text-xs text-gray-500 mt-2">
-          * الأطفال فوق 6 سنوات يحسبون كبالغين في حساب السعة
-        </p>
       </div>
     </div>
   );
