@@ -1,10 +1,9 @@
-
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
 import { hotelData, transportData, currencies, additionalServicesData } from '@/data/hotels';
-import { DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
+import { DollarSign, AlertTriangle, CheckCircle, MapPin, Building2, Car } from 'lucide-react';
 
 interface PricingStepProps {
   data: BookingData;
@@ -13,82 +12,112 @@ interface PricingStepProps {
 
 export const PricingStep = ({ data, updateData }: PricingStepProps) => {
   const calculateHotelCosts = () => {
+    const cityBreakdown: Array<{
+      city: string;
+      nights: number;
+      roomCost: number;
+      totalCost: number;
+    }> = [];
+
     let totalHotelCost = 0;
     
     data.selectedCities.forEach(cityStay => {
       if (cityStay.city && cityStay.hotel) {
         const hotel = hotelData[cityStay.city]?.find(h => h.name === cityStay.hotel);
         if (hotel) {
-          let nightlyCost = 0;
+          let roomCostPerNight = 0;
+          
+          // حساب تكلفة الغرف حسب النوع المختار
           data.roomTypes.forEach(roomType => {
-            if (roomType === 'dbl_v') nightlyCost += hotel.dbl_v;
-            if (roomType === 'dbl_wv') nightlyCost += hotel.dbl_wv;
-            if (roomType === 'trbl_v') nightlyCost += hotel.trbl_v;
-            if (roomType === 'trbl_wv') nightlyCost += hotel.trbl_wv;
-            if (roomType === 'single') nightlyCost += hotel.dbl_v; // Single room same as double
+            if (roomType === 'dbl_v') roomCostPerNight += hotel.dbl_v;
+            if (roomType === 'dbl_wv') roomCostPerNight += hotel.dbl_wv;
+            if (roomType === 'trbl_v') roomCostPerNight += hotel.trbl_v;
+            if (roomType === 'trbl_wv') roomCostPerNight += hotel.trbl_wv;
+            if (roomType === 'single') roomCostPerNight += hotel.dbl_v;
           });
-          totalHotelCost += nightlyCost * cityStay.nights;
+
+          const cityTotal = roomCostPerNight * cityStay.nights;
+          totalHotelCost += cityTotal;
+
+          cityBreakdown.push({
+            city: cityStay.city,
+            nights: cityStay.nights,
+            roomCost: roomCostPerNight,
+            totalCost: cityTotal
+          });
         }
       }
     });
     
-    return totalHotelCost;
+    return { total: totalHotelCost, breakdown: cityBreakdown };
+  };
+
+  const calculateTourCosts = () => {
+    const transport = transportData.find(t => t.type === data.carType);
+    if (!transport) return { total: 0, breakdown: [] };
+
+    const cityBreakdown: Array<{
+      city: string;
+      regularTours: number;
+      mandatoryTours: number;
+      totalTours: number;
+      totalCost: number;
+    }> = [];
+
+    let totalTourCost = 0;
+
+    data.selectedCities.forEach(cityStay => {
+      const regularTours = cityStay.tours || 0;
+      const mandatoryTours = cityStay.mandatoryTours || 0;
+      const totalTours = regularTours + mandatoryTours;
+      const cityTourCost = totalTours * transport.price;
+      
+      totalTourCost += cityTourCost;
+
+      if (totalTours > 0) {
+        cityBreakdown.push({
+          city: cityStay.city,
+          regularTours,
+          mandatoryTours,
+          totalTours,
+          totalCost: cityTourCost
+        });
+      }
+    });
+
+    return { total: totalTourCost, breakdown: cityBreakdown };
   };
 
   const calculateTransportCosts = () => {
     const transport = transportData.find(t => t.type === data.carType);
     if (!transport) return 0;
 
-    let totalTransportCost = 0;
-
-    // Reception and farewell costs (internal pricing - not shown to customer)
     const isSameCity = data.arrivalAirport === data.departureAirport;
     const receptionCost = transport.reception[isSameCity ? 'sameCity' : 'differentCity'];
     const farewellCost = transport.farewell[isSameCity ? 'sameCity' : 'differentCity'];
     
-    totalTransportCost += receptionCost + farewellCost;
-
-    return totalTransportCost;
-  };
-
-  const calculateTourCosts = () => {
-    const transport = transportData.find(t => t.type === data.carType);
-    if (!transport) return 0;
-
-    // Calculate total tours including mandatory tours
-    const totalTours = data.selectedCities.reduce((total, city) => {
-      const regularTours = city.tours || 0;
-      const mandatoryTours = city.mandatoryTours || 0;
-      return total + regularTours + mandatoryTours;
-    }, 0);
-
-    // Tour pricing based on vehicle type (internal pricing - not shown to customer)
-    return totalTours * transport.price;
+    return receptionCost + farewellCost;
   };
 
   const calculateAdditionalServicesCosts = () => {
     let totalCost = 0;
     const duration = getDuration();
 
-    // Travel Insurance (5$ per person per day)
     if (data.additionalServices.travelInsurance.enabled) {
       totalCost += data.additionalServices.travelInsurance.persons * 
                    additionalServicesData.travelInsurance.pricePerPersonPerDay * 
                    duration;
     }
 
-    // Phone Lines (15$ per line for 7 days)
     if (data.additionalServices.phoneLines.enabled) {
       totalCost += data.additionalServices.phoneLines.quantity * 
                    additionalServicesData.phoneLines.pricePerLine;
     }
 
-    // Room Decoration (100$ - internal price)
     if (data.additionalServices.roomDecoration.enabled) {
       totalCost += additionalServicesData.roomDecoration.price;
     }
 
-    // Airport Reception (240$ per person - internal price)
     if (data.additionalServices.airportReception.enabled) {
       totalCost += data.additionalServices.airportReception.persons * 
                    additionalServicesData.airportReception.pricePerPerson;
@@ -106,13 +135,12 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     return 0;
   };
 
-  const hotelCosts = calculateHotelCosts();
+  const hotelCostData = calculateHotelCosts();
+  const tourCostData = calculateTourCosts();
   const transportCosts = calculateTransportCosts();
-  const tourCosts = calculateTourCosts();
   const additionalServicesCosts = calculateAdditionalServicesCosts();
-  const subtotal = hotelCosts + transportCosts + tourCosts + additionalServicesCosts;
+  const subtotal = hotelCostData.total + tourCostData.total + transportCosts + additionalServicesCosts;
   
-  // Add 22% profit margin
   const profitMargin = 0.22;
   const totalCost = subtotal * (1 + profitMargin);
 
@@ -122,19 +150,6 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
 
   const selectedCurrency = currencies.find(c => c.code === data.currency);
   const isOverBudget = totalCost > data.budget;
-
-  const suggestions = [
-    'تقليل عدد الليالي في بعض المدن',
-    'اختيار فنادق بفئة أقل',
-    'تقليل عدد الجولات السياحية',
-    'تغيير نوع السيارة لخيار أوفر',
-    'إلغاء بعض الخدمات الإضافية'
-  ];
-
-  // Calculate total tours for display
-  const totalRegularTours = data.selectedCities.reduce((total, city) => total + (city.tours || 0), 0);
-  const totalMandatoryTours = data.selectedCities.reduce((total, city) => total + (city.mandatoryTours || 0), 0);
-  const totalAllTours = totalRegularTours + totalMandatoryTours;
 
   return (
     <div className="space-y-6">
@@ -191,37 +206,93 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
         </CardContent>
       </Card>
 
-      {/* Cost Breakdown */}
+      {/* Detailed Hotel Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>تفاصيل التكلفة</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            تفاصيل تكلفة الإقامة
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {hotelCostData.breakdown.map((city, index) => (
+              <div key={index} className="flex justify-between items-center py-2 border-b">
+                <div>
+                  <span className="font-medium">{city.city}</span>
+                  <span className="text-sm text-gray-600 mr-2">
+                    ({city.roomCost} × {city.nights} ليلة)
+                  </span>
+                </div>
+                <span className="font-medium">
+                  {Math.round(city.totalCost)} {selectedCurrency?.symbol}
+                </span>
+              </div>
+            ))}
+            <div className="flex justify-between items-center py-2 font-bold text-lg border-t-2">
+              <span>إجمالي الإقامة</span>
+              <span>{Math.round(hotelCostData.total)} {selectedCurrency?.symbol}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Detailed Tour Breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Car className="w-5 h-5" />
+            تفاصيل تكلفة الجولات
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {tourCostData.breakdown.map((city, index) => (
+              <div key={index} className="py-3 border-b">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">{city.city}</span>
+                  <span className="font-medium">
+                    {Math.round(city.totalCost)} {selectedCurrency?.symbol}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600 space-y-1">
+                  {city.regularTours > 0 && (
+                    <div>• جولات اختيارية: {city.regularTours}</div>
+                  )}
+                  {city.mandatoryTours > 0 && (
+                    <div>• جولات إجبارية: {city.mandatoryTours}</div>
+                  )}
+                  <div>• إجمالي الجولات: {city.totalTours}</div>
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-between items-center py-2 font-bold text-lg border-t-2">
+              <span>إجمالي الجولات</span>
+              <span>{Math.round(tourCostData.total)} {selectedCurrency?.symbol}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cost Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle>ملخص التكلفة</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex justify-between items-center py-2 border-b">
-              <span>تكلفة الفنادق</span>
-              <span className="font-medium">{Math.round(hotelCosts)} {selectedCurrency?.symbol}</span>
+              <span>تكلفة الإقامة</span>
+              <span className="font-medium">{Math.round(hotelCostData.total)} {selectedCurrency?.symbol}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span>تكلفة الجولات</span>
+              <span className="font-medium">{Math.round(tourCostData.total)} {selectedCurrency?.symbol}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
               <span>تكلفة النقل والاستقبال</span>
               <span className="font-medium">{Math.round(transportCosts)} {selectedCurrency?.symbol}</span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span>تكلفة الجولات ({totalAllTours} جولة)</span>
-              <span className="font-medium">{Math.round(tourCosts)} {selectedCurrency?.symbol}</span>
-            </div>
-            {totalMandatoryTours > 0 && (
-              <div className="flex justify-between items-center py-1 text-sm text-gray-600 border-b border-gray-200">
-                <span className="mr-4">• جولات اختيارية: {totalRegularTours}</span>
-                <span></span>
-              </div>
-            )}
-            {totalMandatoryTours > 0 && (
-              <div className="flex justify-between items-center py-1 text-sm text-gray-600 border-b border-gray-200">
-                <span className="mr-4">• جولات إجبارية: {totalMandatoryTours}</span>
-                <span></span>
-              </div>
-            )}
             {additionalServicesCosts > 0 && (
               <div className="flex justify-between items-center py-2 border-b">
                 <span>الخدمات الإضافية</span>
@@ -250,45 +321,6 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
           <p className="text-green-700 text-sm">
             لن يتم خصم أي مبالغ إلا بعد وصولك واستلام الغرفة. نحن نضمن لك أفضل تجربة وأعلى مستويات الأمان.
           </p>
-        </CardContent>
-      </Card>
-
-      {/* Suggestions if over budget */}
-      {isOverBudget && (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <div>
-              <p className="font-medium mb-2">اقتراحات لتقليل التكلفة:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                {suggestions.map((suggestion, index) => (
-                  <li key={index}>{suggestion}</li>
-                ))}
-              </ul>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Trip Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>ملخص الرحلة</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p><strong>المسافرون:</strong> {data.adults} بالغ، {data.children.length} طفل</p>
-              <p><strong>المدة:</strong> {getDuration()} أيام، {data.selectedCities.reduce((total, city) => total + city.nights, 0)} ليلة</p>
-              <p><strong>عدد الغرف:</strong> {data.rooms}</p>
-            </div>
-            <div>
-              <p><strong>نوع السيارة:</strong> {data.carType}</p>
-              <p><strong>مطار الوصول:</strong> {data.arrivalAirport}</p>
-              <p><strong>مطار المغادرة:</strong> {data.departureAirport}</p>
-              <p><strong>إجمالي الجولات:</strong> {totalAllTours} ({totalRegularTours} اختيارية + {totalMandatoryTours} إجبارية)</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

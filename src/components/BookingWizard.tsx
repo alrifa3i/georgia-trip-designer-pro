@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -84,44 +83,44 @@ export const BookingWizard = () => {
 
   return (
     <div className="max-w-4xl mx-auto" dir="rtl">
-      {/* Progress Bar */}
+      {/* Enhanced Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
           {steps.map((step) => (
             <div key={step.number} className="flex flex-col items-center">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-lg transition-all duration-300 ${
                   currentStep >= step.number
-                    ? 'bg-emerald-600'
-                    : 'bg-gray-300'
+                    ? 'bg-emerald-600 scale-110'
+                    : 'bg-gray-400'
                 }`}
               >
                 {step.number}
               </div>
-              <span className="text-sm mt-2 text-gray-600">{step.title}</span>
+              <span className="text-sm mt-2 text-gray-700 font-medium">{step.title}</span>
             </div>
           ))}
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-300 rounded-full h-3 shadow-inner">
           <div
-            className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+            className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-3 rounded-full transition-all duration-500 shadow-sm"
             style={{ width: `${(currentStep / totalSteps) * 100}%` }}
           ></div>
         </div>
       </div>
 
-      {/* Step Content */}
-      <Card className="p-8 mb-8 shadow-lg">
+      {/* Enhanced Step Content */}
+      <Card className="p-8 mb-8 shadow-2xl bg-white/98 backdrop-blur-sm border-2 border-white/50">
         {renderStep()}
       </Card>
 
-      {/* Navigation Buttons */}
+      {/* Enhanced Navigation Buttons */}
       <div className="flex justify-between">
         <Button
           onClick={prevStep}
           disabled={currentStep === 1}
           variant="outline"
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 bg-white/90 hover:bg-white border-2 border-gray-300 shadow-lg"
         >
           <ChevronRight className="w-4 h-4" />
           السابق
@@ -129,7 +128,7 @@ export const BookingWizard = () => {
         <Button
           onClick={nextStep}
           disabled={currentStep === totalSteps}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700"
+          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg"
         >
           التالي
           <ChevronLeft className="w-4 h-4" />
