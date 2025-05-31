@@ -48,7 +48,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             
             switch (room.roomType) {
               case 'single':
-                roomPrice = hotel.single || hotel.dbl_v; // fallback to double if single not available
+                roomPrice = hotel.single || hotel.dbl_wv; // fallback to double if single not available
                 roomTypeName = 'غرفة مفردة (بدون إطلالة)';
                 break;
               case 'single_v':
@@ -56,19 +56,19 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                 roomTypeName = 'غرفة مفردة (مع إطلالة)';
                 break;
               case 'dbl_wv':
-                roomPrice = hotel.dbl_wv;
+                roomPrice = hotel.dbl_wv || 0;
                 roomTypeName = 'غرفة مزدوجة (بدون إطلالة)';
                 break;
               case 'dbl_v':
-                roomPrice = hotel.dbl_v;
+                roomPrice = hotel.dbl_v || 0;
                 roomTypeName = 'غرفة مزدوجة (مع إطلالة)';
                 break;
               case 'trbl_wv':
-                roomPrice = hotel.trbl_wv;
+                roomPrice = hotel.trbl_wv || 0;
                 roomTypeName = 'غرفة ثلاثية (بدون إطلالة)';
                 break;
               case 'trbl_v':
-                roomPrice = hotel.trbl_v;
+                roomPrice = hotel.trbl_v || 0;
                 roomTypeName = 'غرفة ثلاثية (مع إطلالة)';
                 break;
               default:
@@ -189,7 +189,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
       const receptionCost = data.additionalServices.airportReception.persons * 
                            additionalServicesData.airportReception.pricePerPerson;
       totalCost += receptionCost;
-      console.log(`VIP Reception: ${data.additionalServices.airportReception.persons} persons × $280 = $${receptionCost}`);
+      console.log(`VIP Reception: ${data.additionalServices.airportReception.persons} persons × $240 = $${receptionCost}`);
     }
 
     console.log('Total additional services cost:', totalCost);
