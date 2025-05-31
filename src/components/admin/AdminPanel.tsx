@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Settings, 
   DollarSign, 
@@ -23,32 +24,11 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
+import { hotelData, transportData, additionalServicesData } from '@/data/hotels';
+import { transportPricing, mandatoryToursRules } from '@/data/transportRules';
 
 export const AdminPanel = () => {
   const [editMode, setEditMode] = useState<string | null>(null);
-
-  // بيانات وهمية للأسعار
-  const [prices, setPrices] = useState({
-    hotels: {
-      'تبليسي': {
-        'فندق رويال باتومي': { single: 80, single_v: 100, dbl_wv: 120, dbl_v: 150, trbl_wv: 180, trbl_v: 220 }
-      }
-    },
-    transport: {
-      'سيدان': 50,
-      'ميني فان': 80,
-      'فان': 120,
-      'سبرنتر': 180,
-      'باص': 250
-    },
-    services: {
-      travelInsurance: 5,
-      phoneLines: 15,
-      roomDecoration: 50,
-      airportReception: 280,
-      photoSession: 150
-    }
-  });
 
   // بيانات المستخدمين
   const [users] = useState([
@@ -93,6 +73,7 @@ export const AdminPanel = () => {
 
         {/* إدارة الأسعار */}
         <TabsContent value="prices" className="space-y-6">
+          
           {/* أسعار الفنادق */}
           <Card>
             <CardHeader>
@@ -102,55 +83,48 @@ export const AdminPanel = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <Label>مدينة</Label>
-                    <Input value="تبليسي" disabled />
+              <div className="space-y-6">
+                {Object.entries(hotelData).map(([city, hotels]) => (
+                  <div key={city} className="space-y-4">
+                    <h3 className="text-lg font-semibold text-emerald-700">{city}</h3>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-right">اسم الفندق</TableHead>
+                            <TableHead className="text-right">مزدوجة بدون إطلالة</TableHead>
+                            <TableHead className="text-right">مزدوجة مع إطلالة</TableHead>
+                            <TableHead className="text-right">ثلاثية بدون إطلالة</TableHead>
+                            <TableHead className="text-right">ثلاثية مع إطلالة</TableHead>
+                            <TableHead className="text-right">التقييم</TableHead>
+                            <TableHead className="text-right">الإجراءات</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {hotels.map((hotel) => (
+                            <TableRow key={hotel.id}>
+                              <TableCell className="font-medium">{hotel.name}</TableCell>
+                              <TableCell>${hotel.dbl_wv}</TableCell>
+                              <TableCell>${hotel.dbl_v}</TableCell>
+                              <TableCell>${hotel.trbl_wv}</TableCell>
+                              <TableCell>${hotel.trbl_v}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {hotel.rating} نجوم
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Button variant="outline" size="sm">
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
-                  <div>
-                    <Label>اسم الفندق</Label>
-                    <Input value="فندق رويال باتومي" disabled />
-                  </div>
-                  <div className="flex items-end">
-                    <Button variant="outline">
-                      <Edit className="w-4 h-4 ml-2" />
-                      تعديل
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="grid md:grid-cols-6 gap-4">
-                  <div>
-                    <Label>غرفة مفردة</Label>
-                    <Input value="80" />
-                  </div>
-                  <div>
-                    <Label>مفردة مع إطلالة</Label>
-                    <Input value="100" />
-                  </div>
-                  <div>
-                    <Label>مزدوجة</Label>
-                    <Input value="120" />
-                  </div>
-                  <div>
-                    <Label>مزدوجة مع إطلالة</Label>
-                    <Input value="150" />
-                  </div>
-                  <div>
-                    <Label>ثلاثية</Label>
-                    <Input value="180" />
-                  </div>
-                  <div>
-                    <Label>ثلاثية مع إطلالة</Label>
-                    <Input value="220" />
-                  </div>
-                </div>
-                
-                <Button className="bg-emerald-600 hover:bg-emerald-700">
-                  <Save className="w-4 h-4 ml-2" />
-                  حفظ التغييرات
-                </Button>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -160,22 +134,68 @@ export const AdminPanel = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Car className="w-5 h-5" />
-                أسعار النقل
+                أسعار النقل والاستقبال
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-5 gap-4">
-                {Object.entries(prices.transport).map(([type, price]) => (
-                  <div key={type}>
-                    <Label>{type}</Label>
-                    <Input value={price} />
-                  </div>
-                ))}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold">أسعار السيارات اليومية</h3>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right">نوع السيارة</TableHead>
+                        <TableHead className="text-right">السعة</TableHead>
+                        <TableHead className="text-right">السعر اليومي</TableHead>
+                        <TableHead className="text-right">الإجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transportData.map((transport) => (
+                        <TableRow key={transport.id}>
+                          <TableCell className="font-medium">{transport.type}</TableCell>
+                          <TableCell>{transport.capacity}</TableCell>
+                          <TableCell>${transport.daily_price}</TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm">
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <Separator />
+
+                <h3 className="text-lg font-semibold">أسعار الاستقبال والتوديع</h3>
+                <div className="grid gap-4">
+                  {Object.entries(transportPricing).map(([type, pricing]) => (
+                    <Card key={type} className="p-4">
+                      <h4 className="font-semibold mb-3 capitalize">{type === 'sedan' ? 'سيدان' : type === 'minivan' ? 'ميني فان' : type === 'van' ? 'فان' : 'سبرنتر'}</h4>
+                      <div className="grid md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <Label>استقبال نفس المدينة</Label>
+                          <Input value={`$${pricing.reception.sameCity}`} readOnly />
+                        </div>
+                        <div>
+                          <Label>استقبال مدينة مختلفة</Label>
+                          <Input value={`$${pricing.reception.differentCity}`} readOnly />
+                        </div>
+                        <div>
+                          <Label>توديع نفس المدينة</Label>
+                          <Input value={`$${pricing.farewell.sameCity}`} readOnly />
+                        </div>
+                        <div>
+                          <Label>توديع مدينة مختلفة</Label>
+                          <Input value={`$${pricing.farewell.differentCity}`} readOnly />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               </div>
-              <Button className="mt-4 bg-emerald-600 hover:bg-emerald-700">
-                <Save className="w-4 h-4 ml-2" />
-                حفظ أسعار النقل
-              </Button>
             </CardContent>
           </Card>
 
@@ -188,44 +208,96 @@ export const AdminPanel = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-5 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <Label className="flex items-center gap-2">
                     <Shield className="w-4 h-4" />
-                    التأمين (يومي)
+                    تأمين السفر (يومي)
                   </Label>
-                  <Input value={prices.services.travelInsurance} />
+                  <Input value={`$${additionalServicesData.travelInsurance.pricePerPersonPerDay}`} />
                 </div>
                 <div>
                   <Label className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
                     خط اتصال
                   </Label>
-                  <Input value={prices.services.phoneLines} />
+                  <Input value={`$${additionalServicesData.phoneLines.pricePerLine}`} />
                 </div>
                 <div>
                   <Label>تزيين الغرف</Label>
-                  <Input value={prices.services.roomDecoration} />
+                  <Input value={`$${additionalServicesData.roomDecoration.price}`} />
                 </div>
                 <div>
                   <Label className="flex items-center gap-2">
                     <Plane className="w-4 h-4" />
                     استقبال VIP
                   </Label>
-                  <Input value={prices.services.airportReception} />
+                  <Input value={`$${additionalServicesData.airportReception.pricePerPerson}`} />
                 </div>
                 <div>
                   <Label className="flex items-center gap-2">
                     <Camera className="w-4 h-4" />
                     جلسة تصوير
                   </Label>
-                  <Input value={prices.services.photoSession} />
+                  <Input value={`$${additionalServicesData.photoSession.price}`} />
+                </div>
+                <div>
+                  <Label>استقبال بالورود</Label>
+                  <Input value={`$${additionalServicesData.flowerReception.price}`} />
                 </div>
               </div>
               <Button className="mt-4 bg-emerald-600 hover:bg-emerald-700">
                 <Save className="w-4 h-4 ml-2" />
                 حفظ أسعار الخدمات
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* قواعد الجولات الإجبارية */}
+          <Card>
+            <CardHeader>
+              <CardTitle>قواعد الجولات الإجبارية</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-semibold mb-3">القواعد العامة للمدن</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>باتومي:</span>
+                        <Badge>{mandatoryToursRules.batumi} جولة إجبارية</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>باقي المدن:</span>
+                        <Badge variant="outline">{mandatoryToursRules.default} جولة إجبارية</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-3">قواعد المطارات</h4>
+                    <div className="space-y-2">
+                      <div className="text-sm">
+                        <strong>الوصول:</strong>
+                        <ul className="mt-1 space-y-1">
+                          <li>تبليسي: {mandatoryToursRules.arrivalRules.tbilisi} جولة</li>
+                          <li>باتومي: {mandatoryToursRules.arrivalRules.batumi} جولة</li>
+                          <li>كوتايسي: {mandatoryToursRules.arrivalRules.kutaisi} جولة</li>
+                        </ul>
+                      </div>
+                      <div className="text-sm">
+                        <strong>المغادرة:</strong>
+                        <ul className="mt-1 space-y-1">
+                          <li>تبليسي: {mandatoryToursRules.departureRules.tbilisi} جولة</li>
+                          <li>باتومي: {mandatoryToursRules.departureRules.batumi} جولة</li>
+                          <li>كوتايسي: {mandatoryToursRules.departureRules.kutaisi} جولة</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -283,36 +355,36 @@ export const AdminPanel = () => {
           <Card>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="text-right p-4">الاسم</th>
-                      <th className="text-right p-4">البريد الإلكتروني</th>
-                      <th className="text-right p-4">عدد الحجوزات</th>
-                      <th className="text-right p-4">الحالة</th>
-                      <th className="text-right p-4">الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right">الاسم</TableHead>
+                      <TableHead className="text-right">البريد الإلكتروني</TableHead>
+                      <TableHead className="text-right">عدد الحجوزات</TableHead>
+                      <TableHead className="text-right">الحالة</TableHead>
+                      <TableHead className="text-right">الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {users.map((user) => (
-                      <tr key={user.id} className="border-b">
-                        <td className="p-4 font-medium">{user.name}</td>
-                        <td className="p-4 text-gray-600">{user.email}</td>
-                        <td className="p-4">{user.bookings}</td>
-                        <td className="p-4">
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.bookings}</TableCell>
+                        <TableCell>
                           <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
                             {user.status === 'active' ? 'نشط' : 'غير نشط'}
                           </Badge>
-                        </td>
-                        <td className="p-4">
+                        </TableCell>
+                        <TableCell>
                           <Button variant="outline" size="sm">
                             <Edit className="w-4 h-4" />
                           </Button>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
@@ -330,7 +402,7 @@ export const AdminPanel = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label>هامش الربح (%)</Label>
-                  <Input value="22" />
+                  <Input value="20" />
                   <p className="text-sm text-gray-500 mt-1">النسبة المضافة على التكلفة الأساسية</p>
                 </div>
                 <div>

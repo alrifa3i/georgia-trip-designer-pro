@@ -81,77 +81,63 @@ export const currencies: Currency[] = [
   }
 ];
 
-// أنواع النقل
+// أنواع النقل مع الأسعار المحدثة
 export const transportData: Transport[] = [
   {
     id: '1',
     type: 'سيدان',
-    daily_price: 80,
+    daily_price: 90,
     capacity: '1-3 أشخاص',
     reception_same_city_price: 25,
-    reception_different_city_price: 50,
+    reception_different_city_price: 25,
     farewell_same_city_price: 25,
-    farewell_different_city_price: 50,
+    farewell_different_city_price: 90,
     is_active: true,
-    price: 80,
-    reception: { sameCity: 25, differentCity: 50 },
-    farewell: { sameCity: 25, differentCity: 50 }
+    price: 90,
+    reception: { sameCity: 25, differentCity: 25 },
+    farewell: { sameCity: 25, differentCity: 90 }
   },
   {
     id: '2',
     type: 'ميني فان',
-    daily_price: 120,
+    daily_price: 100,
     capacity: '4-6 أشخاص',
-    reception_same_city_price: 35,
-    reception_different_city_price: 70,
-    farewell_same_city_price: 35,
-    farewell_different_city_price: 70,
+    reception_same_city_price: 45,
+    reception_different_city_price: 45,
+    farewell_same_city_price: 45,
+    farewell_different_city_price: 100,
     is_active: true,
-    price: 120,
-    reception: { sameCity: 35, differentCity: 70 },
-    farewell: { sameCity: 35, differentCity: 70 }
+    price: 100,
+    reception: { sameCity: 45, differentCity: 45 },
+    farewell: { sameCity: 45, differentCity: 100 }
   },
   {
     id: '3',
     type: 'فان',
-    daily_price: 150,
+    daily_price: 120,
     capacity: '7-8 أشخاص',
-    reception_same_city_price: 45,
-    reception_different_city_price: 90,
-    farewell_same_city_price: 45,
-    farewell_different_city_price: 90,
+    reception_same_city_price: 55,
+    reception_different_city_price: 55,
+    farewell_same_city_price: 55,
+    farewell_different_city_price: 120,
     is_active: true,
-    price: 150,
-    reception: { sameCity: 45, differentCity: 90 },
-    farewell: { sameCity: 45, differentCity: 90 }
+    price: 120,
+    reception: { sameCity: 55, differentCity: 55 },
+    farewell: { sameCity: 55, differentCity: 120 }
   },
   {
     id: '4',
     type: 'سبرنتر',
-    daily_price: 200,
+    daily_price: 250,
     capacity: '9-14 شخص',
-    reception_same_city_price: 60,
-    reception_different_city_price: 120,
-    farewell_same_city_price: 60,
-    farewell_different_city_price: 120,
-    is_active: true,
-    price: 200,
-    reception: { sameCity: 60, differentCity: 120 },
-    farewell: { sameCity: 60, differentCity: 120 }
-  },
-  {
-    id: '5',
-    type: 'باص',
-    daily_price: 280,
-    capacity: '15+ أشخاص',
-    reception_same_city_price: 80,
+    reception_same_city_price: 160,
     reception_different_city_price: 160,
-    farewell_same_city_price: 80,
-    farewell_different_city_price: 160,
+    farewell_same_city_price: 160,
+    farewell_different_city_price: 250,
     is_active: true,
-    price: 280,
-    reception: { sameCity: 80, differentCity: 160 },
-    farewell: { sameCity: 80, differentCity: 160 }
+    price: 250,
+    reception: { sameCity: 160, differentCity: 160 },
+    farewell: { sameCity: 160, differentCity: 250 }
   }
 ];
 
@@ -184,7 +170,7 @@ export const additionalServicesData: AdditionalServiceData = {
   }
 };
 
-// بيانات الفنادق المحدثة
+// بيانات الفنادق المحدثة مع كافة الأسعار
 export const hotelData: Record<string, Hotel[]> = {
   "تبليسي": [
     {

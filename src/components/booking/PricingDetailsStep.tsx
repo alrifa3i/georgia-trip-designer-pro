@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
-import { hotelData, transportData, additionalServicesData, currencies } from '@/data/hotels';
+import { hotelData, additionalServicesData, currencies } from '@/data/hotels';
+import { transportPricing } from '@/data/transportRules';
 import { Gift, FileCheck, Plane, CreditCard } from 'lucide-react';
 
 interface PricingDetailsStepProps {
@@ -45,21 +47,42 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
 
   const calculateTotalTours = () => {
     const totalTours = data.selectedCities.reduce((sum, city) => sum + city.tours, 0);
-    const selectedTransport = transportData.find(t => t.type === data.carType);
-    return totalTours * (selectedTransport?.price || 0);
+    // استخدام الأسعار الجديدة للنقل
+    const carType = data.carType.toLowerCase();
+    let dailyPrice = 80; // default
+    
+    if (carType.includes('سيدان')) {
+      dailyPrice = transportPricing.sedan.dailyPrice;
+    } else if (carType.includes('ميني فان')) {
+      dailyPrice = transportPricing.minivan.dailyPrice;
+    } else if (carType.includes('فان')) {
+      dailyPrice = transportPricing.van.dailyPrice;
+    } else if (carType.includes('سبرنتر')) {
+      dailyPrice = transportPricing.sprinter.dailyPrice;
+    }
+    
+    return totalTours * dailyPrice;
   };
 
   const calculateCarAndTransport = () => {
-    const selectedTransport = transportData.find(t => t.type === data.carType);
-    if (!selectedTransport) return 0;
+    const carType = data.carType.toLowerCase();
+    let pricing = transportPricing.sedan; // default
+    
+    if (carType.includes('ميني فان')) {
+      pricing = transportPricing.minivan;
+    } else if (carType.includes('فان')) {
+      pricing = transportPricing.van;
+    } else if (carType.includes('سبرنتر')) {
+      pricing = transportPricing.sprinter;
+    }
 
     const arrivalReception = data.arrivalAirport === data.departureAirport 
-      ? selectedTransport.reception.sameCity 
-      : selectedTransport.reception.differentCity;
+      ? pricing.reception.sameCity 
+      : pricing.reception.differentCity;
     
     const departureFarewell = data.arrivalAirport === data.departureAirport 
-      ? selectedTransport.farewell.sameCity 
-      : selectedTransport.farewell.differentCity;
+      ? pricing.farewell.sameCity 
+      : pricing.farewell.differentCity;
 
     return arrivalReception + departureFarewell;
   };
