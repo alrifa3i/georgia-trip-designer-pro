@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { CheckCircle, X } from 'lucide-react';
@@ -244,10 +245,10 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
       incrementTravelerCount();
       onNotificationShow?.();
 
-      // إخفاء الإشعار بعد 2.5 ثانية
+      // إخفاء الإشعار بعد 5 ثواني
       setTimeout(() => {
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
-      }, 2500);
+      }, 5000);
     }, 2000);
 
     // عرض إشعار جديد كل 3 ثواني
@@ -257,10 +258,10 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
       incrementTravelerCount();
       onNotificationShow?.();
 
-      // إخفاء الإشعار بعد 2.5 ثانية
+      // إخفاء الإشعار بعد 5 ثواني
       setTimeout(() => {
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
-      }, 2500);
+      }, 5000);
     }, 3000);
 
     return () => {
