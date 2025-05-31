@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,16 +47,107 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
     return `${country?.dialCode}${phoneNumber}`;
   };
 
+  // Validate phone number based on country
+  const validatePhoneNumber = (phone: string, countryCode: string) => {
+    const country = countries.find(c => c.code === countryCode);
+    if (!country) return false;
+    
+    // Remove any spaces or special characters
+    const cleanPhone = phone.replace(/\s+/g, '').replace(/[^\d]/g, '');
+    
+    // Basic validation - check if phone number has reasonable length
+    if (cleanPhone.length < 7 || cleanPhone.length > 15) return false;
+    
+    // Country specific validations
+    switch (countryCode) {
+      case 'SA': // Saudi Arabia
+        return cleanPhone.length === 9 && cleanPhone.startsWith('5');
+      case 'AE': // UAE
+        return cleanPhone.length === 9 && cleanPhone.startsWith('5');
+      case 'KW': // Kuwait
+        return cleanPhone.length === 8;
+      case 'QA': // Qatar
+        return cleanPhone.length === 8;
+      case 'BH': // Bahrain
+        return cleanPhone.length === 8;
+      case 'OM': // Oman
+        return cleanPhone.length === 8;
+      case 'JO': // Jordan
+        return cleanPhone.length === 9 && cleanPhone.startsWith('7');
+      case 'EG': // Egypt
+        return cleanPhone.length === 10 && cleanPhone.startsWith('1');
+      case 'LB': // Lebanon
+        return cleanPhone.length === 8;
+      case 'SY': // Syria
+        return cleanPhone.length === 9;
+      case 'IQ': // Iraq
+        return cleanPhone.length === 10;
+      case 'YE': // Yemen
+        return cleanPhone.length === 9;
+      case 'LY': // Libya
+        return cleanPhone.length === 10;
+      case 'TN': // Tunisia
+        return cleanPhone.length === 8;
+      case 'DZ': // Algeria
+        return cleanPhone.length === 9;
+      case 'MA': // Morocco
+        return cleanPhone.length === 9;
+      default:
+        return cleanPhone.length >= 7 && cleanPhone.length <= 15;
+    }
+  };
+
   const generateBookingDetails = () => {
-    const roomTypes = data.roomTypes.join(', ') || 'غير محدد';
+    const roomTypes = data.roomTypes?.join(', ') || 'غير محدد';
     const hotelNames = data.selectedCities.map(city => city.hotel).join(', ') || 'غير محدد';
     const cityNames = data.selectedCities.map(city => city.city).join(', ') || 'غير محدد';
+    
+    // Calculate additional services costs
+    let additionalServicesCost = 0;
+    const servicesList: string[] = [];
+    
+    if (data.additionalServices?.travelInsurance?.enabled) {
+      const duration = data.arrivalDate && data.departureDate ? 
+        Math.ceil((new Date(data.departureDate).getTime() - new Date(data.arrivalDate).getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0;
+      const cost = (data.additionalServices.travelInsurance.persons || 0) * 15 * duration;
+      additionalServicesCost += cost;
+      servicesList.push(`تأمين السفر: ${cost}$`);
+    }
+    
+    if (data.additionalServices?.phoneLines?.enabled) {
+      const cost = (data.additionalServices.phoneLines.quantity || 0) * 25;
+      additionalServicesCost += cost;
+      servicesList.push(`خطوط الاتصال: ${cost}$`);
+    }
+    
+    if (data.additionalServices?.airportReception?.enabled) {
+      const cost = (data.additionalServices.airportReception.persons || 0) * 50;
+      additionalServicesCost += cost;
+      servicesList.push(`استقبال VIP: ${cost}$`);
+    }
+    
+    if (data.additionalServices?.roomDecoration?.enabled) {
+      additionalServicesCost += 75;
+      servicesList.push(`تزيين الغرف: 75$`);
+    }
+    
+    if (data.additionalServices?.flowerReception?.enabled) {
+      additionalServicesCost += 50;
+      servicesList.push(`الاستقبال بالورود: 50$`);
+    }
+    
+    if (data.additionalServices?.photoSession?.enabled) {
+      additionalServicesCost += 200;
+      servicesList.push(`جلسة تصوير: 200$`);
+    }
     
     return `
 حجز رحلة جورجيا - الرقم المرجعي: ${referenceNumber}
 
 📋 تفاصيل الحجز:
 • اسم العميل: ${passportName}
+• اسم الاستقبال: ${receptionName}
+• رقم الواتساب: ${getFullPhoneNumber()}
 • عدد البالغين: ${data.adults}
 • عدد الأطفال: ${data.children.length}
 • تاريخ الوصول: ${data.arrivalDate}
@@ -73,11 +165,20 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
 🚗 النقل:
 • نوع السيارة: ${data.carType}
 
-💰 التكلفة:
+${servicesList.length > 0 ? `🎯 الخدمات الإضافية:
+${servicesList.map(service => `• ${service}`).join('\n')}
+• تكلفة الخدمات الإضافية: ${additionalServicesCost}$
+` : ''}
+
+💰 التكلفة النهائية:
+• تكلفة الباقة الأساسية: ${(data.totalCost || 0) - additionalServicesCost} ${selectedCurrency?.symbol}
+• تكلفة الخدمات الإضافية: ${additionalServicesCost}$
 • التكلفة الإجمالية: ${data.totalCost} ${selectedCurrency?.symbol}
 • العملة: ${data.currency}
 
 📞 للاستفسار: +995514000668
+🎫 رقم الحجز: ${referenceNumber}
+📅 تاريخ الحجز: ${new Date().toLocaleDateString('ar-SA')}
     `.trim();
   };
 
@@ -112,6 +213,16 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
       toast({
         title: "خطأ",
         description: "يرجى إدخال رقم الهاتف",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validatePhoneNumber(phoneNumber, selectedCountry)) {
+      const country = countries.find(c => c.code === selectedCountry);
+      toast({
+        title: "رقم هاتف غير صحيح",
+        description: `يرجى إدخال رقم هاتف صحيح لـ ${country?.name}`,
         variant: "destructive"
       });
       return;
@@ -196,6 +307,25 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
       toast({
         title: "مطلوب",
         description: "يرجى إدخال الاسم كما سيظهر في لوحة الاستقبال",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!phoneNumber.trim()) {
+      toast({
+        title: "مطلوب",
+        description: "يرجى إدخال رقم الواتساب",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validatePhoneNumber(phoneNumber, selectedCountry)) {
+      const country = countries.find(c => c.code === selectedCountry);
+      toast({
+        title: "رقم هاتف غير صحيح",
+        description: `يرجى إدخال رقم هاتف صحيح لـ ${country?.name}`,
         variant: "destructive"
       });
       return;
@@ -372,11 +502,9 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
               <p className="text-blue-800 font-semibold">نصيحة مهمة</p>
             </div>
             <p className="text-blue-700 text-sm">
-              QR Code يحتوي على جميع تفاصيل حجزك الكاملة مع الأسعار المحفوظة
+              QR Code يحتوي على جميع تفاصيل حجزك الكاملة مع الأسعار المحفوظة والخدمات المطلوبة
             </p>
           </div>
-          
-          <p className="text-green-700 mb-6">احفظ هذا الرقم للمراجعة</p>
           
           <div className="flex gap-4 justify-center">
             <Button
@@ -502,9 +630,15 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
               disabled={isVerified}
             />
             
+            {!validatePhoneNumber(phoneNumber, selectedCountry) && phoneNumber.length > 0 && (
+              <p className="text-sm text-red-600">
+                رقم الهاتف غير صحيح لـ {countries.find(c => c.code === selectedCountry)?.name}
+              </p>
+            )}
+            
             <Button 
               onClick={sendVerificationCode}
-              disabled={isCodeSent || isVerified || !phoneNumber.trim()}
+              disabled={isCodeSent || isVerified || !phoneNumber.trim() || !validatePhoneNumber(phoneNumber, selectedCountry)}
               variant="outline"
               className="w-full"
             >
@@ -691,7 +825,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
           onClick={confirmBooking}
           size="lg"
           className="bg-emerald-600 hover:bg-emerald-700 px-8 py-3 text-lg font-bold"
-          disabled={!isVerified || passportFiles.length === 0 || ticketFiles.length === 0 || !passportName.trim() || !receptionName.trim()}
+          disabled={!isVerified || passportFiles.length === 0 || ticketFiles.length === 0 || !passportName.trim() || !receptionName.trim() || !validatePhoneNumber(phoneNumber, selectedCountry)}
         >
           🎉 تأكيد الحجز النهائي 🎉
         </Button>
