@@ -5,8 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { BookingData, CityStay } from '@/types/booking';
-import { hotelsByCity, Hotel } from '@/data/hotels';
+import { BookingData, CityStay, Hotel } from '@/types/booking';
+import { hotelData } from '@/data/hotels';
 import { MapPin, Building, Plus, Minus, Trash2, ArrowUpDown, Info } from 'lucide-react';
 
 interface CityHotelSelectionStepProps {
@@ -122,7 +122,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                       <SelectValue placeholder="اختر المدينة" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.keys(hotelsByCity).map((city) => (
+                      {Object.keys(hotelData).map((city) => (
                         <SelectItem key={city} value={city}>
                           {city}
                         </SelectItem>
@@ -176,7 +176,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                       <SelectValue placeholder="اختر الفندق" />
                     </SelectTrigger>
                     <SelectContent>
-                      {sortHotelsByPrice(hotelsByCity[cityStay.city] || []).map((hotel) => (
+                      {sortHotelsByPrice(hotelData[cityStay.city] || []).map((hotel) => (
                         <SelectItem key={hotel.name} value={hotel.name}>
                           <div className="flex items-center justify-between w-full">
                             <span>{hotel.name}</span>
