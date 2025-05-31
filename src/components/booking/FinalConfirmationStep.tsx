@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
 import { currencies } from '@/data/hotels';
-import { CheckCircle, Upload, Phone, User, Clock, Shield, IdCard, MessageCircle, Plus, Minus, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Upload, Phone, User, Clock, Shield, IdCard, MessageCircle, Plus, Minus, AlertTriangle, QrCode, Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { PhoneInput, countries } from '@/components/ui/phone-input';
 import { 
@@ -14,6 +14,7 @@ import {
   verifyCode, 
   createCompanyWhatsAppLink 
 } from '@/utils/verification';
+import * as QRCode from 'qrcode';
 
 interface FinalConfirmationStepProps {
   data: BookingData;
@@ -32,6 +33,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
   const [ticketFiles, setTicketFiles] = useState<File[]>([]);
   const [showReferenceNumber, setShowReferenceNumber] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState('');
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
 
   const selectedCurrency = currencies.find(c => c.code === data.currency);
   const totalPeople = data.adults + data.children.length;
@@ -44,6 +46,64 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
     const country = countries.find(c => c.code === selectedCountry);
     return `${country?.dialCode}${phoneNumber}`;
   };
+
+  const generateBookingDetails = () => {
+    const roomTypes = data.roomTypes.join(', ') || 'غير محدد';
+    const hotelNames = data.selectedCities.map(city => city.hotel).join(', ') || 'غير محدد';
+    const cityNames = data.selectedCities.map(city => city.city).join(', ') || 'غير محدد';
+    
+    return `
+حجز رحلة جورجيا - الرقم المرجعي: ${referenceNumber}
+
+📋 تفاصيل الحجز:
+• اسم العميل: ${passportName}
+• عدد البالغين: ${data.adults}
+• عدد الأطفال: ${data.children.length}
+• تاريخ الوصول: ${data.arrivalDate}
+• تاريخ المغادرة: ${data.departureDate}
+• مطار الوصول: ${data.arrivalAirport}
+• مطار المغادرة: ${data.departureAirport}
+
+🏨 الإقامة:
+• عدد الغرف: ${data.rooms}
+• نوع الغرف: ${roomTypes}
+• أسماء الفنادق: ${hotelNames}
+• عدد المدن: ${data.selectedCities.length}
+• أسماء المدن: ${cityNames}
+
+🚗 النقل:
+• نوع السيارة: ${data.carType}
+
+💰 التكلفة:
+• التكلفة الإجمالية: ${data.totalCost} ${selectedCurrency?.symbol}
+• العملة: ${data.currency}
+
+📞 للاستفسار: +995514000668
+    `.trim();
+  };
+
+  const generateQRCode = async () => {
+    try {
+      const bookingDetails = generateBookingDetails();
+      const qrDataUrl = await QRCode.toDataURL(bookingDetails, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#059669', // emerald-600
+          light: '#FFFFFF'
+        }
+      });
+      setQrCodeUrl(qrDataUrl);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (showReferenceNumber && referenceNumber) {
+      generateQRCode();
+    }
+  }, [showReferenceNumber, referenceNumber]);
 
   const sendVerificationCode = () => {
     if (!phoneNumber.trim()) {
@@ -82,7 +142,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
     } else {
       toast({
         title: "كود خاطئ",
-        description: `الكود المطلوب هو آخر 4 أرقام من رقمك معكوسة: ${getReversedLastFourDigits(fullPhoneNumber)}`,
+        description: "يرجى إدخال الكود الصحيح الظاهر في رسالة الواتساب",
         variant: "destructive"
       });
     }
@@ -184,9 +244,24 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
   };
 
   const sendToWhatsApp = () => {
-    const message = `السلام عليكم لقد قمت بحجز مبدئي على اداة تصميم الحجز برقم مرجعي (${referenceNumber}) الرجاء تأكيد الحجز و بانتظار الحجوزات`;
+    const bookingDetails = generateBookingDetails();
+    const message = `${bookingDetails}\n\nالسلام عليكم لقد قمت بحجز مبدئي على اداة تصميم الحجز الرجاء تأكيد الحجز و بانتظار الحجوزات`;
     const whatsappUrl = `https://api.whatsapp.com/send?phone=995514000668&text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
+  };
+
+  const downloadQRCode = () => {
+    if (qrCodeUrl) {
+      const link = document.createElement('a');
+      link.download = `booking-${referenceNumber}.png`;
+      link.href = qrCodeUrl;
+      link.click();
+      
+      toast({
+        title: "تم التحميل",
+        description: "تم حفظ QR Code الحجز بنجاح"
+      });
+    }
   };
 
   if (showReferenceNumber) {
@@ -195,10 +270,44 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-8 rounded-xl border-2 border-green-200">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-green-800 mb-4">تم تأكيد الحجز بنجاح! 🎉</h2>
-          <div className="bg-white p-6 rounded-lg border-2 border-green-300 mb-6">
-            <p className="text-gray-700 text-lg mb-2">رقمك المرجعي</p>
-            <p className="text-4xl font-bold text-green-600 tracking-wider">{referenceNumber}</p>
+          
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            {/* Reference Number */}
+            <div className="bg-white p-6 rounded-lg border-2 border-green-300">
+              <p className="text-gray-700 text-lg mb-2">رقمك المرجعي</p>
+              <p className="text-4xl font-bold text-green-600 tracking-wider">{referenceNumber}</p>
+            </div>
+            
+            {/* QR Code */}
+            <div className="bg-white p-6 rounded-lg border-2 border-green-300">
+              <p className="text-gray-700 text-lg mb-4">QR Code الحجز</p>
+              {qrCodeUrl && (
+                <div className="space-y-3">
+                  <img src={qrCodeUrl} alt="QR Code للحجز" className="mx-auto" />
+                  <Button
+                    onClick={downloadQRCode}
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Download className="w-4 h-4 ml-2" />
+                    حفظ كصورة
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
+          
+          <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
+            <div className="flex items-center gap-2 justify-center mb-2">
+              <QrCode className="w-5 h-5 text-blue-600" />
+              <p className="text-blue-800 font-semibold">نصيحة مهمة</p>
+            </div>
+            <p className="text-blue-700 text-sm">
+              احفظ QR Code كصورة في هاتفك للمراجعة السريعة. يحتوي على جميع تفاصيل حجزك
+            </p>
+          </div>
+          
           <p className="text-green-700 mb-6">احفظ هذا الرقم للمراجعة</p>
           
           <Button
@@ -338,7 +447,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
               
               <div className="flex gap-2">
                 <Input
-                  placeholder="أدخل كود التحقق (آخر 4 أرقام معكوسة)"
+                  placeholder="اكتب الكود الظاهر أعلى هذه الرسالة"
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                   maxLength={4}
