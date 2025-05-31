@@ -16,21 +16,19 @@ export const VideoBackground = () => {
 
   return (
     <div className="fixed inset-0 w-full h-full overflow-hidden -z-10">
-      <video
-        ref={videoRef}
-        className="absolute top-1/2 left-1/2 min-w-full min-h-full w-auto h-auto transform -translate-x-1/2 -translate-y-1/2 object-cover"
-        muted
-        loop
-        autoPlay
-        playsInline
-      >
-        <source
-          src="https://www.youtube.com/watch?v=yu9GPOwo0nw"
-          type="video/mp4"
-        />
-      </video>
-      {/* Dark overlay for text readability */}
-      <div className="absolute inset-0 bg-black/40"></div>
+      <iframe
+        className="absolute top-1/2 left-1/2 min-w-full min-h-full w-auto h-auto transform -translate-x-1/2 -translate-y-1/2 scale-150"
+        src="https://www.youtube.com/embed/yu9GPOwo0nw?autoplay=1&mute=1&loop=1&playlist=yu9GPOwo0nw&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1"
+        title="Georgia Background Video"
+        allow="autoplay; encrypted-media"
+        allowFullScreen
+        style={{
+          pointerEvents: 'none',
+          border: 'none'
+        }}
+      />
+      {/* Dark overlay for text readability and transparency */}
+      <div className="absolute inset-0 bg-black/50"></div>
     </div>
   );
 };

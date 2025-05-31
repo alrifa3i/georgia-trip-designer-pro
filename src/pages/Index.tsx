@@ -4,6 +4,7 @@ import { BookingWizard } from "@/components/BookingWizard";
 import { BookingSearch } from "@/components/BookingSearch";
 import { AdminAccess } from "@/components/AdminAccess";
 import { VideoBackground } from "@/components/VideoBackground";
+import { FloatingNotifications } from "@/components/FloatingNotifications";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Search, PlusCircle, ArrowRight, Settings } from "lucide-react";
@@ -58,6 +59,7 @@ const Index = () => {
   return (
     <div className="min-h-screen relative">
       <VideoBackground />
+      <FloatingNotifications />
       
       {/* زر لوحة التحكم في الزاوية */}
       <div className="absolute top-4 left-4 z-20">
@@ -76,7 +78,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 drop-shadow-2xl">
-              مرحباً بك في جورجيا ✨
+              مرحباً بك في جورجيا
             </h1>
             <p className="text-xl md:text-2xl text-white/90 mb-8 drop-shadow-xl">
               اكتشف جمال القوقاز مع برامج سياحية مخصصة لك
@@ -86,7 +88,7 @@ const Index = () => {
           {/* بطاقات الخيارات */}
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* بطاقة حجز جديد */}
-            <Card className="p-8 bg-white/95 backdrop-blur-sm border-2 border-white/50 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 cursor-pointer group"
+            <Card className="p-8 bg-white/80 backdrop-blur-sm border-2 border-white/30 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 cursor-pointer group"
                   onClick={() => setCurrentView('booking')}>
               <div className="text-center space-y-6">
                 <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto group-hover:bg-emerald-600 transition-colors">
@@ -110,7 +112,7 @@ const Index = () => {
             </Card>
 
             {/* بطاقة البحث عن حجز */}
-            <Card className="p-8 bg-white/95 backdrop-blur-sm border-2 border-white/50 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 cursor-pointer group"
+            <Card className="p-8 bg-white/80 backdrop-blur-sm border-2 border-white/30 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 cursor-pointer group"
                   onClick={() => setCurrentView('search')}>
               <div className="text-center space-y-6">
                 <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto group-hover:bg-blue-600 transition-colors">
@@ -141,6 +143,13 @@ const Index = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* نص نهاية الموقع */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+        <p className="text-white/70 text-sm font-medium drop-shadow-lg">
+          هذه الأداة خاصة لعالم الفخامة في جورجيا
+        </p>
       </div>
     </div>
   );
