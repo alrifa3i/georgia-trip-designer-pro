@@ -17,7 +17,7 @@ export const VideoBackground = () => {
   return (
     <div className="fixed inset-0 w-full h-full overflow-hidden -z-10">
       <iframe
-        className="absolute top-1/2 left-1/2 min-w-full min-h-full w-auto h-auto transform -translate-x-1/2 -translate-y-1/2 scale-150"
+        className="absolute top-1/2 left-1/2 w-[120vw] h-[120vh] sm:w-[150vw] sm:h-[150vh] md:min-w-full md:min-h-full transform -translate-x-1/2 -translate-y-1/2"
         src="https://www.youtube.com/embed/aGG-YeIdeG8?autoplay=1&mute=1&loop=1&playlist=aGG-YeIdeG8&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1"
         title="Georgia Background Video"
         allow="autoplay; encrypted-media"

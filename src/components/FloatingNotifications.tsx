@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { CheckCircle, X } from 'lucide-react';
@@ -109,7 +108,7 @@ export const getTravelerCount = () => {
 
 interface FloatingNotificationsProps {
   onNotificationShow?: () => void;
-  disabled?: boolean; // خاصية جديدة لإيقاف الإشعارات
+  disabled?: boolean;
 }
 
 export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ 
@@ -225,11 +224,11 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({
   if (!isActive) return null; // لا تعرض أي شيء إذا كانت معطلة
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-xs sm:max-w-sm">
+    <div className="fixed bottom-16 sm:bottom-4 left-1/2 sm:left-auto sm:right-4 transform -translate-x-1/2 sm:translate-x-0 z-50 space-y-2 max-w-xs sm:max-w-sm pointer-events-none">
       {notifications.map((notification) => (
         <Card
           key={notification.id}
-          className="p-3 sm:p-4 bg-white/95 backdrop-blur-sm border border-green-200 shadow-lg animate-slide-in-right"
+          className="p-3 sm:p-4 bg-white/95 backdrop-blur-sm border border-green-200 shadow-lg animate-slide-in-right pointer-events-auto"
         >
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-2 sm:space-x-3 flex-1">
