@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Edit, Save, Trash2, Hotel } from 'lucide-react';
 import { hotelData } from '@/data/hotels';
 
-interface Hotel {
+interface HotelEdit {
   id?: string;
   name: string;
   city: string;
@@ -23,9 +23,9 @@ interface Hotel {
 }
 
 export const HotelManagement = () => {
-  const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
+  const [editingHotel, setEditingHotel] = useState<HotelEdit | null>(null);
   const [isAddingHotel, setIsAddingHotel] = useState(false);
-  const [newHotel, setNewHotel] = useState<Hotel>({
+  const [newHotel, setNewHotel] = useState<HotelEdit>({
     name: '',
     city: '',
     dbl_v: 0,
@@ -37,7 +37,7 @@ export const HotelManagement = () => {
 
   const cities = Object.keys(hotelData);
 
-  const handleSaveHotel = (hotel: Hotel) => {
+  const handleSaveHotel = (hotel: HotelEdit) => {
     console.log('حفظ الفندق:', hotel);
     setEditingHotel(null);
     // هنا يتم حفظ البيانات في قاعدة البيانات
@@ -190,7 +190,7 @@ export const HotelManagement = () => {
                             className="w-20"
                           />
                         ) : (
-                          `$${hotel.dbl_v}`
+                          `$${hotel.dbl_v || hotel.double_view_price}`
                         )}
                       </TableCell>
                       <TableCell>
@@ -202,7 +202,7 @@ export const HotelManagement = () => {
                             className="w-20"
                           />
                         ) : (
-                          `$${hotel.dbl_wv}`
+                          `$${hotel.dbl_wv || hotel.double_without_view_price}`
                         )}
                       </TableCell>
                       <TableCell>
@@ -214,7 +214,7 @@ export const HotelManagement = () => {
                             className="w-20"
                           />
                         ) : (
-                          `$${hotel.trbl_v}`
+                          `$${hotel.trbl_v || hotel.triple_view_price}`
                         )}
                       </TableCell>
                       <TableCell>
@@ -226,7 +226,7 @@ export const HotelManagement = () => {
                             className="w-20"
                           />
                         ) : (
-                          `$${hotel.trbl_wv}`
+                          `$${hotel.trbl_wv || hotel.triple_without_view_price}`
                         )}
                       </TableCell>
                       <TableCell>
@@ -246,7 +246,15 @@ export const HotelManagement = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setEditingHotel({...hotel, city})}
+                              onClick={() => setEditingHotel({
+                                name: hotel.name,
+                                city: city,
+                                dbl_v: hotel.dbl_v || hotel.double_view_price,
+                                dbl_wv: hotel.dbl_wv || hotel.double_without_view_price,
+                                trbl_v: hotel.trbl_v || hotel.triple_view_price,
+                                trbl_wv: hotel.trbl_wv || hotel.triple_without_view_price,
+                                rating: hotel.rating
+                              })}
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
