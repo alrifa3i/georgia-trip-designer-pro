@@ -19,6 +19,18 @@ export interface CityStay {
   availableTours?: string[];
 }
 
+export interface TourLocation {
+  name: string;
+  mandatoryTours: {
+    fromTbilisi: number;
+    fromBatumi: number;
+    fromKutaisi: number;
+    toTbilisi: number;
+    toBatumi: number;
+    toKutaisi: number;
+  };
+}
+
 export interface AdditionalServices {
   travelInsurance: {
     enabled: boolean;

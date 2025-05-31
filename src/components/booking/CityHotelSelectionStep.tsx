@@ -130,17 +130,15 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     updateData({ roomTypes: newRoomTypes });
   };
 
-  // Get recommended car type based on number of people
-  const getRecommendedCarType = () => {
-    const totalPeople = data.adults + data.children.length;
-    const recommendedCar = transportData.find(transport => {
-      const maxCapacity = parseInt(transport.capacity.split('-')[1] || transport.capacity.replace('+', ''));
-      return totalPeople <= maxCapacity;
-    });
-    return recommendedCar || transportData[transportData.length - 1];
+  // Get selected car type details
+  const getSelectedCarType = () => {
+    return transportData.find(transport => transport.type === data.carType) || transportData[0];
   };
 
-  const selectedCarType = data.carType || getRecommendedCarType().type;
+  // Handle car type change
+  const handleCarTypeChange = (carType: string) => {
+    updateData({ carType });
+  };
 
   return (
     <div className="space-y-6">
@@ -149,19 +147,19 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         <p className="text-gray-600">اختر المدن التي تريد زيارتها والفنادق للإقامة</p>
       </div>
 
-      {/* Car Type Display */}
+      {/* Car Type Selection */}
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="pt-6">
           <div className="flex items-center gap-3 mb-4">
             <Car className="w-5 h-5 text-blue-600" />
-            <h3 className="font-bold text-blue-800">نوع السيارة المختارة</h3>
+            <h3 className="font-bold text-blue-800">نوع السيارة والسعة</h3>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>اختر نوع السيارة</Label>
               <Select
-                value={selectedCarType}
-                onValueChange={(value) => updateData({ carType: value })}
+                value={data.carType || ''}
+                onValueChange={handleCarTypeChange}
               >
                 <SelectTrigger className="bg-white">
                   <SelectValue placeholder="اختر نوع السيارة" />
@@ -171,7 +169,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     <SelectItem key={transport.type} value={transport.type}>
                       <div className="flex justify-between items-center w-full">
                         <span>{transport.type}</span>
-                        <span className="text-sm text-gray-500">({transport.capacity})</span>
+                        <span className="text-sm text-gray-500 mr-2">({transport.capacity})</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -180,7 +178,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
             </div>
             <div className="bg-white p-3 rounded-lg border">
               <p className="text-sm text-gray-600">
-                <strong>السعة:</strong> {getRecommendedCarType().capacity}
+                <strong>السعة:</strong> {getSelectedCarType().capacity}
               </p>
               <p className="text-xs text-blue-600 mt-1">
                 * يتم استخدام نوع السيارة لحساب أسعار الجولات والاستقبال/التوديع
@@ -194,7 +192,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         <Info className="h-4 w-4 text-emerald-600" />
         <AlertDescription className="text-emerald-800">
           <div className="space-y-2">
-            <p><strong>ملاحظة:</strong> تم ترتيب الفنادق من الأرخص إلى الأغلى</p>
+            <p><strong>ملاحظة:</strong> تم ترتيب الفنادق من الأرخص إلى الأغلى (بدون عرض الأسعار)</p>
             <p>الأسعار النهائية ستظهر في مرحلة تفاصيل الأسعار</p>
             <p><strong>الجولات الإجبارية:</strong> يتم حسابها تلقائياً حسب المدينة ومطارات الوصول/المغادرة</p>
           </div>
@@ -231,7 +229,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     <Label>المدينة *</Label>
                     <Select
                       value={cityStay.city}
-                      onValueChange={(value) => updateCity(index, { city: value, hotel: '' })}
+                      onValueChange={(value) => updateCity(index, { city: value, hotel: '', roomType: '' })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر المدينة" />
@@ -282,7 +280,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     </div>
                     <Select
                       value={cityStay.hotel}
-                      onValueChange={(value) => updateCity(index, { hotel: value })}
+                      onValueChange={(value) => updateCity(index, { hotel: value, roomType: '' })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر الفندق" />
@@ -316,32 +314,32 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                         <SelectValue placeholder="اختر نوع الغرفة" />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedHotel.single_price && (
+                        {selectedHotel.single_price && selectedHotel.single_price > 0 && (
                           <SelectItem value="single">
                             غرفة مفردة
                           </SelectItem>
                         )}
-                        {selectedHotel.single_view_price && (
+                        {selectedHotel.single_view_price && selectedHotel.single_view_price > 0 && (
                           <SelectItem value="single_v">
                             غرفة مفردة مع إطلالة
                           </SelectItem>
                         )}
-                        {selectedHotel.double_without_view_price && (
+                        {selectedHotel.double_without_view_price && selectedHotel.double_without_view_price > 0 && (
                           <SelectItem value="dbl_wv">
                             غرفة مزدوجة بدون إطلالة
                           </SelectItem>
                         )}
-                        {selectedHotel.double_view_price && (
+                        {selectedHotel.double_view_price && selectedHotel.double_view_price > 0 && (
                           <SelectItem value="dbl_v">
                             غرفة مزدوجة مع إطلالة
                           </SelectItem>
                         )}
-                        {selectedHotel.triple_without_view_price && (
+                        {selectedHotel.triple_without_view_price && selectedHotel.triple_without_view_price > 0 && (
                           <SelectItem value="trbl_wv">
                             غرفة ثلاثية بدون إطلالة
                           </SelectItem>
                         )}
-                        {selectedHotel.triple_view_price && (
+                        {selectedHotel.triple_view_price && selectedHotel.triple_view_price > 0 && (
                           <SelectItem value="trbl_v">
                             غرفة ثلاثية مع إطلالة
                           </SelectItem>
@@ -407,7 +405,15 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                   <div key={index} className="flex justify-between items-center text-sm">
                     <span>
                       <strong>{city.city}</strong> - {city.hotel}
-                      {city.roomType && ` (${city.roomType})`}
+                      {city.roomType && ` (${
+                        city.roomType === 'single' ? 'غرفة مفردة' :
+                        city.roomType === 'single_v' ? 'غرفة مفردة مع إطلالة' :
+                        city.roomType === 'dbl_wv' ? 'غرفة مزدوجة بدون إطلالة' :
+                        city.roomType === 'dbl_v' ? 'غرفة مزدوجة مع إطلالة' :
+                        city.roomType === 'trbl_wv' ? 'غرفة ثلاثية بدون إطلالة' :
+                        city.roomType === 'trbl_v' ? 'غرفة ثلاثية مع إطلالة' :
+                        city.roomType
+                      })`}
                     </span>
                     <span className="text-emerald-700">
                       {city.nights} ليالي، {totalTours} جولات ({city.mandatoryTours || 0} إجبارية + {city.tours || 0} إضافية)

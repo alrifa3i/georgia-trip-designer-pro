@@ -1,193 +1,165 @@
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Search, Loader2, User, Calendar, MapPin, DollarSign, Phone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, Calendar, MapPin, Users, DollarSign } from 'lucide-react';
 import { useBookings } from '@/hooks/useBookings';
-import { BookingData } from '@/types/booking';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
+import { formatCurrency } from '@/data/currencies';
 
 export const BookingSearch = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [foundBooking, setFoundBooking] = useState<BookingData | null>(null);
-  const { searchBooking, loading } = useBookings();
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const { getBookingByReference, isLoading } = useBookings();
+  const [searchResult, setSearchResult] = useState<any>(null);
+  const [searchError, setSearchError] = useState('');
 
   const handleSearch = async () => {
-    if (!searchTerm.trim()) return;
-    
-    const result = await searchBooking(searchTerm);
-    if (result.success && result.data) {
-      setFoundBooking(result.data);
-    } else {
-      setFoundBooking(null);
+    if (!referenceNumber.trim()) {
+      setSearchError('يرجى إدخال الرقم المرجعي');
+      return;
+    }
+
+    try {
+      setSearchError('');
+      const booking = await getBookingByReference(referenceNumber);
+      if (booking) {
+        setSearchResult(booking);
+      } else {
+        setSearchError('لم يتم العثور على حجز بهذا الرقم المرجعي');
+        setSearchResult(null);
+      }
+    } catch (error) {
+      setSearchError('حدث خطأ أثناء البحث');
+      setSearchResult(null);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'dd MMMM yyyy', { locale: ar });
+    } catch {
+      return dateString;
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6" dir="rtl">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          البحث عن حجز
-        </h1>
-        <p className="text-gray-600">
-          أدخل الرقم المرجعي للحجز للعثور على تفاصيل رحلتك
-        </p>
-      </div>
-
-      {/* مربع البحث */}
-      <Card className="p-6 mb-8">
-        <div className="flex gap-3">
-          <Input
-            type="text"
-            placeholder="أدخل الرقم المرجعي للحجز (مثال: GEO123456ABCD)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
-            onKeyPress={handleKeyPress}
-            className="flex-1 text-center font-mono text-lg"
-          />
-          <Button 
-            onClick={handleSearch}
-            disabled={loading || !searchTerm.trim()}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <>
-                <Search className="w-5 h-5 mr-2" />
-                بحث
-              </>
-            )}
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="w-5 h-5" />
+            البحث عن حجز موجود
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <Input
+              placeholder="أدخل الرقم المرجعي (مثال: GEO-2024-001)"
+              value={referenceNumber}
+              onChange={(e) => setReferenceNumber(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={handleSearch} disabled={isLoading}>
+              {isLoading ? 'جارٍ البحث...' : 'بحث'}
+            </Button>
+          </div>
+          
+          {searchError && (
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+              {searchError}
+            </div>
+          )}
+        </CardContent>
       </Card>
 
-      {/* نتائج البحث */}
-      {foundBooking && (
-        <Card className="p-6">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-emerald-600 mb-2">
-              تم العثور على الحجز! ✅
-            </h2>
-            <p className="text-lg font-semibold text-gray-700">
-              رقم الحجز: {foundBooking.referenceNumber}
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* معلومات المسافر */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-emerald-600 border-b pb-2">
-                <User className="w-5 h-5 inline ml-2" />
-                معلومات المسافر
-              </h3>
-              <div className="space-y-2">
-                <p><strong>الاسم:</strong> {foundBooking.customerName}</p>
-                {foundBooking.phoneNumber && (
-                  <p className="flex items-center">
-                    <Phone className="w-4 h-4 ml-2" />
-                    {foundBooking.phoneNumber}
-                  </p>
+      {searchResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-green-600">تم العثور على الحجز</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">اسم العميل:</span>
+                  <span>{searchResult.customer_name}</span>
+                </div>
+                
+                {searchResult.phone_number && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">رقم الهاتف:</span>
+                    <span>{searchResult.phone_number}</span>
+                  </div>
                 )}
-                <p><strong>البالغين:</strong> {foundBooking.adults}</p>
-                <p><strong>الأطفال:</strong> {foundBooking.children.length}</p>
-                <p><strong>الغرف:</strong> {foundBooking.rooms}</p>
-              </div>
-            </div>
 
-            {/* تفاصيل السفر */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-emerald-600 border-b pb-2">
-                <Calendar className="w-5 h-5 inline ml-2" />
-                تفاصيل السفر
-              </h3>
-              <div className="space-y-2">
-                <p><strong>تاريخ الوصول:</strong> {foundBooking.arrivalDate}</p>
-                <p><strong>تاريخ المغادرة:</strong> {foundBooking.departureDate}</p>
-                <p><strong>مطار الوصول:</strong> {foundBooking.arrivalAirport}</p>
-                <p><strong>مطار المغادرة:</strong> {foundBooking.departureAirport}</p>
-              </div>
-            </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">تاريخ الوصول:</span>
+                  <span>{formatDate(searchResult.arrival_date)}</span>
+                </div>
 
-            {/* المدن والمواصلات */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-emerald-600 border-b pb-2">
-                <MapPin className="w-5 h-5 inline ml-2" />
-                المدن والمواصلات
-              </h3>
-              <div className="space-y-2">
-                <p><strong>المدن المختارة:</strong></p>
-                <ul className="list-disc list-inside mr-4">
-                  {foundBooking.selectedCities.length > 0 ? (
-                    foundBooking.selectedCities.map((city, index) => (
-                      <li key={index}>{city}</li>
-                    ))
-                  ) : (
-                    <li>لم يتم اختيار مدن</li>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">تاريخ المغادرة:</span>
+                  <span>{formatDate(searchResult.departure_date)}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">عدد المسافرين:</span>
+                  <span>{searchResult.adults} بالغ</span>
+                  {searchResult.children && searchResult.children.length > 0 && (
+                    <span>+ {searchResult.children.length} طفل</span>
                   )}
-                </ul>
-                <p><strong>نوع السيارة:</strong> {foundBooking.carType || 'لم يتم الاختيار'}</p>
+                </div>
               </div>
-            </div>
 
-            {/* التكلفة */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-emerald-600 border-b pb-2">
-                <DollarSign className="w-5 h-5 inline ml-2" />
-                التكلفة
-              </h3>
-              <div className="space-y-2">
-                <p><strong>الميزانية:</strong> {foundBooking.budget} {foundBooking.currency}</p>
-                <p><strong>التكلفة الإجمالية:</strong> {foundBooking.totalCost} {foundBooking.currency}</p>
-                {foundBooking.discountAmount && foundBooking.discountAmount > 0 && (
-                  <p><strong>الخصم:</strong> {foundBooking.discountAmount} {foundBooking.currency}</p>
-                )}
-                <p><strong>الحالة:</strong> 
-                  <span className={`mr-2 px-2 py-1 rounded text-sm ${
-                    foundBooking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                    foundBooking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {foundBooking.status === 'confirmed' ? 'مؤكد' :
-                     foundBooking.status === 'pending' ? 'قيد المراجعة' : foundBooking.status}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">التكلفة الإجمالية:</span>
+                  <span className="text-green-600 font-bold">
+                    {formatCurrency(searchResult.total_cost || 0, searchResult.currency || 'USD')}
                   </span>
-                </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">الحالة:</span>
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    searchResult.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                    searchResult.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {searchResult.status === 'confirmed' ? 'مؤكد' :
+                     searchResult.status === 'pending' ? 'قيد المراجعة' : 'غير محدد'}
+                  </span>
+                </div>
+
+                {searchResult.selected_cities && searchResult.selected_cities.length > 0 && (
+                  <div>
+                    <span className="font-medium">المدن المختارة:</span>
+                    <div className="mt-1 space-y-1">
+                      {searchResult.selected_cities.map((city: any, index: number) => (
+                        <div key={index} className="flex items-center gap-2 text-sm">
+                          <MapPin className="w-3 h-3 text-gray-400" />
+                          <span>{city.city || 'غير محدد'} - {city.nights || 0} ليالي</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* الخدمات الإضافية */}
-          <div className="mt-6 space-y-4">
-            <h3 className="text-lg font-semibold text-emerald-600 border-b pb-2">
-              الخدمات الإضافية
-            </h3>
-            <div className="grid gap-2">
-              {foundBooking.additionalServices.travelInsurance.enabled && (
-                <p>• التأمين الصحي: {foundBooking.additionalServices.travelInsurance.persons} أشخاص</p>
-              )}
-              {foundBooking.additionalServices.phoneLines.enabled && (
-                <p>• خطوط الاتصال: {foundBooking.additionalServices.phoneLines.quantity} خط</p>
-              )}
-              {foundBooking.additionalServices.roomDecoration.enabled && (
-                <p>• تزيين الغرف</p>
-              )}
-              {foundBooking.additionalServices.airportReception.enabled && (
-                <p>• استقبال المطار VIP: {foundBooking.additionalServices.airportReception.persons} أشخاص</p>
-              )}
-              {foundBooking.additionalServices.photoSession.enabled && (
-                <p>• جلسة تصوير</p>
-              )}
-              {foundBooking.additionalServices.flowerReception.enabled && (
-                <p>• استقبال بالزهور</p>
-              )}
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-blue-700 text-sm">
+                <strong>ملاحظة:</strong> الدفع سيتم بالدولار الأمريكي نقداً عند الوصول إلى جورجيا
+              </p>
             </div>
-          </div>
+          </CardContent>
         </Card>
       )}
     </div>

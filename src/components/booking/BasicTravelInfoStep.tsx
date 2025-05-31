@@ -11,7 +11,8 @@ import { CalendarIcon, Plus, Minus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { BookingData, Child } from '@/types/booking';
-import { currencies } from '@/data/currencies';
+import { currencies, convertFromUSD, formatCurrency } from '@/data/currencies';
+import { cn } from '@/lib/utils';
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
@@ -82,6 +83,13 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
     if (date) {
       setArrivalDate(date);
       updateData({ arrivalDate: format(date, 'yyyy-MM-dd') });
+      // إذا كان تاريخ المغادرة أقل من تاريخ الوصول، قم بإعادة تعيينه
+      if (departureDate && date >= departureDate) {
+        const newDepartureDate = new Date(date);
+        newDepartureDate.setDate(newDepartureDate.getDate() + 1);
+        setDepartureDate(newDepartureDate);
+        updateData({ departureDate: format(newDepartureDate, 'yyyy-MM-dd') });
+      }
     }
   };
 
@@ -91,6 +99,9 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
       updateData({ departureDate: format(date, 'yyyy-MM-dd') });
     }
   };
+
+  // الحصول على العملة المختارة
+  const selectedCurrency = currencies.find(c => c.code === data.currency) || currencies[0];
 
   return (
     <div className="space-y-8">
@@ -224,7 +235,13 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
               <Label>تاريخ الوصول *</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-right mt-1">
+                  <Button 
+                    variant="outline" 
+                    className={cn(
+                      "w-full justify-start text-right mt-1",
+                      !arrivalDate && "text-muted-foreground"
+                    )}
+                  >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {arrivalDate ? format(arrivalDate, 'PPP', { locale: ar }) : "اختر تاريخ الوصول"}
                   </Button>
@@ -236,6 +253,7 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                     onSelect={handleArrivalDateSelect}
                     disabled={(date) => date < new Date()}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -245,7 +263,13 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
               <Label>تاريخ المغادرة *</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-right mt-1">
+                  <Button 
+                    variant="outline" 
+                    className={cn(
+                      "w-full justify-start text-right mt-1",
+                      !departureDate && "text-muted-foreground"
+                    )}
+                  >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {departureDate ? format(departureDate, 'PPP', { locale: ar }) : "اختر تاريخ المغادرة"}
                   </Button>
@@ -255,8 +279,9 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                     mode="single"
                     selected={departureDate}
                     onSelect={handleDepartureDateSelect}
-                    disabled={(date) => date < (arrivalDate || new Date())}
+                    disabled={(date) => date <= (arrivalDate || new Date())}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -303,20 +328,7 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
           <h3 className="text-lg font-semibold mb-4 text-emerald-600">الميزانية</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <Label htmlFor="budget">الميزانية المتوقعة *</Label>
-              <Input
-                id="budget"
-                type="number"
-                value={data.budget || ''}
-                onChange={(e) => updateData({ budget: parseFloat(e.target.value) || 0 })}
-                placeholder="أدخل الميزانية"
-                min="0"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="currency">العملة</Label>
+              <Label htmlFor="currency">العملة *</Label>
               <Select value={data.currency} onValueChange={(value) => updateData({ currency: value })}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="اختر العملة" />
@@ -324,12 +336,39 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                 <SelectContent>
                   {currencies.map((currency) => (
                     <SelectItem key={currency.code} value={currency.code}>
-                      {currency.name} ({currency.symbol})
+                      {currency.nameAr} ({currency.symbol})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            <div>
+              <Label htmlFor="budget">الميزانية المتوقعة *</Label>
+              <Input
+                id="budget"
+                type="number"
+                value={data.budget || ''}
+                onChange={(e) => updateData({ budget: parseFloat(e.target.value) || 0 })}
+                placeholder={`أدخل الميزانية بـ ${selectedCurrency.nameAr}`}
+                min="0"
+                className="mt-1"
+              />
+              {data.budget > 0 && data.currency !== 'USD' && (
+                <p className="text-xs text-gray-500 mt-1">
+                  ≈ ${Math.round(data.budget / selectedCurrency.exchangeRate)} دولار أمريكي
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="font-medium text-blue-800 mb-2">معلومات الدفع المهمة:</h4>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• الأسعار معروضة بـ {selectedCurrency.nameAr} للوضوح</li>
+              <li>• الدفع سيتم بالدولار الأمريكي نقداً عند الوصول إلى جورجيا</li>
+              <li>• لا يوجد دفع مسبق أو دفع عبر الإنترنت</li>
+            </ul>
           </div>
         </Card>
       </div>
