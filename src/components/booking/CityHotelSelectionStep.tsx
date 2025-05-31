@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -53,8 +52,8 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   };
 
   // ترتيب الغرف من الأرخص إلى الأغلى (wv أولاً ثم v)
-  const sortRoomsByPrice = (roomTypes: { [key: string]: number }) => {
-    const sortedRooms = Object.entries(roomTypes)
+  const sortRoomsByPrice = (roomPrices: { [key: string]: number }) => {
+    const sortedRooms = Object.entries(roomPrices)
       .filter(([key, value]) => typeof value === 'number' && ['single', 'single_v', 'dbl_wv', 'dbl_v', 'trbl_wv', 'trbl_v'].includes(key))
       .sort(([keyA, priceA], [keyB, priceB]) => {
         // ترتيب حسب السعر أولاً، ثم حسب النوع (wv قبل v)
@@ -64,6 +63,20 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         return 0;
       });
     return sortedRooms;
+  };
+
+  // Extract room prices from hotel object
+  const extractRoomPrices = (hotel: any) => {
+    const roomPrices: { [key: string]: number } = {};
+    const roomKeys = ['single', 'single_v', 'dbl_wv', 'dbl_v', 'trbl_wv', 'trbl_v'];
+    
+    roomKeys.forEach(key => {
+      if (typeof hotel[key] === 'number') {
+        roomPrices[key] = hotel[key];
+      }
+    });
+    
+    return roomPrices;
   };
 
   // إضافة مدينة جديدة
@@ -162,7 +175,8 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
 
     // إضافة أول غرفة تلقائياً عند اختيار الفندق
     if (selectedHotel) {
-      const sortedRooms = sortRoomsByPrice(selectedHotel);
+      const roomPrices = extractRoomPrices(selectedHotel);
+      const sortedRooms = sortRoomsByPrice(roomPrices);
       if (sortedRooms.length > 0) {
         const firstRoom: RoomSelection = {
           roomNumber: 1,
@@ -432,7 +446,8 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                       ) : (
                         <div className="space-y-3">
                           {city.roomSelections.map((room, roomIndex) => {
-                            const sortedRooms = sortRoomsByPrice(selectedHotel);
+                            const roomPrices = extractRoomPrices(selectedHotel);
+                            const sortedRooms = sortRoomsByPrice(roomPrices);
                             
                             return (
                               <div key={roomIndex} className="p-4 bg-gray-50 rounded-lg border">
