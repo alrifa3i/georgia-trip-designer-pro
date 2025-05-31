@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { CheckCircle, X } from 'lucide-react';
@@ -167,7 +166,6 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
   const [notifications, setNotifications] = useState<BookingNotification[]>([]);
   const [usedNames, setUsedNames] = useState<Set<string>>(new Set());
   const [usedCompanies, setUsedCompanies] = useState<Set<string>>(new Set());
-  const [currentPattern, setCurrentPattern] = useState<'single-double' | 'triple'>('single-double');
 
   const createNotification = (): BookingNotification => {
     // اختيار عشوائي بين أسماء الأفراد والشركات (70% أفراد، 30% شركات)
@@ -238,71 +236,38 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
     }
   };
 
-  const showNotificationBatch = () => {
-    if (currentPattern === 'single-double') {
-      // النمط الأول: إشعار واحد ثم إشعارين (كل 10 ثواني)
-      // إشعار واحد أولاً
-      setTimeout(() => {
-        const notification = createNotification();
-        setNotifications(prev => [...prev, notification]);
-        incrementTravelerCount();
-        onNotificationShow?.();
-
-        setTimeout(() => {
-          setNotifications(prev => prev.filter(n => n.id !== notification.id));
-        }, 3000);
-      }, 1000);
-
-      // إشعارين بعد فترة
-      setTimeout(() => {
-        for (let i = 0; i < 2; i++) {
-          setTimeout(() => {
-            const notification = createNotification();
-            setNotifications(prev => [...prev, notification]);
-            incrementTravelerCount();
-            onNotificationShow?.();
-
-            setTimeout(() => {
-              setNotifications(prev => prev.filter(n => n.id !== notification.id));
-            }, 3000);
-          }, i * 500);
-        }
-      }, 5000);
-
-      setCurrentPattern('triple');
-    } else {
-      // النمط الثاني: ثلاثة إشعارات منفصلة (كل 10 ثواني)
-      for (let i = 0; i < 3; i++) {
-        setTimeout(() => {
-          const notification = createNotification();
-          setNotifications(prev => [...prev, notification]);
-          incrementTravelerCount();
-          onNotificationShow?.();
-
-          setTimeout(() => {
-            setNotifications(prev => prev.filter(n => n.id !== notification.id));
-          }, 3000);
-        }, (i + 1) * 3000); // 3 ثواني بين كل إشعار
-      }
-
-      setCurrentPattern('single-double');
-    }
-  };
-
   useEffect(() => {
-    // عرض أول مجموعة اشعارات بعد ثانيتين
-    const initialTimeout = setTimeout(showNotificationBatch, 2000);
+    // عرض أول إشعار بعد ثانيتين
+    const initialTimeout = setTimeout(() => {
+      const notification = createNotification();
+      setNotifications(prev => [...prev, notification]);
+      incrementTravelerCount();
+      onNotificationShow?.();
 
-    // عرض مجموعة اشعارات جديدة كل 10 ثواني
+      // إخفاء الإشعار بعد 2.5 ثانية
+      setTimeout(() => {
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      }, 2500);
+    }, 2000);
+
+    // عرض إشعار جديد كل 3 ثواني
     const interval = setInterval(() => {
-      showNotificationBatch();
-    }, 10000);
+      const notification = createNotification();
+      setNotifications(prev => [...prev, notification]);
+      incrementTravelerCount();
+      onNotificationShow?.();
+
+      // إخفاء الإشعار بعد 2.5 ثانية
+      setTimeout(() => {
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      }, 2500);
+    }, 3000);
 
     return () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [currentPattern]);
+  }, []);
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
