@@ -13,41 +13,105 @@ interface BookingNotification {
 }
 
 const gulfNames = [
-  // السعودية
+  // السعودية - رجال
   { name: "أحمد بن محمد العتيبي", country: "السعودية", currency: "ريال سعودي" },
   { name: "فهد بن عبدالله الغامدي", country: "السعودية", currency: "ريال سعودي" },
   { name: "خالد بن سعد الحربي", country: "السعودية", currency: "ريال سعودي" },
   { name: "محمد بن علي القحطاني", country: "السعودية", currency: "ريال سعودي" },
   { name: "عبدالرحمن بن فهد الشهري", country: "السعودية", currency: "ريال سعودي" },
   
-  // الإمارات
+  // السعودية - نساء
+  { name: "نورا بنت أحمد العتيبي", country: "السعودية", currency: "ريال سعودي" },
+  { name: "سارة بنت محمد الغامدي", country: "السعودية", currency: "ريال سعودي" },
+  { name: "فاطمة بنت عبدالله الحربي", country: "السعودية", currency: "ريال سعودي" },
+  { name: "مريم بنت سعد القحطاني", country: "السعودية", currency: "ريال سعودي" },
+  { name: "هيفاء بنت خالد الشهري", country: "السعودية", currency: "ريال سعودي" },
+  
+  // الإمارات - رجال
   { name: "سعيد بن أحمد المزروعي", country: "الإمارات", currency: "درهم إماراتي" },
   { name: "راشد بن محمد الزعابي", country: "الإمارات", currency: "درهم إماراتي" },
   { name: "عبدالله بن خالد النعيمي", country: "الإمارات", currency: "درهم إماراتي" },
   { name: "محمد بن سالم الكعبي", country: "الإمارات", currency: "درهم إماراتي" },
   { name: "أحمد بن علي البلوشي", country: "الإمارات", currency: "درهم إماراتي" },
   
-  // الكويت
+  // الإمارات - نساء
+  { name: "عائشة بنت سعيد المزروعي", country: "الإمارات", currency: "درهم إماراتي" },
+  { name: "شما بنت راشد الزعابي", country: "الإمارات", currency: "درهم إماراتي" },
+  { name: "مريم بنت عبدالله النعيمي", country: "الإمارات", currency: "درهم إماراتي" },
+  { name: "فاطمة بنت محمد الكعبي", country: "الإمارات", currency: "درهم إماراتي" },
+  { name: "نورا بنت أحمد البلوشي", country: "الإمارات", currency: "درهم إماراتي" },
+  
+  // الكويت - رجال
   { name: "فيصل أحمد الصباح", country: "الكويت", currency: "دينار كويتي" },
   { name: "بدر محمد العتيبي", country: "الكويت", currency: "دينار كويتي" },
   { name: "سالم عبدالله المطيري", country: "الكويت", currency: "دينار كويتي" },
   { name: "ناصر خالد الرشيد", country: "الكويت", currency: "دينار كويتي" },
   
-  // قطر
+  // الكويت - نساء
+  { name: "بشاير فيصل الصباح", country: "الكويت", currency: "دينار كويتي" },
+  { name: "دانة بدر العتيبي", country: "الكويت", currency: "دينار كويتي" },
+  { name: "هيا سالم المطيري", country: "الكويت", currency: "دينار كويتي" },
+  { name: "سارة ناصر الرشيد", country: "الكويت", currency: "دينار كويتي" },
+  
+  // قطر - رجال
   { name: "حمد بن ثاني آل ثاني", country: "قطر", currency: "ريال قطري" },
   { name: "محمد بن عبدالله المري", country: "قطر", currency: "ريال قطري" },
   { name: "سعد بن أحمد الكواري", country: "قطر", currency: "ريال قطري" },
   { name: "علي بن حمد النعيمي", country: "قطر", currency: "ريال قطري" },
   
-  // البحرين
+  // قطر - نساء
+  { name: "شيخة بنت حمد آل ثاني", country: "قطر", currency: "ريال قطري" },
+  { name: "مريم بنت محمد المري", country: "قطر", currency: "ريال قطري" },
+  { name: "نورا بنت سعد الكواري", country: "قطر", currency: "ريال قطري" },
+  { name: "عائشة بنت علي النعيمي", country: "قطر", currency: "ريال قطري" },
+  
+  // البحرين - رجال
   { name: "أحمد بن محمد آل خليفة", country: "البحرين", currency: "دينار بحريني" },
   { name: "خالد بن سلمان الزياني", country: "البحرين", currency: "دينار بحريني" },
   { name: "محمد بن علي البوعينين", country: "البحرين", currency: "دينار بحريني" },
   
-  // عمان
+  // البحرين - نساء
+  { name: "هيفاء بنت أحمد آل خليفة", country: "البحرين", currency: "دينار بحريني" },
+  { name: "لولوة بنت خالد الزياني", country: "البحرين", currency: "دينار بحريني" },
+  { name: "مريم بنت محمد البوعينين", country: "البحرين", currency: "دينار بحريني" },
+  
+  // عمان - رجال
   { name: "سالم بن أحمد البوسعيدي", country: "عمان", currency: "ريال عماني" },
   { name: "محمد بن خالد الحراصي", country: "عمان", currency: "ريال عماني" },
-  { name: "عبدالله بن سعيد المعمري", country: "عمان", currency: "ريال عماني" }
+  { name: "عبدالله بن سعيد المعمري", country: "عمان", currency: "ريال عماني" },
+  
+  // عمان - نساء
+  { name: "زينب بنت سالم البوسعيدي", country: "عمان", currency: "ريال عماني" },
+  { name: "أسماء بنت محمد الحراصي", country: "عمان", currency: "ريال عماني" },
+  { name: "فاطمة بنت عبدالله المعمري", country: "عمان", currency: "ريال عماني" }
+];
+
+const companyNames = [
+  // شركات سعودية
+  { name: "شركة الرحلات السعودية للسياحة", country: "السعودية", currency: "ريال سعودي" },
+  { name: "مؤسسة المملكة للسفر والسياحة", country: "السعودية", currency: "ريال سعودي" },
+  { name: "شركة الخليج للرحلات المنظمة", country: "السعودية", currency: "ريال سعودي" },
+  
+  // شركات إماراتية
+  { name: "شركة الإمارات للسياحة والسفر", country: "الإمارات", currency: "درهم إماراتي" },
+  { name: "مجموعة دبي للرحلات السياحية", country: "الإمارات", currency: "درهم إماراتي" },
+  { name: "شركة أبوظبي للسفر والاستجمام", country: "الإمارات", currency: "درهم إماراتي" },
+  
+  // شركات كويتية
+  { name: "شركة الكويت للرحلات العائلية", country: "الكويت", currency: "دينار كويتي" },
+  { name: "مؤسسة الخليج الكويتية للسياحة", country: "الكويت", currency: "دينار كويتي" },
+  
+  // شركات قطرية
+  { name: "شركة قطر للسياحة المتميزة", country: "قطر", currency: "ريال قطري" },
+  { name: "مجموعة الدوحة للرحلات السياحية", country: "قطر", currency: "ريال قطري" },
+  
+  // شركات بحرينية
+  { name: "شركة البحرين للسفر والسياحة", country: "البحرين", currency: "دينار بحريني" },
+  { name: "مؤسسة المنامة للرحلات المنظمة", country: "البحرين", currency: "دينار بحريني" },
+  
+  // شركات عمانية
+  { name: "شركة عمان للسياحة والاستكشاف", country: "عمان", currency: "ريال عماني" },
+  { name: "مجموعة مسقط للرحلات العائلية", country: "عمان", currency: "ريال عماني" }
 ];
 
 const packages = [
@@ -102,19 +166,67 @@ interface FloatingNotificationsProps {
 export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ onNotificationShow }) => {
   const [notifications, setNotifications] = useState<BookingNotification[]>([]);
   const [usedNames, setUsedNames] = useState<Set<string>>(new Set());
-  const [notificationCycle, setNotificationCycle] = useState(0); // 0: 2 اشعارات, 1: 1 اشعار, 2: 3 اشعارات
+  const [usedCompanies, setUsedCompanies] = useState<Set<string>>(new Set());
+  const [currentPattern, setCurrentPattern] = useState<'single-double' | 'triple'>('single-double');
 
   const createNotification = (): BookingNotification => {
-    // فلترة الأسماء غير المستخدمة
-    const availableNames = gulfNames.filter(nameObj => !usedNames.has(nameObj.name));
+    // اختيار عشوائي بين أسماء الأفراد والشركات (70% أفراد، 30% شركات)
+    const useCompany = Math.random() < 0.3;
     
-    // إذا تم استخدام كل الأسماء، نعيد تعيين القائمة
-    if (availableNames.length === 0) {
-      setUsedNames(new Set());
-      const nameObj = gulfNames[Math.floor(Math.random() * gulfNames.length)];
-      const newUsedNames = new Set([nameObj.name]);
-      setUsedNames(newUsedNames);
+    if (useCompany) {
+      // استخدام أسماء الشركات
+      const availableCompanies = companyNames.filter(company => !usedCompanies.has(company.name));
       
+      if (availableCompanies.length === 0) {
+        setUsedCompanies(new Set());
+        const company = companyNames[Math.floor(Math.random() * companyNames.length)];
+        const newUsedCompanies = new Set([company.name]);
+        setUsedCompanies(newUsedCompanies);
+        
+        return {
+          id: Date.now().toString() + Math.random().toString(),
+          name: company.name,
+          package: packages[Math.floor(Math.random() * packages.length)],
+          price: getPriceByCountry(company.country),
+          currency: company.currency,
+          country: company.country
+        };
+      }
+
+      const company = availableCompanies[Math.floor(Math.random() * availableCompanies.length)];
+      setUsedCompanies(prev => new Set([...prev, company.name]));
+
+      return {
+        id: Date.now().toString() + Math.random().toString(),
+        name: company.name,
+        package: packages[Math.floor(Math.random() * packages.length)],
+        price: getPriceByCountry(company.country),
+        currency: company.currency,
+        country: company.country
+      };
+    } else {
+      // استخدام أسماء الأفراد
+      const availableNames = gulfNames.filter(nameObj => !usedNames.has(nameObj.name));
+      
+      if (availableNames.length === 0) {
+        setUsedNames(new Set());
+        const nameObj = gulfNames[Math.floor(Math.random() * gulfNames.length)];
+        const newUsedNames = new Set([nameObj.name]);
+        setUsedNames(newUsedNames);
+        
+        return {
+          id: Date.now().toString() + Math.random().toString(),
+          name: nameObj.name,
+          package: packages[Math.floor(Math.random() * packages.length)],
+          price: getPriceByCountry(nameObj.country),
+          currency: nameObj.currency,
+          country: nameObj.country
+        };
+      }
+
+      const nameObj = availableNames[Math.floor(Math.random() * availableNames.length)];
+      setUsedNames(prev => new Set([...prev, nameObj.name]));
+
       return {
         id: Date.now().toString() + Math.random().toString(),
         name: nameObj.name,
@@ -124,65 +236,73 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
         country: nameObj.country
       };
     }
-
-    const nameObj = availableNames[Math.floor(Math.random() * availableNames.length)];
-    setUsedNames(prev => new Set([...prev, nameObj.name]));
-
-    return {
-      id: Date.now().toString() + Math.random().toString(),
-      name: nameObj.name,
-      package: packages[Math.floor(Math.random() * packages.length)],
-      price: getPriceByCountry(nameObj.country),
-      currency: nameObj.currency,
-      country: nameObj.country
-    };
   };
 
   const showNotificationBatch = () => {
-    let notificationCount = 1;
-    
-    // تحديد عدد الاشعارات حسب الدورة
-    switch (notificationCycle) {
-      case 0: notificationCount = 2; break; // 2 اشعارات
-      case 1: notificationCount = 1; break; // 1 اشعار
-      case 2: notificationCount = 3; break; // 3 اشعارات
-    }
-
-    // إنشاء الاشعارات
-    for (let i = 0; i < notificationCount; i++) {
+    if (currentPattern === 'single-double') {
+      // النمط الأول: إشعار واحد ثم إشعارين (كل 10 ثواني)
+      // إشعار واحد أولاً
       setTimeout(() => {
         const notification = createNotification();
         setNotifications(prev => [...prev, notification]);
-        
-        // زيادة العداد وإشعار المكونات الأخرى
         incrementTravelerCount();
         onNotificationShow?.();
 
-        // إزالة الإشعار بعد 3 ثواني
         setTimeout(() => {
           setNotifications(prev => prev.filter(n => n.id !== notification.id));
         }, 3000);
-      }, i * 500); // تأخير 500ms بين كل اشعار
-    }
+      }, 1000);
 
-    // الانتقال للدورة التالية
-    setNotificationCycle(prev => (prev + 1) % 3);
+      // إشعارين بعد فترة
+      setTimeout(() => {
+        for (let i = 0; i < 2; i++) {
+          setTimeout(() => {
+            const notification = createNotification();
+            setNotifications(prev => [...prev, notification]);
+            incrementTravelerCount();
+            onNotificationShow?.();
+
+            setTimeout(() => {
+              setNotifications(prev => prev.filter(n => n.id !== notification.id));
+            }, 3000);
+          }, i * 500);
+        }
+      }, 5000);
+
+      setCurrentPattern('triple');
+    } else {
+      // النمط الثاني: ثلاثة إشعارات منفصلة (كل 10 ثواني)
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          const notification = createNotification();
+          setNotifications(prev => [...prev, notification]);
+          incrementTravelerCount();
+          onNotificationShow?.();
+
+          setTimeout(() => {
+            setNotifications(prev => prev.filter(n => n.id !== notification.id));
+          }, 3000);
+        }, (i + 1) * 3000); // 3 ثواني بين كل إشعار
+      }
+
+      setCurrentPattern('single-double');
+    }
   };
 
   useEffect(() => {
     // عرض أول مجموعة اشعارات بعد ثانيتين
     const initialTimeout = setTimeout(showNotificationBatch, 2000);
 
-    // عرض مجموعة اشعارات جديدة كل 6-10 ثوان
+    // عرض مجموعة اشعارات جديدة كل 10 ثواني
     const interval = setInterval(() => {
       showNotificationBatch();
-    }, Math.random() * 4000 + 6000);
+    }, 10000);
 
     return () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [notificationCycle]);
+  }, [currentPattern]);
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
