@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
-import { currencies } from '@/data/hotels';
+import { currencies } from '@/data/currencies';
 import { CheckCircle, Upload, Phone, User, Clock, Shield, IdCard, MessageCircle, Plus, Minus, AlertTriangle, QrCode, Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { PhoneInput, countries } from '@/components/ui/phone-input';
@@ -85,6 +85,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
     try {
       // Dynamically import QRCode to avoid build issues
       const QRCode = await import('qrcode');
+      // استخدام تفاصيل الحجز الكاملة بدلاً من الرقم المرجعي فقط
       const bookingDetails = generateBookingDetails();
       const qrDataUrl = await QRCode.toDataURL(bookingDetails, {
         width: 300,
@@ -101,10 +102,10 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
   };
 
   useEffect(() => {
-    if (showReferenceNumber && referenceNumber) {
+    if (showReferenceNumber && referenceNumber && passportName) {
       generateQRCode();
     }
-  }, [showReferenceNumber, referenceNumber]);
+  }, [showReferenceNumber, referenceNumber, passportName, data]);
 
   const sendVerificationCode = () => {
     if (!phoneNumber.trim()) {
@@ -329,7 +330,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
           {/* QR Code Section */}
           <div className="mb-6">
             <div className="bg-white p-6 rounded-lg border-2 border-green-300 max-w-sm mx-auto">
-              <p className="text-gray-700 text-lg mb-4">QR Code الحجز</p>
+              <p className="text-gray-700 text-lg mb-4">QR Code - تفاصيل الحجز الكاملة</p>
               {qrCodeUrl && (
                 <div className="space-y-3">
                   <img src={qrCodeUrl} alt="QR Code للحجز" className="mx-auto" />
@@ -371,7 +372,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
               <p className="text-blue-800 font-semibold">نصيحة مهمة</p>
             </div>
             <p className="text-blue-700 text-sm">
-              احفظ QR Code كصورة في هاتفك للمراجعة السريعة. يحتوي على جميع تفاصيل حجزك
+              QR Code يحتوي على جميع تفاصيل حجزك الكاملة مع الأسعار المحفوظة
             </p>
           </div>
           
