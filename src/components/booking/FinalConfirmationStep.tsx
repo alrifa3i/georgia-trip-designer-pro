@@ -6,8 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
 import { currencies } from '@/data/hotels';
-import { CheckCircle, Upload, Phone, User, Clock, Shield, IdCard, MessageCircle, Plus, Minus } from 'lucide-react';
+import { CheckCircle, Upload, Phone, User, Clock, Shield, IdCard, MessageCircle, Plus, Minus, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { PhoneInput, countries } from '@/components/ui/phone-input';
+import { 
+  getReversedLastFourDigits, 
+  verifyCode, 
+  createCompanyWhatsAppLink 
+} from '@/utils/verification';
 
 interface FinalConfirmationStepProps {
   data: BookingData;
@@ -17,7 +23,8 @@ interface FinalConfirmationStepProps {
 export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationStepProps) => {
   const [passportName, setPassportName] = useState('');
   const [receptionName, setReceptionName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('SA'); // السعودية افتراضياً
   const [verificationCode, setVerificationCode] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
@@ -33,8 +40,13 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
     return Math.random().toString().slice(2, 14).padStart(12, '0');
   };
 
+  const getFullPhoneNumber = () => {
+    const country = countries.find(c => c.code === selectedCountry);
+    return `${country?.dialCode}${phoneNumber}`;
+  };
+
   const sendVerificationCode = () => {
-    if (!phone.trim()) {
+    if (!phoneNumber.trim()) {
       toast({
         title: "خطأ",
         description: "يرجى إدخال رقم الهاتف",
@@ -42,25 +54,35 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
       });
       return;
     }
+
+    const fullPhoneNumber = getFullPhoneNumber();
+    
+    // إنشاء رابط الواتساب للشركة
+    const whatsappLink = createCompanyWhatsAppLink(fullPhoneNumber);
+    
+    // فتح رابط الواتساب
+    window.open(whatsappLink, '_blank');
     
     setIsCodeSent(true);
     toast({
       title: "تم الإرسال",
-      description: "تم إرسال كود التحقق عبر الواتساب"
+      description: "تم إرسال طلب التحقق إلى الشركة عبر الواتساب"
     });
   };
 
-  const verifyCode = () => {
-    if (verificationCode === '1234') {
+  const handleVerifyCode = () => {
+    const fullPhoneNumber = getFullPhoneNumber();
+    
+    if (verifyCode(verificationCode, fullPhoneNumber)) {
       setIsVerified(true);
       toast({
-        title: "تم التحقق",
-        description: "تم تأكيد رقم الهاتف بنجاح"
+        title: "تم التحقق بنجاح! ✅",
+        description: "تم تأكيد رقم الهاتف"
       });
     } else {
       toast({
-        title: "خطأ",
-        description: "كود التحقق غير صحيح",
+        title: "كود خاطئ",
+        description: `الكود المطلوب هو آخر 4 أرقام من رقمك معكوسة: ${getReversedLastFourDigits(fullPhoneNumber)}`,
         variant: "destructive"
       });
     }
@@ -227,7 +249,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
               <p><strong>نوع السيارة:</strong> {data.carType}</p>
               <p><strong>عدد المدن:</strong> {data.selectedCities.length}</p>
               <p className="text-xl font-bold text-emerald-600">
-                <strong>التكلفة الإجمالية:</strong> {Math.round(data.totalCost)} {selectedCurrency?.symbol}
+                <strong>التكلفة الإجمالية:</strong> {data.totalCost} {selectedCurrency?.symbol}
               </p>
             </div>
           </div>
@@ -271,7 +293,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
         </CardContent>
       </Card>
 
-      {/* Phone Verification */}
+      {/* Enhanced Phone Verification */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -280,40 +302,58 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder="رقم الواتساب مع رمز الدولة (+995...)"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+          <div className="space-y-3">
+            <Label>رقم الواتساب مع رمز الدولة</Label>
+            <PhoneInput
+              value={phoneNumber}
+              onChange={setPhoneNumber}
+              selectedCountry={selectedCountry}
+              onCountryChange={setSelectedCountry}
+              placeholder="رقم الهاتف (بدون رمز الدولة)"
               disabled={isVerified}
-              className="flex-1"
-              required
             />
+            
             <Button 
               onClick={sendVerificationCode}
-              disabled={isCodeSent || isVerified}
+              disabled={isCodeSent || isVerified || !phoneNumber.trim()}
               variant="outline"
+              className="w-full"
             >
-              إرسال الكود
+              إرسال طلب التحقق للشركة
             </Button>
           </div>
           
           {isCodeSent && !isVerified && (
-            <div className="flex gap-2">
-              <Input
-                placeholder="كود التحقق (1234 للتجربة)"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                maxLength={4}
-              />
-              <Button onClick={verifyCode}>
-                تحقق
-              </Button>
+            <div className="space-y-3">
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="space-y-2">
+                    <p className="font-medium">كيفية الحصول على كود التحقق:</p>
+                    <p className="text-sm">الكود هو <strong>آخر 4 أرقام من رقم هاتفك معكوسة</strong></p>
+                    <p className="text-sm">مثال: إذا كان رقمك ينتهي بـ 1234، الكود هو: 4321</p>
+                    <p className="text-sm">رقمك الكامل: <strong className="text-blue-600">{getFullPhoneNumber()}</strong></p>
+                    <p className="text-sm">الكود المطلوب: <strong className="text-green-600">{getReversedLastFourDigits(getFullPhoneNumber())}</strong></p>
+                  </div>
+                </AlertDescription>
+              </Alert>
+              
+              <div className="flex gap-2">
+                <Input
+                  placeholder="أدخل كود التحقق (آخر 4 أرقام معكوسة)"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  maxLength={4}
+                />
+                <Button onClick={handleVerifyCode}>
+                  تحقق
+                </Button>
+              </div>
             </div>
           )}
           
           {isVerified && (
-            <div className="flex items-center gap-2 text-green-600">
+            <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
               <CheckCircle className="w-4 h-4" />
               <span>تم التحقق من رقم الواتساب بنجاح</span>
             </div>
