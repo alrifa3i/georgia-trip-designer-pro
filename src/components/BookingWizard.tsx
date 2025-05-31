@@ -42,12 +42,19 @@ export const BookingWizard = () => {
   const totalSteps = 5;
 
   const updateStepValidation = (step: number, isValid: boolean) => {
+    console.log(`Step ${step} validation:`, isValid);
     setStepValidations(prev => ({ ...prev, [step]: isValid }));
   };
 
   const nextStep = () => {
-    if (currentStep < totalSteps && stepValidations[currentStep]) {
+    // للمرحلة 3 (الخدمات الإضافية) دائماً صالحة
+    const isCurrentStepValid = currentStep === 3 ? true : stepValidations[currentStep];
+    
+    if (currentStep < totalSteps && isCurrentStepValid) {
+      console.log(`Moving from step ${currentStep} to ${currentStep + 1}`);
       setCurrentStep(currentStep + 1);
+    } else {
+      console.log(`Cannot move to next step. Current step: ${currentStep}, Valid: ${isCurrentStepValid}`);
     }
   };
 
@@ -84,7 +91,11 @@ export const BookingWizard = () => {
           onValidationChange={(isValid) => updateStepValidation(2, isValid)}
         />;
       case 3:
-        return <OptionalServicesStep data={bookingData} updateData={updateBookingData} />;
+        return <OptionalServicesStep 
+          data={bookingData} 
+          updateData={updateBookingData}
+          onValidationChange={(isValid) => updateStepValidation(3, isValid)}
+        />;
       case 4:
         return <PricingDetailsStep data={bookingData} updateData={updateBookingData} />;
       case 5:
@@ -95,6 +106,12 @@ export const BookingWizard = () => {
   };
 
   const totalPeople = bookingData.adults + bookingData.children.length;
+
+  // للمرحلة 3 (الخدمات الإضافية) زر التالي دائماً فعال
+  const isNextButtonEnabled = () => {
+    if (currentStep === 3) return true; // الخدمات الإضافية اختيارية
+    return stepValidations[currentStep];
+  };
 
   return (
     <div className="max-w-4xl mx-auto" dir="rtl">
@@ -142,7 +159,7 @@ export const BookingWizard = () => {
         </Button>
         <Button
           onClick={nextStep}
-          disabled={currentStep === totalSteps || !stepValidations[currentStep]}
+          disabled={currentStep === totalSteps || !isNextButtonEnabled()}
           className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg disabled:opacity-50"
         >
           التالي

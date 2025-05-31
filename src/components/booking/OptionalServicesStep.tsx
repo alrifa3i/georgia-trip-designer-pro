@@ -17,10 +17,10 @@ interface OptionalServicesStepProps {
 export const OptionalServicesStep = ({ data, updateData, onValidationChange }: OptionalServicesStepProps) => {
   const totalPeopleForInsurance = data.adults + data.children.length;
 
-  // جعل هذه المرحلة اختيارية دائماً
+  // جعل هذه المرحلة اختيارية دائماً - إصلاح زر التالي
   useEffect(() => {
     if (onValidationChange) {
-      onValidationChange(true);
+      onValidationChange(true); // دائماً صحيح لأن المرحلة اختيارية
     }
   }, [onValidationChange]);
 
@@ -47,12 +47,12 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
       <Alert className="bg-blue-50 border-blue-200">
         <Info className="h-4 w-4 text-blue-600" />
         <AlertDescription className="text-blue-800">
-          <strong>ملاحظة:</strong> جميع الخدمات في هذه المرحلة اختيارية تماماً. يمكنك تجاوز هذه المرحلة دون اختيار أي خدمة إضافية.
+          <strong>ملاحظة:</strong> جميع الخدمات في هذه المرحلة اختيارية تماماً. يمكنك تجاوز هذه المرحلة دون اختيار أي خدمة إضافية والضغط على زر "التالي" مباشرة.
         </AlertDescription>
       </Alert>
 
       <div className="space-y-6">
-        {/* Travel Insurance */}
+        {/* Travel Insurance - إصلاح تأمين السفر */}
         <div className="p-6 border rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -65,9 +65,10 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
             <Switch
               checked={data.additionalServices.travelInsurance.enabled}
               onCheckedChange={(checked) => {
+                console.log('Travel insurance toggle:', checked);
                 updateService('travelInsurance', 'enabled', checked);
                 if (checked) {
-                  updateService('travelInsurance', 'persons', Math.min(totalPeopleForInsurance, 1));
+                  updateService('travelInsurance', 'persons', 1);
                 } else {
                   updateService('travelInsurance', 'persons', 0);
                 }
@@ -84,7 +85,11 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => updateService('travelInsurance', 'persons', Math.max(1, data.additionalServices.travelInsurance.persons - 1))}
+                    onClick={() => {
+                      const newPersons = Math.max(1, data.additionalServices.travelInsurance.persons - 1);
+                      console.log('Decreasing insurance persons to:', newPersons);
+                      updateService('travelInsurance', 'persons', newPersons);
+                    }}
                     disabled={data.additionalServices.travelInsurance.persons <= 1}
                   >
                     <Minus className="w-4 h-4" />
@@ -96,7 +101,11 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => updateService('travelInsurance', 'persons', Math.min(totalPeopleForInsurance, data.additionalServices.travelInsurance.persons + 1))}
+                    onClick={() => {
+                      const newPersons = Math.min(totalPeopleForInsurance, data.additionalServices.travelInsurance.persons + 1);
+                      console.log('Increasing insurance persons to:', newPersons);
+                      updateService('travelInsurance', 'persons', newPersons);
+                    }}
                     disabled={data.additionalServices.travelInsurance.persons >= totalPeopleForInsurance}
                   >
                     <Plus className="w-4 h-4" />
@@ -327,7 +336,7 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
         <div className="mt-8 p-6 bg-green-50 rounded-lg border border-green-200">
           <div className="text-center">
             <h3 className="font-medium text-green-800 mb-2">لم يتم اختيار خدمات إضافية</h3>
-            <p className="text-sm text-green-600">يمكنك المتابعة إلى المرحلة التالية أو اختيار خدمات إضافية حسب رغبتك</p>
+            <p className="text-sm text-green-600">يمكنك المتابعة إلى المرحلة التالية بالضغط على زر "التالي" أو اختيار خدمات إضافية حسب رغبتك</p>
           </div>
         </div>
       )}

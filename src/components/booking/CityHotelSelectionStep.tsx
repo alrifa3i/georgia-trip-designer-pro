@@ -52,11 +52,17 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     });
   };
 
-  // ترتيب الغرف من الأرخص إلى الأغلى
+  // ترتيب الغرف من الأرخص إلى الأغلى (wv أولاً ثم v)
   const sortRoomsByPrice = (roomTypes: { [key: string]: number }) => {
     const sortedRooms = Object.entries(roomTypes)
       .filter(([key, value]) => typeof value === 'number' && ['single', 'single_v', 'dbl_wv', 'dbl_v', 'trbl_wv', 'trbl_v'].includes(key))
-      .sort(([, a], [, b]) => a - b);
+      .sort(([keyA, priceA], [keyB, priceB]) => {
+        // ترتيب حسب السعر أولاً، ثم حسب النوع (wv قبل v)
+        if (priceA !== priceB) return priceA - priceB;
+        if (keyA.includes('wv') && keyB.includes('v')) return -1;
+        if (keyA.includes('v') && keyB.includes('wv')) return 1;
+        return 0;
+      });
     return sortedRooms;
   };
 
@@ -146,11 +152,26 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
 
   const updateCityHotel = (cityIndex: number, hotelName: string) => {
     const newCities = [...data.selectedCities];
+    const selectedHotel = hotelData[newCities[cityIndex].city]?.find(h => h.name === hotelName);
+    
     newCities[cityIndex] = {
       ...newCities[cityIndex],
       hotel: hotelName,
       roomSelections: []
     };
+
+    // إضافة أول غرفة تلقائياً عند اختيار الفندق
+    if (selectedHotel) {
+      const sortedRooms = sortRoomsByPrice(selectedHotel);
+      if (sortedRooms.length > 0) {
+        const firstRoom: RoomSelection = {
+          roomNumber: 1,
+          roomType: sortedRooms[0][0] // أرخص غرفة
+        };
+        newCities[cityIndex].roomSelections = [firstRoom];
+      }
+    }
+    
     updateData({ selectedCities: newCities });
   };
 
@@ -170,6 +191,13 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     const newCities = [...data.selectedCities];
     const city = newCities[cityIndex];
     city.roomSelections = city.roomSelections?.filter((_, index) => index !== roomIndex);
+    // إعادة ترقيم الغرف
+    if (city.roomSelections) {
+      city.roomSelections = city.roomSelections.map((room, index) => ({
+        ...room,
+        roomNumber: index + 1
+      }));
+    }
     newCities[cityIndex] = city;
     updateData({ selectedCities: newCities });
   };
@@ -399,15 +427,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                       {(!city.roomSelections || city.roomSelections.length === 0) ? (
                         <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                           <Bed className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-                          <p className="text-gray-600 mb-3">لم يتم إضافة غرف بعد</p>
-                          <Button
-                            onClick={() => addRoom(cityIndex)}
-                            variant="outline"
-                            size="sm"
-                          >
-                            <Plus className="w-4 h-4 mr-1" />
-                            إضافة أول غرفة
-                          </Button>
+                          <p className="text-gray-600 mb-3">سيتم إضافة غرفة تلقائياً عند اختيار الفندق</p>
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -418,13 +438,15 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                               <div key={roomIndex} className="p-4 bg-gray-50 rounded-lg border">
                                 <div className="flex items-center justify-between mb-3">
                                   <h5 className="font-medium">الغرفة {room.roomNumber}</h5>
-                                  <Button
-                                    onClick={() => removeRoom(cityIndex, roomIndex)}
-                                    variant="destructive"
-                                    size="sm"
-                                  >
-                                    حذف
-                                  </Button>
+                                  {city.roomSelections && city.roomSelections.length > 1 && (
+                                    <Button
+                                      onClick={() => removeRoom(cityIndex, roomIndex)}
+                                      variant="destructive"
+                                      size="sm"
+                                    >
+                                      حذف
+                                    </Button>
+                                  )}
                                 </div>
                                 
                                 <Select
