@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { CheckCircle, X } from 'lucide-react';
@@ -87,34 +88,6 @@ const gulfNames = [
   { name: "فاطمة بنت عبدالله المعمري", country: "عمان", currency: "ريال عماني" }
 ];
 
-const companyNames = [
-  // شركات سعودية
-  { name: "شركة الرحلات السعودية للسياحة", country: "السعودية", currency: "ريال سعودي" },
-  { name: "مؤسسة المملكة للسفر والسياحة", country: "السعودية", currency: "ريال سعودي" },
-  { name: "شركة الخليج للرحلات المنظمة", country: "السعودية", currency: "ريال سعودي" },
-  
-  // شركات إماراتية
-  { name: "شركة الإمارات للسياحة والسفر", country: "الإمارات", currency: "درهم إماراتي" },
-  { name: "مجموعة دبي للرحلات السياحية", country: "الإمارات", currency: "درهم إماراتي" },
-  { name: "شركة أبوظبي للسفر والاستجمام", country: "الإمارات", currency: "درهم إماراتي" },
-  
-  // شركات كويتية
-  { name: "شركة الكويت للرحلات العائلية", country: "الكويت", currency: "دينار كويتي" },
-  { name: "مؤسسة الخليج الكويتية للسياحة", country: "الكويت", currency: "دينار كويتي" },
-  
-  // شركات قطرية
-  { name: "شركة قطر للسياحة المتميزة", country: "قطر", currency: "ريال قطري" },
-  { name: "مجموعة الدوحة للرحلات السياحية", country: "قطر", currency: "ريال قطري" },
-  
-  // شركات بحرينية
-  { name: "شركة البحرين للسفر والسياحة", country: "البحرين", currency: "دينار بحريني" },
-  { name: "مؤسسة المنامة للرحلات المنظمة", country: "البحرين", currency: "دينار بحريني" },
-  
-  // شركات عمانية
-  { name: "شركة عمان للسياحة والاستكشاف", country: "عمان", currency: "ريال عماني" },
-  { name: "مجموعة مسقط للرحلات العائلية", country: "عمان", currency: "ريال عماني" }
-];
-
 const packages = [
   "باكج مخصص",
   "باكج العائلة",
@@ -167,66 +140,17 @@ interface FloatingNotificationsProps {
 export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ onNotificationShow }) => {
   const [notifications, setNotifications] = useState<BookingNotification[]>([]);
   const [usedNames, setUsedNames] = useState<Set<string>>(new Set());
-  const [usedCompanies, setUsedCompanies] = useState<Set<string>>(new Set());
 
   const createNotification = (): BookingNotification => {
-    // اختيار عشوائي بين أسماء الأفراد والشركات (70% أفراد، 30% شركات)
-    const useCompany = Math.random() < 0.3;
+    // استخدام أسماء الأفراد فقط
+    const availableNames = gulfNames.filter(nameObj => !usedNames.has(nameObj.name));
     
-    if (useCompany) {
-      // استخدام أسماء الشركات
-      const availableCompanies = companyNames.filter(company => !usedCompanies.has(company.name));
+    if (availableNames.length === 0) {
+      setUsedNames(new Set());
+      const nameObj = gulfNames[Math.floor(Math.random() * gulfNames.length)];
+      const newUsedNames = new Set([nameObj.name]);
+      setUsedNames(newUsedNames);
       
-      if (availableCompanies.length === 0) {
-        setUsedCompanies(new Set());
-        const company = companyNames[Math.floor(Math.random() * companyNames.length)];
-        const newUsedCompanies = new Set([company.name]);
-        setUsedCompanies(newUsedCompanies);
-        
-        return {
-          id: Date.now().toString() + Math.random().toString(),
-          name: company.name,
-          package: packages[Math.floor(Math.random() * packages.length)],
-          price: getPriceByCountry(company.country),
-          currency: company.currency,
-          country: company.country
-        };
-      }
-
-      const company = availableCompanies[Math.floor(Math.random() * availableCompanies.length)];
-      setUsedCompanies(prev => new Set([...prev, company.name]));
-
-      return {
-        id: Date.now().toString() + Math.random().toString(),
-        name: company.name,
-        package: packages[Math.floor(Math.random() * packages.length)],
-        price: getPriceByCountry(company.country),
-        currency: company.currency,
-        country: company.country
-      };
-    } else {
-      // استخدام أسماء الأفراد
-      const availableNames = gulfNames.filter(nameObj => !usedNames.has(nameObj.name));
-      
-      if (availableNames.length === 0) {
-        setUsedNames(new Set());
-        const nameObj = gulfNames[Math.floor(Math.random() * gulfNames.length)];
-        const newUsedNames = new Set([nameObj.name]);
-        setUsedNames(newUsedNames);
-        
-        return {
-          id: Date.now().toString() + Math.random().toString(),
-          name: nameObj.name,
-          package: packages[Math.floor(Math.random() * packages.length)],
-          price: getPriceByCountry(nameObj.country),
-          currency: nameObj.currency,
-          country: nameObj.country
-        };
-      }
-
-      const nameObj = availableNames[Math.floor(Math.random() * availableNames.length)];
-      setUsedNames(prev => new Set([...prev, nameObj.name]));
-
       return {
         id: Date.now().toString() + Math.random().toString(),
         name: nameObj.name,
@@ -236,6 +160,18 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
         country: nameObj.country
       };
     }
+
+    const nameObj = availableNames[Math.floor(Math.random() * availableNames.length)];
+    setUsedNames(prev => new Set([...prev, nameObj.name]));
+
+    return {
+      id: Date.now().toString() + Math.random().toString(),
+      name: nameObj.name,
+      package: packages[Math.floor(Math.random() * packages.length)],
+      price: getPriceByCountry(nameObj.country),
+      currency: nameObj.currency,
+      country: nameObj.country
+    };
   };
 
   useEffect(() => {
@@ -321,4 +257,5 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
     </div>
   );
 };
+
 
