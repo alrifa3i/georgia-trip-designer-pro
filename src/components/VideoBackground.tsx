@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 export const VideoBackground = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
