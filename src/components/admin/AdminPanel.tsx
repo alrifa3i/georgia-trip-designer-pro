@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,10 +21,16 @@ import {
   Edit,
   Save,
   Plus,
-  Trash2
+  Trash2,
+  MapPin,
+  Calendar
 } from 'lucide-react';
 import { hotelData, transportData, additionalServicesData } from '@/data/hotels';
 import { transportPricing, mandatoryToursRules } from '@/data/transportRules';
+import { HotelManagement } from './HotelManagement';
+import { CityManagement } from './CityManagement';
+import { AdvertisementManagement } from './AdvertisementManagement';
+import { BookingManagement } from './BookingManagement';
 
 export const AdminPanel = () => {
   const [editMode, setEditMode] = useState<string | null>(null);
@@ -48,11 +53,23 @@ export const AdminPanel = () => {
     <div className="container mx-auto p-6 max-w-7xl" dir="rtl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">لوحة التحكم الإدارية</h1>
-        <p className="text-gray-600">إدارة الأسعار والإعلانات والمستخدمين</p>
+        <p className="text-gray-600">إدارة شاملة للنظام والبيانات</p>
       </div>
 
-      <Tabs defaultValue="prices" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="bookings" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="bookings" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            إدارة الحجوزات
+          </TabsTrigger>
+          <TabsTrigger value="hotels" className="flex items-center gap-2">
+            <Hotel className="w-4 h-4" />
+            إدارة الفنادق
+          </TabsTrigger>
+          <TabsTrigger value="cities" className="flex items-center gap-2">
+            <MapPin className="w-4 h-4" />
+            إدارة المدن
+          </TabsTrigger>
           <TabsTrigger value="prices" className="flex items-center gap-2">
             <DollarSign className="w-4 h-4" />
             إدارة الأسعار
@@ -61,15 +78,26 @@ export const AdminPanel = () => {
             <Image className="w-4 h-4" />
             إدارة الإعلانات
           </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            إدارة المستخدمين
-          </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
             الإعدادات
           </TabsTrigger>
         </TabsList>
+
+        {/* إدارة الحجوزات */}
+        <TabsContent value="bookings">
+          <BookingManagement />
+        </TabsContent>
+
+        {/* إدارة الفنادق */}
+        <TabsContent value="hotels">
+          <HotelManagement />
+        </TabsContent>
+
+        {/* إدارة المدن */}
+        <TabsContent value="cities">
+          <CityManagement />
+        </TabsContent>
 
         {/* إدارة الأسعار */}
         <TabsContent value="prices" className="space-y-6">
@@ -303,91 +331,8 @@ export const AdminPanel = () => {
         </TabsContent>
 
         {/* إدارة الإعلانات */}
-        <TabsContent value="ads" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold">إدارة الإعلانات</h2>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 ml-2" />
-              إضافة إعلان جديد
-            </Button>
-          </div>
-
-          <div className="grid gap-4">
-            {ads.map((ad) => (
-              <Card key={ad.id}>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <h3 className="font-bold text-lg">{ad.title}</h3>
-                      <div className="flex items-center gap-4">
-                        <Badge variant="outline">
-                          <Users className="w-3 h-3 ml-1" />
-                          {ad.peopleRange} أشخاص
-                        </Badge>
-                        <Badge variant="outline">
-                          <DollarSign className="w-3 h-3 ml-1" />
-                          {ad.price}
-                        </Badge>
-                        <Badge variant={ad.status === 'active' ? 'default' : 'secondary'}>
-                          {ad.status === 'active' ? 'نشط' : 'غير نشط'}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* إدارة المستخدمين */}
-        <TabsContent value="users" className="space-y-6">
-          <h2 className="text-xl font-bold">إدارة المستخدمين</h2>
-          
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-right">الاسم</TableHead>
-                      <TableHead className="text-right">البريد الإلكتروني</TableHead>
-                      <TableHead className="text-right">عدد الحجوزات</TableHead>
-                      <TableHead className="text-right">الحالة</TableHead>
-                      <TableHead className="text-right">الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.bookings}</TableCell>
-                        <TableCell>
-                          <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                            {user.status === 'active' ? 'نشط' : 'غير نشط'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="ads">
+          <AdvertisementManagement />
         </TabsContent>
 
         {/* الإعدادات */}
