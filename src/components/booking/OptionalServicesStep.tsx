@@ -49,18 +49,6 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
     });
   };
 
-  const updateServiceEnabled = (service: string, enabled: boolean) => {
-    updateData({
-      additionalServices: {
-        ...data.additionalServices,
-        [service]: {
-          ...data.additionalServices[service as keyof typeof data.additionalServices],
-          enabled: enabled
-        }
-      }
-    });
-  };
-
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -186,59 +174,6 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
           </div>
         </div>
 
-        {/* Room Decoration */}
-        <div className="p-6 border rounded-lg bg-gradient-to-r from-pink-50 to-rose-50 border-pink-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Heart className="w-6 h-6 text-pink-600" />
-              <div>
-                <h3 className="font-bold text-pink-800">تزيين الغرف (شهر العسل)</h3>
-                <p className="text-sm text-pink-600">تزيين رومانسي خاص للأزواج الجدد (اختياري)</p>
-                <div className="mt-2">
-                  <Button
-                    type="button"
-                    variant={data.additionalServices.roomDecoration.enabled ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateServiceEnabled('roomDecoration', !data.additionalServices.roomDecoration.enabled)}
-                  >
-                    {data.additionalServices.roomDecoration.enabled ? 'مفعل' : 'غير مفعل'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Flower Reception */}
-        <div className="p-6 border rounded-lg bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Flower className="w-6 h-6 text-purple-600" />
-              <div>
-                <h3 className="font-bold text-purple-800">الاستقبال بالورود</h3>
-                <p className="text-sm text-purple-600">استقبال خاص بباقة ورود جميلة (اختياري)</p>
-                <div className="mt-2">
-                  <Button
-                    type="button"
-                    variant={data.additionalServices.flowerReception?.enabled ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => 
-                      updateData({
-                        additionalServices: {
-                          ...data.additionalServices,
-                          flowerReception: { enabled: !data.additionalServices.flowerReception?.enabled }
-                        }
-                      })
-                    }
-                  >
-                    {data.additionalServices.flowerReception?.enabled ? 'مفعل' : 'غير مفعل'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* VIP Airport Reception */}
         <div className="p-6 border rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
           <div className="flex items-center gap-3 mb-4">
@@ -282,6 +217,59 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
               >
                 <Plus className="w-4 h-4" />
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Room Decoration */}
+        <div className="p-6 border rounded-lg bg-gradient-to-r from-pink-50 to-rose-50 border-pink-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Heart className="w-6 h-6 text-pink-600" />
+              <div>
+                <h3 className="font-bold text-pink-800">تزيين الغرف (شهر العسل)</h3>
+                <p className="text-sm text-pink-600">تزيين رومانسي خاص للأزواج الجدد (اختياري)</p>
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant={data.additionalServices.roomDecoration.enabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateService('roomDecoration', 'enabled', !data.additionalServices.roomDecoration.enabled)}
+                  >
+                    {data.additionalServices.roomDecoration.enabled ? 'مضاف' : 'إضافة'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Flower Reception */}
+        <div className="p-6 border rounded-lg bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Flower className="w-6 h-6 text-purple-600" />
+              <div>
+                <h3 className="font-bold text-purple-800">الاستقبال بالورود</h3>
+                <p className="text-sm text-purple-600">استقبال خاص بباقة ورود جميلة (اختياري)</p>
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant={data.additionalServices.flowerReception?.enabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => 
+                      updateData({
+                        additionalServices: {
+                          ...data.additionalServices,
+                          flowerReception: { enabled: !data.additionalServices.flowerReception?.enabled }
+                        }
+                      })
+                    }
+                  >
+                    {data.additionalServices.flowerReception?.enabled ? 'مضاف' : 'إضافة'}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

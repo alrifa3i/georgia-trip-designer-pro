@@ -49,6 +49,13 @@ export const currencies: Currency[] = [
     name: 'Bahraini Dinar',
     nameAr: 'دينار بحريني',
     exchangeRate: 0.38
+  },
+  {
+    code: 'OMR',
+    symbol: 'ر.ع',
+    name: 'Omani Rial',
+    nameAr: 'ريال عماني',
+    exchangeRate: 0.385
   }
 ];
 

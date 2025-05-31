@@ -265,6 +265,26 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
     }
   };
 
+  const shareQRCode = async () => {
+    const bookingDetails = generateBookingDetails();
+    
+    if (navigator.share) {
+      // Convert QR code to blob for sharing
+      const response = await fetch(qrCodeUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `booking-qr-${referenceNumber}.png`, { type: 'image/png' });
+      
+      await navigator.share({
+        title: 'QR Code - حجز رحلة جورجيا',
+        text: bookingDetails,
+        files: [file]
+      });
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      downloadQRCode();
+    }
+  };
+
   const shareBookingDetails = async () => {
     const bookingDetails = generateBookingDetails();
     
@@ -306,30 +326,35 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-green-800 mb-6">تم تأكيد الحجز بنجاح! 🎉</h2>
           
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
-            {/* QR Code */}
-            <div className="bg-white p-6 rounded-lg border-2 border-green-300">
+          {/* QR Code Section */}
+          <div className="mb-6">
+            <div className="bg-white p-6 rounded-lg border-2 border-green-300 max-w-sm mx-auto">
               <p className="text-gray-700 text-lg mb-4">QR Code الحجز</p>
               {qrCodeUrl && (
                 <div className="space-y-3">
                   <img src={qrCodeUrl} alt="QR Code للحجز" className="mx-auto" />
-                  <Button
-                    onClick={downloadQRCode}
-                    size="sm"
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <Download className="w-4 h-4 ml-2" />
-                    حفظ كصورة
-                  </Button>
+                  <div className="flex gap-2 justify-center">
+                    <Button
+                      onClick={downloadQRCode}
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Download className="w-4 h-4 ml-2" />
+                      حفظ كصورة
+                    </Button>
+                    <Button
+                      onClick={shareQRCode}
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Plus className="w-4 h-4 ml-2" />
+                      مشاركة الكود
+                    </Button>
+                  </div>
                 </div>
               )}
-            </div>
-            
-            {/* Reference Number */}
-            <div className="bg-white p-6 rounded-lg border-2 border-green-300">
-              <p className="text-gray-700 text-lg mb-2">رقمك المرجعي</p>
-              <p className="text-4xl font-bold text-green-600 tracking-wider">{referenceNumber}</p>
             </div>
           </div>
           
