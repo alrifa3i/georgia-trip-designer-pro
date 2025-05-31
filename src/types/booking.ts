@@ -1,4 +1,3 @@
-
 export interface Child {
   age: number;
 }
@@ -40,6 +39,7 @@ export interface AdditionalServices {
   };
   photoSession?: {
     enabled: boolean;
+    quantity?: number;
   };
 }
 

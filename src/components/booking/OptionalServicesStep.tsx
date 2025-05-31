@@ -1,11 +1,9 @@
 
 import React, { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
-import { Shield, Phone, Heart, UserCheck, Camera, Flower, Info } from 'lucide-react';
-import { Plus, Minus } from 'lucide-react';
+import { Shield, Phone, Heart, UserCheck, Camera, Flower, Info, Plus, Minus } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface OptionalServicesStepProps {
@@ -51,6 +49,18 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
     });
   };
 
+  const updateServiceEnabled = (service: string, enabled: boolean) => {
+    updateData({
+      additionalServices: {
+        ...data.additionalServices,
+        [service]: {
+          ...data.additionalServices[service as keyof typeof data.additionalServices],
+          enabled: enabled
+        }
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -68,135 +78,112 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
       <div className="space-y-6">
         {/* Travel Insurance */}
         <div className="p-6 border rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Shield className="w-6 h-6 text-blue-600" />
-              <div>
-                <h3 className="font-bold text-blue-800">تأمين السفر</h3>
-                <p className="text-sm text-blue-600">حماية شاملة طوال فترة الرحلة (5$ للشخص يومياً)</p>
-              </div>
-            </div>
-            <Switch
-              checked={data.additionalServices.travelInsurance.enabled || false}
-              onCheckedChange={(checked) => {
-                console.log('Travel insurance toggle:', checked);
-                updateService('travelInsurance', 'enabled', checked);
-                if (checked) {
-                  updateService('travelInsurance', 'persons', totalPeopleForInsurance);
-                } else {
-                  updateService('travelInsurance', 'persons', 0);
-                }
-              }}
-            />
-          </div>
-
-          {data.additionalServices.travelInsurance.enabled && (
-            <div className="space-y-3">
-              <div>
-                <Label className="text-sm font-medium">عدد الأشخاص المؤمن عليهم</Label>
-                <div className="flex items-center gap-3 mt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const current = data.additionalServices.travelInsurance.persons || 1;
-                      const newPersons = Math.max(1, current - 1);
-                      console.log('Decreasing insurance persons to:', newPersons);
-                      updateService('travelInsurance', 'persons', newPersons);
-                    }}
-                    disabled={(data.additionalServices.travelInsurance.persons || 1) <= 1}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
-                    {data.additionalServices.travelInsurance.persons || 1}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const current = data.additionalServices.travelInsurance.persons || 1;
-                      const newPersons = Math.min(totalPeopleForInsurance, current + 1);
-                      console.log('Increasing insurance persons to:', newPersons);
-                      updateService('travelInsurance', 'persons', newPersons);
-                    }}
-                    disabled={(data.additionalServices.travelInsurance.persons || 1) >= totalPeopleForInsurance}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-blue-600 mt-1">
-                  الحد الأقصى: {totalPeopleForInsurance} أشخاص (إجمالي المسافرين)
-                </p>
-                <div className="mt-2 p-3 bg-blue-100 rounded-lg">
-                  <p className="text-sm text-blue-800 font-medium">
-                    التكلفة الإجمالية: {(data.additionalServices.travelInsurance.persons || 1) * insuranceDays * insurancePricePerPersonPerDay}$ 
-                    ({(data.additionalServices.travelInsurance.persons || 1)} أشخاص × {insuranceDays} أيام × {insurancePricePerPersonPerDay}$)
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Phone Lines */}
-        <div className="p-6 border rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Phone className="w-6 h-6 text-green-600" />
-              <div>
-                <h3 className="font-bold text-green-800">خطوط الاتصال</h3>
-                <p className="text-sm text-green-600">خطوط هاتف محلية للتواصل المريح (اختياري)</p>
-              </div>
-            </div>
-            <Switch
-              checked={data.additionalServices.phoneLines.enabled || false}
-              onCheckedChange={(checked) => {
-                updateService('phoneLines', 'enabled', checked);
-                if (checked && (data.additionalServices.phoneLines.quantity || 0) === 0) {
-                  updateService('phoneLines', 'quantity', 1);
-                } else if (!checked) {
-                  updateService('phoneLines', 'quantity', 0);
-                }
-              }}
-            />
-          </div>
-
-          {data.additionalServices.phoneLines.enabled && (
+          <div className="flex items-center gap-3 mb-4">
+            <Shield className="w-6 h-6 text-blue-600" />
             <div>
-              <Label className="text-sm font-medium">عدد الخطوط المطلوبة</Label>
+              <h3 className="font-bold text-blue-800">تأمين السفر</h3>
+              <p className="text-sm text-blue-600">حماية شاملة طوال فترة الرحلة (5$ للشخص يومياً)</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm font-medium">عدد الأشخاص المؤمن عليهم</Label>
               <div className="flex items-center gap-3 mt-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const current = data.additionalServices.phoneLines.quantity || 1;
-                    updateService('phoneLines', 'quantity', Math.max(1, current - 1));
+                    const current = data.additionalServices.travelInsurance.persons || 0;
+                    const newPersons = Math.max(0, current - 1);
+                    console.log('Decreasing insurance persons to:', newPersons);
+                    updateService('travelInsurance', 'persons', newPersons);
+                    updateService('travelInsurance', 'enabled', newPersons > 0);
                   }}
-                  disabled={(data.additionalServices.phoneLines.quantity || 1) <= 1}
+                  disabled={(data.additionalServices.travelInsurance.persons || 0) <= 0}
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
                 <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
-                  {data.additionalServices.phoneLines.quantity || 1}
+                  {data.additionalServices.travelInsurance.persons || 0}
                 </span>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const current = data.additionalServices.phoneLines.quantity || 1;
-                    updateService('phoneLines', 'quantity', current + 1);
+                    const current = data.additionalServices.travelInsurance.persons || 0;
+                    const newPersons = Math.min(totalPeopleForInsurance, current + 1);
+                    console.log('Increasing insurance persons to:', newPersons);
+                    updateService('travelInsurance', 'persons', newPersons);
+                    updateService('travelInsurance', 'enabled', newPersons > 0);
                   }}
+                  disabled={(data.additionalServices.travelInsurance.persons || 0) >= totalPeopleForInsurance}
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
+              <p className="text-xs text-blue-600 mt-1">
+                الحد الأقصى: {totalPeopleForInsurance} أشخاص (إجمالي المسافرين)
+              </p>
+              {(data.additionalServices.travelInsurance.persons || 0) > 0 && (
+                <div className="mt-2 p-3 bg-blue-100 rounded-lg">
+                  <p className="text-sm text-blue-800 font-medium">
+                    التكلفة الإجمالية: {(data.additionalServices.travelInsurance.persons || 0) * insuranceDays * insurancePricePerPersonPerDay}$ 
+                    ({(data.additionalServices.travelInsurance.persons || 0)} أشخاص × {insuranceDays} أيام × {insurancePricePerPersonPerDay}$)
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        </div>
+
+        {/* Phone Lines */}
+        <div className="p-6 border rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+          <div className="flex items-center gap-3 mb-4">
+            <Phone className="w-6 h-6 text-green-600" />
+            <div>
+              <h3 className="font-bold text-green-800">خطوط الاتصال</h3>
+              <p className="text-sm text-green-600">خطوط هاتف محلية للتواصل المريح (اختياري)</p>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium">عدد الخطوط المطلوبة</Label>
+            <div className="flex items-center gap-3 mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const current = data.additionalServices.phoneLines.quantity || 0;
+                  const newQuantity = Math.max(0, current - 1);
+                  updateService('phoneLines', 'quantity', newQuantity);
+                  updateService('phoneLines', 'enabled', newQuantity > 0);
+                }}
+                disabled={(data.additionalServices.phoneLines.quantity || 0) <= 0}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
+                {data.additionalServices.phoneLines.quantity || 0}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const current = data.additionalServices.phoneLines.quantity || 0;
+                  const newQuantity = current + 1;
+                  updateService('phoneLines', 'quantity', newQuantity);
+                  updateService('phoneLines', 'enabled', newQuantity > 0);
+                }}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Room Decoration */}
@@ -207,12 +194,18 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
               <div>
                 <h3 className="font-bold text-pink-800">تزيين الغرف (شهر العسل)</h3>
                 <p className="text-sm text-pink-600">تزيين رومانسي خاص للأزواج الجدد (اختياري)</p>
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant={data.additionalServices.roomDecoration.enabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateServiceEnabled('roomDecoration', !data.additionalServices.roomDecoration.enabled)}
+                  >
+                    {data.additionalServices.roomDecoration.enabled ? 'مفعل' : 'غير مفعل'}
+                  </Button>
+                </div>
               </div>
             </div>
-            <Switch
-              checked={data.additionalServices.roomDecoration.enabled || false}
-              onCheckedChange={(checked) => updateService('roomDecoration', 'enabled', checked)}
-            />
           </div>
         </div>
 
@@ -224,101 +217,133 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
               <div>
                 <h3 className="font-bold text-purple-800">الاستقبال بالورود</h3>
                 <p className="text-sm text-purple-600">استقبال خاص بباقة ورود جميلة (اختياري)</p>
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant={data.additionalServices.flowerReception?.enabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => 
+                      updateData({
+                        additionalServices: {
+                          ...data.additionalServices,
+                          flowerReception: { enabled: !data.additionalServices.flowerReception?.enabled }
+                        }
+                      })
+                    }
+                  >
+                    {data.additionalServices.flowerReception?.enabled ? 'مفعل' : 'غير مفعل'}
+                  </Button>
+                </div>
               </div>
             </div>
-            <Switch
-              checked={data.additionalServices.flowerReception?.enabled || false}
-              onCheckedChange={(checked) => 
-                updateData({
-                  additionalServices: {
-                    ...data.additionalServices,
-                    flowerReception: { enabled: checked }
-                  }
-                })
-              }
-            />
           </div>
         </div>
 
         {/* VIP Airport Reception */}
         <div className="p-6 border rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <UserCheck className="w-6 h-6 text-yellow-600" />
-              <div>
-                <h3 className="font-bold text-yellow-800">الاستقبال من المطار VIP</h3>
-                <p className="text-sm text-yellow-600">استقبال مميز من المطار مع مرافق شخصي (اختياري)</p>
-              </div>
+          <div className="flex items-center gap-3 mb-4">
+            <UserCheck className="w-6 h-6 text-yellow-600" />
+            <div>
+              <h3 className="font-bold text-yellow-800">الاستقبال من المطار VIP</h3>
+              <p className="text-sm text-yellow-600">استقبال مميز من المطار مع مرافق شخصي (اختياري)</p>
             </div>
-            <Switch
-              checked={data.additionalServices.airportReception.enabled || false}
-              onCheckedChange={(checked) => {
-                updateService('airportReception', 'enabled', checked);
-                if (checked && (data.additionalServices.airportReception.persons || 0) === 0) {
-                  updateService('airportReception', 'persons', Math.min(data.adults, 1));
-                } else if (!checked) {
-                  updateService('airportReception', 'persons', 0);
-                }
-              }}
-            />
           </div>
 
-          {data.additionalServices.airportReception.enabled && (
-            <div>
-              <Label className="text-sm font-medium">عدد الأشخاص</Label>
-              <div className="flex items-center gap-3 mt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const current = data.additionalServices.airportReception.persons || 1;
-                    updateService('airportReception', 'persons', Math.max(1, current - 1));
-                  }}
-                  disabled={(data.additionalServices.airportReception.persons || 1) <= 1}
-                >
-                  <Minus className="w-4 h-4" />
-                </Button>
-                <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
-                  {data.additionalServices.airportReception.persons || 1}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const current = data.additionalServices.airportReception.persons || 1;
-                    updateService('airportReception', 'persons', current + 1);
-                  }}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
+          <div>
+            <Label className="text-sm font-medium">عدد الأشخاص</Label>
+            <div className="flex items-center gap-3 mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const current = data.additionalServices.airportReception.persons || 0;
+                  const newPersons = Math.max(0, current - 1);
+                  updateService('airportReception', 'persons', newPersons);
+                  updateService('airportReception', 'enabled', newPersons > 0);
+                }}
+                disabled={(data.additionalServices.airportReception.persons || 0) <= 0}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
+                {data.additionalServices.airportReception.persons || 0}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const current = data.additionalServices.airportReception.persons || 0;
+                  const newPersons = current + 1;
+                  updateService('airportReception', 'persons', newPersons);
+                  updateService('airportReception', 'enabled', newPersons > 0);
+                }}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Photo Session */}
         <div className="p-6 border rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 border-indigo-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Camera className="w-6 h-6 text-indigo-600" />
-              <div>
-                <h3 className="font-bold text-indigo-800">جلسة تصوير (شهر العسل)</h3>
-                <p className="text-sm text-indigo-600">جلسة تصوير احترافية لذكريات لا تُنسى (اختياري)</p>
-              </div>
+          <div className="flex items-center gap-3 mb-4">
+            <Camera className="w-6 h-6 text-indigo-600" />
+            <div>
+              <h3 className="font-bold text-indigo-800">جلسة تصوير (شهر العسل)</h3>
+              <p className="text-sm text-indigo-600">جلسة تصوير احترافية لذكريات لا تُنسى (اختياري)</p>
             </div>
-            <Switch
-              checked={data.additionalServices.photoSession?.enabled || false}
-              onCheckedChange={(checked) => 
-                updateData({
-                  additionalServices: {
-                    ...data.additionalServices,
-                    photoSession: { enabled: checked }
-                  }
-                })
-              }
-            />
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium">عدد الجلسات</Label>
+            <div className="flex items-center gap-3 mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const current = data.additionalServices.photoSession?.quantity || 0;
+                  const newQuantity = Math.max(0, current - 1);
+                  updateData({
+                    additionalServices: {
+                      ...data.additionalServices,
+                      photoSession: { 
+                        enabled: newQuantity > 0,
+                        quantity: newQuantity
+                      }
+                    }
+                  });
+                }}
+                disabled={(data.additionalServices.photoSession?.quantity || 0) <= 0}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
+                {data.additionalServices.photoSession?.quantity || 0}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const current = data.additionalServices.photoSession?.quantity || 0;
+                  const newQuantity = current + 1;
+                  updateData({
+                    additionalServices: {
+                      ...data.additionalServices,
+                      photoSession: { 
+                        enabled: newQuantity > 0,
+                        quantity: newQuantity
+                      }
+                    }
+                  });
+                }}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -330,13 +355,13 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
           <div className="space-y-2 text-sm">
             {data.additionalServices.travelInsurance.enabled && (
               <div className="flex justify-between">
-                <span>• تأمين السفر ({data.additionalServices.travelInsurance.persons || 1} أشخاص)</span>
+                <span>• تأمين السفر ({data.additionalServices.travelInsurance.persons || 0} أشخاص)</span>
                 <span className="text-green-600">✓</span>
               </div>
             )}
             {data.additionalServices.phoneLines.enabled && (
               <div className="flex justify-between">
-                <span>• خطوط الاتصال ({data.additionalServices.phoneLines.quantity || 1} خط)</span>
+                <span>• خطوط الاتصال ({data.additionalServices.phoneLines.quantity || 0} خط)</span>
                 <span className="text-green-600">✓</span>
               </div>
             )}
@@ -354,13 +379,13 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
             )}
             {data.additionalServices.airportReception.enabled && (
               <div className="flex justify-between">
-                <span>• الاستقبال VIP ({data.additionalServices.airportReception.persons || 1} أشخاص)</span>
+                <span>• الاستقبال VIP ({data.additionalServices.airportReception.persons || 0} أشخاص)</span>
                 <span className="text-green-600">✓</span>
               </div>
             )}
             {data.additionalServices.photoSession?.enabled && (
               <div className="flex justify-between">
-                <span>• جلسة التصوير</span>
+                <span>• جلسة التصوير ({data.additionalServices.photoSession?.quantity || 0} جلسات)</span>
                 <span className="text-green-600">✓</span>
               </div>
             )}

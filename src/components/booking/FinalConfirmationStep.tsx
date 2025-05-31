@@ -265,20 +265,48 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
     }
   };
 
+  const shareBookingDetails = async () => {
+    const bookingDetails = generateBookingDetails();
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'تفاصيل حجز رحلة جورجيا',
+          text: bookingDetails,
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+        // Fallback to copying to clipboard
+        await navigator.clipboard.writeText(bookingDetails);
+        toast({
+          title: "تم النسخ",
+          description: "تم نسخ تفاصيل الحجز إلى الحافظة"
+        });
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      try {
+        await navigator.clipboard.writeText(bookingDetails);
+        toast({
+          title: "تم النسخ",
+          description: "تم نسخ تفاصيل الحجز إلى الحافظة"
+        });
+      } catch (error) {
+        console.log('Clipboard not supported');
+        // Open WhatsApp as final fallback
+        sendToWhatsApp();
+      }
+    }
+  };
+
   if (showReferenceNumber) {
     return (
       <div className="space-y-6 text-center">
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-8 rounded-xl border-2 border-green-200">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-green-800 mb-4">تم تأكيد الحجز بنجاح! 🎉</h2>
+          <h2 className="text-3xl font-bold text-green-800 mb-6">تم تأكيد الحجز بنجاح! 🎉</h2>
           
           <div className="grid md:grid-cols-2 gap-6 mb-6">
-            {/* Reference Number */}
-            <div className="bg-white p-6 rounded-lg border-2 border-green-300">
-              <p className="text-gray-700 text-lg mb-2">رقمك المرجعي</p>
-              <p className="text-4xl font-bold text-green-600 tracking-wider">{referenceNumber}</p>
-            </div>
-            
             {/* QR Code */}
             <div className="bg-white p-6 rounded-lg border-2 border-green-300">
               <p className="text-gray-700 text-lg mb-4">QR Code الحجز</p>
@@ -297,6 +325,19 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
                 </div>
               )}
             </div>
+            
+            {/* Reference Number */}
+            <div className="bg-white p-6 rounded-lg border-2 border-green-300">
+              <p className="text-gray-700 text-lg mb-2">رقمك المرجعي</p>
+              <p className="text-4xl font-bold text-green-600 tracking-wider">{referenceNumber}</p>
+            </div>
+          </div>
+          
+          {/* Reference Number in Center */}
+          <div className="bg-white p-8 rounded-xl border-2 border-green-400 shadow-lg mb-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">الرقم المرجعي للحجز</h3>
+            <div className="text-5xl font-bold text-green-600 tracking-widest">{referenceNumber}</div>
+            <p className="text-green-700 mt-4">احفظ هذا الرقم للمراجعة</p>
           </div>
           
           <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
@@ -311,14 +352,26 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
           
           <p className="text-green-700 mb-6">احفظ هذا الرقم للمراجعة</p>
           
-          <Button
-            onClick={sendToWhatsApp}
-            size="lg"
-            className="bg-green-600 hover:bg-green-700 px-8 py-3 text-lg font-bold"
-          >
-            <MessageCircle className="w-5 h-5 ml-2" />
-            إرسال للواتساب
-          </Button>
+          <div className="flex gap-4 justify-center">
+            <Button
+              onClick={sendToWhatsApp}
+              size="lg"
+              className="bg-green-600 hover:bg-green-700 px-8 py-3 text-lg font-bold"
+            >
+              <MessageCircle className="w-5 h-5 ml-2" />
+              إرسال للواتساب
+            </Button>
+            
+            <Button
+              onClick={shareBookingDetails}
+              size="lg"
+              variant="outline"
+              className="px-8 py-3 text-lg font-bold border-2 border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <Plus className="w-5 h-5 ml-2" />
+              مشاركة التفاصيل
+            </Button>
+          </div>
         </div>
         
         <Alert>
