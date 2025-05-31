@@ -119,8 +119,8 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
             </SelectTrigger>
             <SelectContent>
               {airports.map((airport) => (
-                <SelectItem key={airport} value={airport}>
-                  {airport}
+                <SelectItem key={airport.code} value={airport.code}>
+                  {airport.nameAr}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -141,8 +141,8 @@ export const TripDetailsStep = ({ data, updateData }: TripDetailsStepProps) => {
             </SelectTrigger>
             <SelectContent>
               {airports.map((airport) => (
-                <SelectItem key={airport} value={airport}>
-                  {airport}
+                <SelectItem key={airport.code} value={airport.code}>
+                  {airport.nameAr}
                 </SelectItem>
               ))}
             </SelectContent>

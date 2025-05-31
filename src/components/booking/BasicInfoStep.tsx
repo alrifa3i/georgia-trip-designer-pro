@@ -244,7 +244,7 @@ export const BasicInfoStep = ({ data, updateData }: BasicInfoStepProps) => {
             <SelectContent>
               {currencies.map((currency) => (
                 <SelectItem key={currency.code} value={currency.code}>
-                  {currency.name} ({currency.symbol})
+                  {currency.nameAr} ({currency.symbol})
                 </SelectItem>
               ))}
             </SelectContent>

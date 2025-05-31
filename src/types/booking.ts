@@ -122,6 +122,16 @@ export interface Transport {
   farewell_same_city_price: number;
   farewell_different_city_price: number;
   is_active: boolean;
+  // Add compatibility properties
+  price: number;
+  reception: {
+    sameCity: number;
+    differentCity: number;
+  };
+  farewell: {
+    sameCity: number;
+    differentCity: number;
+  };
 }
 
 export interface Service {
@@ -132,4 +142,40 @@ export interface Service {
   unit: string;
   description: string;
   is_active: boolean;
+}
+
+export interface Currency {
+  code: string;
+  name: string;
+  nameAr: string;
+  symbol: string;
+  rate: number;
+  exchangeRate: number;
+}
+
+export interface Airport {
+  code: string;
+  name: string;
+  nameAr: string;
+  city: string;
+}
+
+export interface AdditionalServiceData {
+  travelInsurance: {
+    pricePerPersonPerDay: number;
+    pricePerPerson: number;
+    nameAr: string;
+  };
+  phoneLines: {
+    pricePerLine: number;
+    nameAr: string;
+  };
+  roomDecoration: {
+    price: number;
+    nameAr: string;
+  };
+  airportReception: {
+    pricePerPerson: number;
+    nameAr: string;
+  };
 }

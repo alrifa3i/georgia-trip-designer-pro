@@ -12,6 +12,7 @@ interface SaveBookingResult {
   success: boolean;
   data?: { reference_number: string };
   error?: string;
+  referenceNumber?: string;
 }
 
 export const useBookings = () => {
@@ -77,7 +78,8 @@ export const useBookings = () => {
         success: true,
         data: {
           reference_number: referenceNumber
-        }
+        },
+        referenceNumber: referenceNumber
       };
     } catch (error) {
       return {
