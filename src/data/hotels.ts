@@ -1,226 +1,391 @@
-import { Hotel, Transport, TourLocation } from '@/types/booking';
 
-export const cities = [
-  "تبليسي",
-  "باكورياني", 
-  "داشباش",
-  "باتومي",
-  "كوتايسي",
-  "كوداوري",
-  "برجومي"
+import { Hotel, TourLocation } from '@/types/booking';
+
+export const georgianHotels: Hotel[] = [
+  // تبليسي
+  { id: '1', name: 'فندق راديسون بلو إيفيريا', city: 'تبليسي', single_price: 120, single_view_price: 150, double_without_view_price: 200, double_view_price: 250, triple_without_view_price: 280, triple_view_price: 320, rating: 5, distance_from_center: 1.2, amenities: ['واي فاي مجاني', 'مسبح', 'سبا', 'مطعم'], is_active: true },
+  { id: '2', name: 'فندق تبليسي ماريوت', city: 'تبليسي', single_price: 110, single_view_price: 140, double_without_view_price: 180, double_view_price: 220, triple_without_view_price: 250, triple_view_price: 290, rating: 5, distance_from_center: 0.8, amenities: ['واي فاي مجاني', 'مطعم', 'صالة رياضية'], is_active: true },
+  { id: '3', name: 'فندق شيراتون غراند تبليسي متيخي', city: 'تبليسي', single_price: 130, single_view_price: 160, double_without_view_price: 210, double_view_price: 260, triple_without_view_price: 300, triple_view_price: 350, rating: 5, distance_from_center: 1.5, amenities: ['واي فاي مجاني', 'مسبح', 'سبا'], is_active: true },
+  { id: '4', name: 'بوتيك هوتل تبليسي', city: 'تبليسي', single_price: 80, single_view_price: 100, double_without_view_price: 130, double_view_price: 160, triple_without_view_price: 180, triple_view_price: 210, rating: 4, distance_from_center: 0.5, amenities: ['واي فاي مجاني', 'مطعم'], is_active: true },
+  { id: '5', name: 'فندق كمبينسكي تبليسي', city: 'تبليسي', single_price: 180, single_view_price: 220, double_without_view_price: 280, double_view_price: 350, triple_without_view_price: 400, triple_view_price: 480, rating: 5, distance_from_center: 1.0, amenities: ['واي فاي مجاني', 'مسبح', 'سبا', 'مطعم'], is_active: true },
+  { id: '6', name: 'هوتل غابالا', city: 'تبليسي', single_price: 60, single_view_price: 80, double_without_view_price: 100, double_view_price: 130, triple_without_view_price: 150, triple_view_price: 180, rating: 3, distance_from_center: 2.0, amenities: ['واي فاي مجاني'], is_active: true },
+  { id: '7', name: 'فندق هيلتون تبليسي', city: 'تبليسي', single_price: 140, single_view_price: 170, double_without_view_price: 220, double_view_price: 270, triple_without_view_price: 320, triple_view_price: 380, rating: 5, distance_from_center: 1.8, amenities: ['واي فاي مجاني', 'مسبح', 'سبا'], is_active: true },
+  { id: '8', name: 'تيفليس بالاس', city: 'تبليسي', single_price: 70, single_view_price: 90, double_without_view_price: 110, double_view_price: 140, triple_without_view_price: 160, triple_view_price: 190, rating: 4, distance_from_center: 1.2, amenities: ['واي فاي مجاني', 'مطعم'], is_active: true },
+  { id: '9', name: 'فندق كوختا', city: 'تبليسي', single_price: 90, single_view_price: 110, double_without_view_price: 140, double_view_price: 170, triple_without_view_price: 200, triple_view_price: 230, rating: 4, distance_from_center: 0.7, amenities: ['واي فاي مجاني', 'مطعم'], is_active: true },
+
+  // باتومي
+  { id: '10', name: 'شيراتون باتومي', city: 'باتومي', single_price: 120, single_view_price: 150, double_without_view_price: 200, double_view_price: 250, triple_without_view_price: 280, triple_view_price: 320, rating: 5, distance_from_center: 0.5, amenities: ['واي فاي مجاني', 'إطلالة بحرية', 'مسبح'], is_active: true },
+  { id: '11', name: 'هيلتون باتومي', city: 'باتومي', single_price: 130, single_view_price: 160, double_without_view_price: 210, double_view_price: 260, triple_without_view_price: 300, triple_view_price: 350, rating: 5, distance_from_center: 0.3, amenities: ['واي فاي مجاني', 'إطلالة بحرية', 'سبا'], is_active: true },
+  { id: '12', name: 'رديسون بلو باتومي', city: 'باتومي', single_price: 110, single_view_price: 140, double_without_view_price: 180, double_view_price: 220, triple_without_view_price: 250, triple_view_price: 290, rating: 5, distance_from_center: 0.4, amenities: ['واي فاي مجاني', 'إطلالة بحرية'], is_active: true },
+
+  // كوتايسي
+  { id: '13', name: 'بست ويسترن كوتايسي', city: 'كوتايسي', single_price: 80, single_view_price: 100, double_without_view_price: 130, double_view_price: 160, triple_without_view_price: 180, triple_view_price: 210, rating: 4, distance_from_center: 1.0, amenities: ['واي فاي مجاني', 'مطعم'], is_active: true },
+
+  // بورجومي
+  { id: '14', name: 'كراون بلازا بورجومي', city: 'بورجومي', single_price: 100, single_view_price: 130, double_without_view_price: 160, double_view_price: 200, triple_without_view_price: 230, triple_view_price: 270, rating: 5, distance_from_center: 0.8, amenities: ['واي فاي مجاني', 'سبا', 'مياه معدنية'], is_active: true },
+  { id: '15', name: 'ريكسوس بورجومي', city: 'بورجومي', single_price: 150, single_view_price: 180, double_without_view_price: 240, double_view_price: 290, triple_without_view_price: 340, triple_view_price: 400, rating: 5, distance_from_center: 1.2, amenities: ['واي فاي مجاني', 'سبا', 'مياه معدنية'], is_active: true },
+  { id: '16', name: 'فندق بورجومي بالاس', city: 'بورجومي', single_price: 70, single_view_price: 90, double_without_view_price: 110, double_view_price: 140, triple_without_view_price: 160, triple_view_price: 190, rating: 4, distance_from_center: 0.5, amenities: ['واي فاي مجاني'], is_active: true },
+  { id: '17', name: 'فندق ليكاني', city: 'بورجومي', single_price: 90, single_view_price: 110, double_without_view_price: 140, double_view_price: 170, triple_without_view_price: 200, triple_view_price: 230, rating: 4, distance_from_center: 1.5, amenities: ['واي فاي مجاني', 'مياه معدنية'], is_active: true },
+  { id: '18', name: 'فندق فيرما', city: 'بورجومي', single_price: 60, single_view_price: 80, double_without_view_price: 100, double_view_price: 130, triple_without_view_price: 150, triple_view_price: 180, rating: 3, distance_from_center: 2.0, amenities: ['واي فاي مجاني'], is_active: true },
+
+  // غودوري
+  { id: '19', name: 'فندق ماركو بولو غودوري', city: 'غودوري', single_price: 120, single_view_price: 150, double_without_view_price: 200, double_view_price: 250, triple_without_view_price: 280, triple_view_price: 320, rating: 4, distance_from_center: 0.2, amenities: ['واي فاي مجاني', 'منتجع تزلج'], is_active: true },
+  { id: '20', name: 'فندق روومز غودوري', city: 'غودوري', single_price: 80, single_view_price: 100, double_without_view_price: 130, double_view_price: 160, triple_without_view_price: 180, triple_view_price: 210, rating: 4, distance_from_center: 0.5, amenities: ['واي فاي مجاني'], is_active: true },
+
+  // متسخيتا
+  { id: '21', name: 'فندق ساليبي', city: 'متسخيتا', single_price: 70, single_view_price: 90, double_without_view_price: 110, double_view_price: 140, triple_without_view_price: 160, triple_view_price: 190, rating: 4, distance_from_center: 0.3, amenities: ['واي فاي مجاني', 'موقع تاريخي'], is_active: true },
+  { id: '22', name: 'هوتل أرماري', city: 'متسخيتا', single_price: 60, single_view_price: 80, double_without_view_price: 100, double_view_price: 130, triple_without_view_price: 150, triple_view_price: 180, rating: 3, distance_from_center: 0.8, amenities: ['واي فاي مجاني'], is_active: true },
+  { id: '23', name: 'بيت ضيافة متسخيتا', city: 'متسخيتا', single_price: 50, single_view_price: 70, double_without_view_price: 80, double_view_price: 110, triple_without_view_price: 130, triple_view_price: 160, rating: 3, distance_from_center: 1.0, amenities: ['واي فاي مجاني'], is_active: true },
+
+  // زوغديدي
+  { id: '24', name: 'فندق أوديشي', city: 'زوغديدي', single_price: 60, single_view_price: 80, double_without_view_price: 100, double_view_price: 130, triple_without_view_price: 150, triple_view_price: 180, rating: 3, distance_from_center: 1.5, amenities: ['واي فاي مجاني'], is_active: true },
+  { id: '25', name: 'هوتل إيفيريا زوغديدي', city: 'زوغديدي', single_price: 80, single_view_price: 100, double_without_view_price: 130, double_view_price: 160, triple_without_view_price: 180, triple_view_price: 210, rating: 4, distance_from_center: 0.8, amenities: ['واي فاي مجاني', 'مطعم'], is_active: true }
 ];
 
-export const hotelData: Record<string, Hotel[]> = {
-  "تبليسي": [
-    { name: "Marjan plaza hotel", dbl_v: 90, trbl_v: 130, dbl_wv: 80, trbl_wv: 120, rating: 4, distanceFromCenter: 2 },
-    { name: "Gallery Palace", dbl_v: 55, trbl_v: 75, dbl_wv: 45, trbl_wv: 65, rating: 3, distanceFromCenter: 1 },
-    { name: "Hualing dormitory", dbl_v: 60, trbl_v: 80, dbl_wv: 55, trbl_wv: 75, rating: 3, distanceFromCenter: 3 },
-    { name: "radisson red 5*", dbl_v: 150, trbl_v: 205, dbl_wv: 135, trbl_wv: 195, rating: 5, distanceFromCenter: 1 },
-    { name: "Biltmore or pullman*5", dbl_v: 215, trbl_v: 270, dbl_wv: 215, trbl_wv: 270, rating: 5, distanceFromCenter: 1 },
-    { name: "Addrees Hotel", dbl_v: 65, trbl_v: 75, dbl_wv: 65, trbl_wv: 75, rating: 3, distanceFromCenter: 2 },
-    { name: "LM Hotel", dbl_v: 45, trbl_v: 60, dbl_wv: 45, trbl_wv: 60, rating: 3, distanceFromCenter: 4 },
-    { name: "EPISODE", dbl_v: 65, trbl_v: 85, dbl_wv: 65, trbl_wv: 85, rating: 4, distanceFromCenter: 2 },
-    { name: "Gino Seaside", dbl_v: 80, trbl_v: 100, dbl_wv: 80, trbl_wv: 100, rating: 4, distanceFromCenter: 3 }
-  ],
-  "باكورياني": [
-    { name: "Bakuriani inn 5*", dbl_v: 85, trbl_v: 105, dbl_wv: 75, trbl_wv: 95, rating: 5, distanceFromCenter: 1 },
-    { name: "crystal hotel 5*", dbl_v: 115, trbl_v: 165, dbl_wv: 105, trbl_wv: 155, rating: 5, distanceFromCenter: 1 },
-    { name: "KOMOREBI", dbl_v: 80, trbl_v: 105, dbl_wv: 80, trbl_wv: 105, rating: 4, distanceFromCenter: 2 }
-  ],
-  "داشباش": [
-    { name: "Diamond Resort 5*", dbl_v: 120, trbl_v: 140, dbl_wv: 120, trbl_wv: 140, rating: 5, distanceFromCenter: 1 }
-  ],
-  "باتومي": [
-    { name: "Batumi luxury view", dbl_v: 120, trbl_v: 175, dbl_wv: 110, trbl_wv: 165, rating: 4, distanceFromCenter: 1 },
-    { name: "New Wave Hotel", dbl_v: 105, trbl_v: 135, dbl_wv: 85, trbl_wv: 125, rating: 4, distanceFromCenter: 2 },
-    { name: "Aqua hotel", dbl_v: 80, trbl_v: 90, dbl_wv: 75, trbl_wv: 85, rating: 3, distanceFromCenter: 3 },
-    { name: "Hilton Batumi*5", dbl_v: 260, trbl_v: 305, dbl_wv: 220, trbl_wv: 265, rating: 5, distanceFromCenter: 1 },
-    { name: "boulevard", dbl_v: 80, trbl_v: 95, dbl_wv: 80, trbl_wv: 95, rating: 3, distanceFromCenter: 2 }
-  ],
-  "كوتايسي": [
-    { name: "kutaisi inn hotel*5", dbl_v: 90, trbl_v: 130, dbl_wv: 90, trbl_wv: 130, rating: 5, distanceFromCenter: 1 },
-    { name: "west inn", dbl_v: 120, trbl_v: 140, dbl_wv: 115, trbl_wv: 135, rating: 4, distanceFromCenter: 2 }
-  ],
-  "كوداوري": [
-    { name: "Quadrum Resort", dbl_v: 85, trbl_v: 120, dbl_wv: 75, trbl_wv: 115, rating: 4, distanceFromCenter: 1 },
-    { name: "Gudauri inn", dbl_v: 75, trbl_v: 100, dbl_wv: 65, trbl_wv: 85, rating: 3, distanceFromCenter: 2 },
-    { name: "Monte Hotel", dbl_v: 175, trbl_v: 190, dbl_wv: 155, trbl_wv: 170, rating: 5, distanceFromCenter: 1 },
-  ],
-  "برجومي": [
-    { name: "Borjomi Likani 5*", dbl_v: 180, trbl_v: 230, dbl_wv: 120, trbl_wv: 195, rating: 5, distanceFromCenter: 1 },
-    { name: "Crowne Plaza Borjomi 5*", dbl_v: 245, trbl_v: 270, dbl_wv: 200, trbl_wv: 225, rating: 5, distanceFromCenter: 1 }
-  ]
-};
+export const georgianTourLocations: TourLocation[] = [
+  {
+    name: 'مدينة الحب سيغناغي',
+    description: 'مدينة رومانسية في منطقة كاخيتي',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 2,
+      fromKutaisi: 2,
+      toTbilisi: 1,
+      toBatumi: 2,
+      toKutaisi: 2
+    }
+  },
+  {
+    name: 'بحيرة ريتسا الساحرة',
+    description: 'بحيرة طبيعية خلابة في أبخازيا',
+    mandatoryTours: {
+      fromTbilisi: 2,
+      fromBatumi: 1,
+      fromKutaisi: 2,
+      toTbilisi: 2,
+      toBatumi: 1,
+      toKutaisi: 2
+    }
+  },
+  {
+    name: 'جسر السلام تبليسي',
+    description: 'جسر حديث مضيء في قلب تبليسي',
+    mandatoryTours: {
+      fromTbilisi: 0,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 0,
+      toBatumi: 1,
+      toKutaisi: 1
+    }
+  },
+  {
+    name: 'قلعة ناريكالا التاريخية',
+    description: 'قلعة تاريخية تطل على تبليسي',
+    mandatoryTours: {
+      fromTbilisi: 0,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 0,
+      toBatumi: 1,
+      toKutaisi: 1
+    }
+  },
+  {
+    name: 'حديقة باتومي النباتية',
+    description: 'حديقة نباتية واسعة بإطلالة بحرية',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 0,
+      fromKutaisi: 1,
+      toTbilisi: 1,
+      toBatumi: 0,
+      toKutaisi: 1
+    }
+  },
+  {
+    name: 'برج الحروف الأبجدية',
+    description: 'برج يمثل الأبجدية الجورجية في باتومي',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 0,
+      fromKutaisi: 1,
+      toTbilisi: 1,
+      toBatumi: 0,
+      toKutaisi: 1
+    }
+  },
+  {
+    name: 'دير جفاري المقدس',
+    description: 'دير تاريخي في متسخيتا',
+    mandatoryTours: {
+      fromTbilisi: 0,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 0,
+      toBatumi: 1,
+      toKutaisi: 1
+    }
+  },
+  {
+    name: 'كنيسة سفيتيتسخوفيلي',
+    description: 'كاتدرائية تاريخية في متسخيتا',
+    mandatoryTours: {
+      fromTbilisi: 0,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 0,
+      toBatumi: 1,
+      toKutaisi: 1
+    }
+  },
 
-export const transportData = [
+  // في تبليسي
   {
-    type: 'سيدان',
-    capacity: '1-3',
-    price: 90,
-    reception: {
-      sameCity: 25,
-      differentCity: 25
-    },
-    farewell: {
-      sameCity: 25,
-      differentCity: 90
+    name: 'حي الكبريت القديم',
+    description: 'منطقة الحمامات الكبريتية التاريخية',
+    mandatoryTours: {
+      fromTbilisi: 0,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 0,
+      toBatumi: 1,
+      toKutaisi: 1
     }
   },
   {
-    type: 'ميني فان',
-    capacity: '4-6',
-    price: 100,
-    reception: {
-      sameCity: 45,
-      differentCity: 45
-    },
-    farewell: {
-      sameCity: 45,
-      differentCity: 100
+    name: 'شارع روستافيلي',
+    description: 'الشارع الرئيسي في تبليسي',
+    mandatoryTours: {
+      fromTbilisi: 0,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 0,
+      toBatumi: 1,
+      toKutaisi: 1
     }
   },
   {
-    type: 'فان',
-    capacity: '7-8',
-    price: 120,
-    reception: {
-      sameCity: 55,
-      differentCity: 55
-    },
-    farewell: {
-      sameCity: 55,
-      differentCity: 120
+    name: 'متاتسميندا بارك',
+    description: 'حديقة ترفيهية على قمة جبل',
+    mandatoryTours: {
+      fromTbilisi: 0,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 0,
+      toBatumi: 1,
+      toKutaisi: 1
+    }
+  },
+
+  // قرب كوتايسي
+  {
+    name: 'كهف بروميثيوس',
+    description: 'كهف طبيعي مذهل مع تشكيلات صخرية',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 1,
+      fromKutaisi: 0,
+      toTbilisi: 1,
+      toBatumi: 1,
+      toKutaisi: 0
     }
   },
   {
-    type: 'سبرنتر',
-    capacity: '9-14',
-    price: 250,
-    reception: {
-      sameCity: 160,
-      differentCity: 160
-    },
-    farewell: {
-      sameCity: 160,
-      differentCity: 250
+    name: 'وادي أوكاتسي',
+    description: 'وادي طبيعي بشلالات خلابة',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 1,
+      fromKutaisi: 0,
+      toTbilisi: 1,
+      toBatumi: 1,
+      toKutaisi: 0
+    }
+  },
+
+  // في بورجومي
+  {
+    name: 'حديقة بورجومي المركزية',
+    description: 'حديقة تحتوي على ينابيع المياه المعدنية',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 1,
+      toBatumi: 1,
+      toKutaisi: 1
+    }
+  },
+  {
+    name: 'قصر رومانوف',
+    description: 'قصر تاريخي للعائلة الروسية المالكة',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 1,
+      toBatumi: 1,
+      toKutaisi: 1
+    }
+  },
+
+  // في غودوري
+  {
+    name: 'منتجع غودوري للتزلج',
+    description: 'منتجع تزلج حديث في جبال القوقاز',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 2,
+      fromKutaisi: 2,
+      toTbilisi: 1,
+      toBatumi: 2,
+      toKutaisi: 2
+    }
+  },
+  {
+    name: 'كاراباديا للتزلج',
+    description: 'منطقة تزلج إضافية في غودوري',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 2,
+      fromKutaisi: 2,
+      toTbilisi: 1,
+      toBatumi: 2,
+      toKutaisi: 2
+    }
+  },
+  {
+    name: 'قلعة أنانوري',
+    description: 'قلعة تاريخية على طريق الحرير',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 2,
+      fromKutaisi: 2,
+      toTbilisi: 1,
+      toBatumi: 2,
+      toKutaisi: 2
+    }
+  },
+
+  // مناطق أخرى
+  {
+    name: 'بحيرة بازاليتي',
+    description: 'بحيرة هادئة قرب تبليسي',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 2,
+      fromKutaisi: 2,
+      toTbilisi: 1,
+      toBatumi: 2,
+      toKutaisi: 2
+    }
+  },
+  {
+    name: 'وادي تروسو',
+    description: 'وادي جبلي خلاب',
+    mandatoryTours: {
+      fromTbilisi: 1,
+      fromBatumi: 2,
+      fromKutaisi: 2,
+      toTbilisi: 1,
+      toBatumi: 2,
+      toKutaisi: 2
+    }
+  },
+
+  // في زوغديدي
+  {
+    name: 'قصر دادياني',
+    description: 'قصر تاريخي لعائلة دادياني النبيلة',
+    mandatoryTours: {
+      fromTbilisi: 2,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 2,
+      toBatumi: 1,
+      toKutaisi: 1
+    }
+  },
+  {
+    name: 'حديقة زوغديدي النباتية',
+    description: 'حديقة نباتية تاريخية',
+    mandatoryTours: {
+      fromTbilisi: 2,
+      fromBatumi: 1,
+      fromKutaisi: 1,
+      toTbilisi: 2,
+      toBatumi: 1,
+      toKutaisi: 1
     }
   }
 ];
 
-// دالة لحساب الجولات الإجبارية حسب المدينة ومطارات الوصول والمغادرة
-export const getMandatoryTours = (cityName: string, arrivalAirport: string, departureAirport: string): number => {
-  // تحويل أسماء المطارات إلى أسماء المدن
-  const getLocationFromAirport = (airport: string): string => {
-    if (airport.includes('تبليسي') || airport.includes('Tbilisi')) return 'تبليسي';
-    if (airport.includes('باتومي') || airport.includes('Batumi')) return 'باتومي';
-    if (airport.includes('كوتايسي') || airport.includes('Kutaisi')) return 'كوتايسي';
-    return '';
-  };
-
-  const arrivalCity = getLocationFromAirport(arrivalAirport);
-  const departureCity = getLocationFromAirport(departureAirport);
-
-  // قواعد خاصة لمدينة الوصول والمغادرة
-  if (cityName === arrivalCity) {
-    if (arrivalCity === 'تبليسي') return 0;
-    if (arrivalCity === 'باتومي') return 2;
-    if (arrivalCity === 'كوتايسي') return 2;
+export const transportTypes = [
+  { 
+    id: '1', 
+    type: 'سيارة اقتصادية', 
+    daily_price: 50, 
+    capacity: '1-4 أشخاص', 
+    reception_same_city_price: 30,
+    reception_different_city_price: 80,
+    farewell_same_city_price: 30,
+    farewell_different_city_price: 80,
+    is_active: true 
+  },
+  { 
+    id: '2', 
+    type: 'سيارة متوسطة', 
+    daily_price: 70, 
+    capacity: '1-5 أشخاص', 
+    reception_same_city_price: 40,
+    reception_different_city_price: 100,
+    farewell_same_city_price: 40,
+    farewell_different_city_price: 100,
+    is_active: true 
+  },
+  { 
+    id: '3', 
+    type: 'سيارة كبيرة', 
+    daily_price: 90, 
+    capacity: '1-7 أشخاص', 
+    reception_same_city_price: 50,
+    reception_different_city_price: 120,
+    farewell_same_city_price: 50,
+    farewell_different_city_price: 120,
+    is_active: true 
+  },
+  { 
+    id: '4', 
+    type: 'فان', 
+    daily_price: 120, 
+    capacity: '8-12 شخص', 
+    reception_same_city_price: 60,
+    reception_different_city_price: 150,
+    farewell_same_city_price: 60,
+    farewell_different_city_price: 150,
+    is_active: true 
+  },
+  { 
+    id: '5', 
+    type: 'حافلة صغيرة', 
+    daily_price: 180, 
+    capacity: '13-20 شخص', 
+    reception_same_city_price: 80,
+    reception_different_city_price: 200,
+    farewell_same_city_price: 80,
+    farewell_different_city_price: 200,
+    is_active: true 
+  },
+  { 
+    id: '6', 
+    type: 'حافلة كبيرة', 
+    daily_price: 250, 
+    capacity: '21+ شخص', 
+    reception_same_city_price: 100,
+    reception_different_city_price: 250,
+    farewell_same_city_price: 100,
+    farewell_different_city_price: 250,
+    is_active: true 
   }
-
-  if (cityName === departureCity) {
-    if (departureCity === 'تبليسي') return 0;
-    if (departureCity === 'باتومي') return 2;
-    if (departureCity === 'كوتايسي') return 2;
-  }
-
-  // القواعد العامة للمدن
-  if (cityName === 'باتومي') return 2;
-  
-  // باقي المدن
-  return 1;
-};
-
-// Available tours based on accommodation location
-export const availableTours: Record<string, TourLocation[]> = {
-  "تبليسي": [
-    { name: "تبليسي", description: "جولة في العاصمة الجورجية" },
-    { name: "جبال القوقاز (كوداوري)", description: "جولة في جبال القوقاز الشاهقة" },
-    { name: "باكورياني", description: "منتجع تزلج شتوي ومناظر خلابة" },
-    { name: "برجومي", description: "مدينة المياه المعدنية الشهيرة" },
-    { name: "كاخيتي", description: "منطقة النبيذ الجورجي" },
-    { name: "داش باش", description: "منتجع جبلي مع مناظر طبيعية" },
-    { name: "متسخيتا", description: "العاصمة القديمة لجورجيا" },
-    { name: "غوري", description: "مدينة ستالين التاريخية" }
-  ],
-  "باتومي": [
-    { name: "باتومي", description: "مدينة ساحلية على البحر الأسود" },
-    { name: "شلالات باتومي", description: "شلالات طبيعية خلابة" },
-    { name: "الحدائق والبحيرات", description: "حدائق نباتية وبحيرات طبيعية" }
-  ],
-  "برجومي": [
-    { name: "برجومي", description: "مدينة المياه المعدنية" },
-    { name: "باكورياني", description: "منتجع تزلج قريب" }
-  ],
-  "باكورياني": [
-    { name: "باكورياني", description: "منتجع التزلج الشتوي" },
-    { name: "برجومي", description: "مدينة المياه المعدنية القريبة" }
-  ],
-  "كوتايسي": [
-    { name: "كوتايسي", description: "ثاني أكبر مدن جورجيا" },
-    { name: "كهوف ساتابليا", description: "كهوف طبيعية مذهلة" },
-    { name: "وادي أوكاتسي", description: "وادي طبيعي خلاب" }
-  ],
-  "كوداوري": [
-    { name: "كوداوري", description: "منتجع التزلج الأشهر في جورجيا" },
-    { name: "تبليسي", description: "العاصمة الجورجية" }
-  ],
-  "داشباش": [
-    { name: "داش باش", description: "منتجع جبلي هادئ" },
-    { name: "تبليسي", description: "العاصمة الجورجية" }
-  ]
-};
-
-// Airport to city mapping for accommodation
-export const airportCityMapping: Record<string, string> = {
-  "تبليسي": "تبليسي",
-  "باتومي": "باتومي", 
-  "كوتايسي": "كوتايسي",
-  "الحدود البرية": "تبليسي" // Default to Tbilisi for land border
-};
-
-export const currencies = [
-  { code: 'USD', name: 'دولار أمريكي', symbol: '$' },
-  { code: 'SAR', name: 'ريال سعودي', symbol: 'ر.س' },
-  { code: 'AED', name: 'درهم إماراتي', symbol: 'د.إ' },
-  { code: 'EUR', name: 'يورو', symbol: '€' },
-  { code: 'GBP', name: 'جنيه إسترليني', symbol: '£' }
 ];
-
-export const airports = [
-  'تبليسي',
-  'باتومي',
-  'كوتايسي',
-  'الحدود البرية'
-];
-
-export const additionalServicesData = {
-  travelInsurance: {
-    pricePerPersonPerDay: 5
-  },
-  phoneLines: {
-    pricePerLine: 15,
-    duration: 7 // days
-  },
-  roomDecoration: {
-    price: 100
-  },
-  flowerReception: {
-    price: 50
-  },
-  airportReception: {
-    pricePerPerson: 240
-  },
-  photoSession: {
-    price: 200
-  }
-};
