@@ -17,6 +17,21 @@ interface OptionalServicesStepProps {
 export const OptionalServicesStep = ({ data, updateData, onValidationChange }: OptionalServicesStepProps) => {
   const totalPeopleForInsurance = data.adults + data.children.length;
 
+  // حساب عدد الأيام
+  const calculateDays = () => {
+    if (data.arrivalDate && data.departureDate) {
+      const arrival = new Date(data.arrivalDate);
+      const departure = new Date(data.departureDate);
+      const diffTime = Math.abs(departure.getTime() - arrival.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    }
+    return 1;
+  };
+
+  const insuranceDays = calculateDays();
+  const insurancePricePerPersonPerDay = 5; // 5$ للشخص الواحد في اليوم
+
   useEffect(() => {
     if (onValidationChange) {
       onValidationChange(true);
@@ -58,7 +73,7 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
               <Shield className="w-6 h-6 text-blue-600" />
               <div>
                 <h3 className="font-bold text-blue-800">تأمين السفر</h3>
-                <p className="text-sm text-blue-600">حماية شاملة طوال فترة الرحلة (اختياري)</p>
+                <p className="text-sm text-blue-600">حماية شاملة طوال فترة الرحلة (5$ للشخص يومياً)</p>
               </div>
             </div>
             <Switch
@@ -67,7 +82,7 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
                 console.log('Travel insurance toggle:', checked);
                 updateService('travelInsurance', 'enabled', checked);
                 if (checked) {
-                  updateService('travelInsurance', 'persons', 1);
+                  updateService('travelInsurance', 'persons', totalPeopleForInsurance);
                 } else {
                   updateService('travelInsurance', 'persons', 0);
                 }
@@ -115,6 +130,12 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
                 <p className="text-xs text-blue-600 mt-1">
                   الحد الأقصى: {totalPeopleForInsurance} أشخاص (إجمالي المسافرين)
                 </p>
+                <div className="mt-2 p-3 bg-blue-100 rounded-lg">
+                  <p className="text-sm text-blue-800 font-medium">
+                    التكلفة الإجمالية: {(data.additionalServices.travelInsurance.persons || 1) * insuranceDays * insurancePricePerPersonPerDay}$ 
+                    ({(data.additionalServices.travelInsurance.persons || 1)} أشخاص × {insuranceDays} أيام × {insurancePricePerPersonPerDay}$)
+                  </p>
+                </div>
               </div>
             </div>
           )}

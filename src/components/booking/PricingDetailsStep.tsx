@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
 import { hotelData, transportData, additionalServicesData, currencies } from '@/data/hotels';
-import { Receipt, Gift } from 'lucide-react';
+import { Gift, FileCheck, Plane, CreditCard } from 'lucide-react';
 
 interface PricingDetailsStepProps {
   data: BookingData;
@@ -65,8 +65,10 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     const services = data.additionalServices;
 
     if (services.travelInsurance.enabled) {
-      const tripNights = data.selectedCities.reduce((sum, city) => sum + city.nights, 0);
-      total += (services.travelInsurance.persons || 0) * additionalServicesData.travelInsurance.pricePerPersonPerDay * tripNights;
+      const tripDays = data.arrivalDate && data.departureDate 
+        ? Math.ceil((new Date(data.departureDate).getTime() - new Date(data.arrivalDate).getTime()) / (1000 * 60 * 60 * 24))
+        : 1;
+      total += (services.travelInsurance.persons || 0) * 5 * tripDays; // 5$ للشخص يومياً
     }
 
     if (services.phoneLines.enabled) {
@@ -218,21 +220,30 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardContent>
       </Card>
 
-      {/* Payment Information */}
+      {/* Confirmation Information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Receipt className="w-5 h-5" />
-            معلومات الدفع
+            <FileCheck className="w-5 h-5" />
+            معلومات التأكيد
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="font-medium text-blue-800 mb-2">طرق الدفع المتاحة:</h4>
+            <h4 className="font-medium text-blue-800 mb-2">المستندات المطلوبة للتأكيد:</h4>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• تحويل بنكي</li>
-              <li>• نقداً عند الوصول</li>
-              <li>• بطاقة ائتمان (فيزا/ماستركارد)</li>
+              <li className="flex items-center gap-2">
+                <FileCheck className="w-3 h-3" />
+                جواز السفر
+              </li>
+              <li className="flex items-center gap-2">
+                <Plane className="w-3 h-3" />
+                تذكرة الطيران
+              </li>
+              <li className="flex items-center gap-2">
+                <CreditCard className="w-3 h-3" />
+                الدفع بعد الوصول إلى جورجيا
+              </li>
             </ul>
           </div>
         </CardContent>

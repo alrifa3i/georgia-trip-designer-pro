@@ -171,8 +171,10 @@ export const BookingWizard = () => {
         </Button>
       </div>
 
-      {/* Advertisement Section */}
-      <AdvertisementSection peopleCount={totalPeople} />
+      {/* Advertisement Section - فقط في المرحلة الأولى */}
+      {currentStep === 1 && (
+        <AdvertisementSection peopleCount={totalPeople} />
+      )}
     </div>
   );
 };
