@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { CheckCircle, X } from 'lucide-react';
@@ -8,7 +6,6 @@ import { CheckCircle, X } from 'lucide-react';
 interface BookingNotification {
   id: string;
   name: string;
-  package: string;
   price: string;
   currency: string;
   country: string;
@@ -88,14 +85,6 @@ const gulfNames = [
   { name: "فاطمة بنت عبدالله المعمري", country: "عمان", currency: "ريال عماني" }
 ];
 
-const packages = [
-  "باكج مخصص",
-  "باكج العائلة",
-  "باكج شهر العسل",
-  "باكج المغامرات",
-  "باكج الفخامة"
-];
-
 const getPriceByCountry = (country: string): string => {
   switch (country) {
     case "السعودية": return Math.floor(Math.random() * 2000 + 3000).toString();
@@ -154,7 +143,6 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
       return {
         id: Date.now().toString() + Math.random().toString(),
         name: nameObj.name,
-        package: packages[Math.floor(Math.random() * packages.length)],
         price: getPriceByCountry(nameObj.country),
         currency: nameObj.currency,
         country: nameObj.country
@@ -167,7 +155,6 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
     return {
       id: Date.now().toString() + Math.random().toString(),
       name: nameObj.name,
-      package: packages[Math.floor(Math.random() * packages.length)],
       price: getPriceByCountry(nameObj.country),
       currency: nameObj.currency,
       country: nameObj.country
@@ -221,6 +208,16 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
     setNotifications([]);
   };
 
+  // دالة لتحديد النص بناءً على الجنس
+  const getGenderText = (name: string) => {
+    // إذا كان الاسم يحتوي على "بنت" فهو أنثى
+    if (name.includes('بنت')) {
+      return 'صممت';
+    }
+    // باقي الأسماء تعتبر ذكور
+    return 'صمم';
+  };
+
   return (
     <div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm">
       {notifications.map((notification) => (
@@ -241,7 +238,7 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
                   <strong>{notification.name}</strong>
                 </p>
                 <p className="text-xs text-gray-500">
-                  {notification.package} • {notification.price} {notification.currency}
+                  {getGenderText(notification.name)} باكج بقيمة {notification.price} {notification.currency}
                 </p>
               </div>
             </div>
@@ -257,5 +254,3 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
     </div>
   );
 };
-
-
