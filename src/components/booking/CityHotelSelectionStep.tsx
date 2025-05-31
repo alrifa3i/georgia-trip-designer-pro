@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData, CityStay, Hotel } from '@/types/booking';
-import { hotelData, transportData } from '@/data/hotels';
+import { hotelData, transportData, getMandatoryTours } from '@/data/hotels';
 import { MapPin, Building, Plus, Minus, Trash2, Info, Car } from 'lucide-react';
 
 interface CityHotelSelectionStepProps {
@@ -23,6 +23,30 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
       onValidationChange(isValid);
     }
   }, [data.selectedCities, onValidationChange]);
+
+  // حساب الجولات الإجبارية لكل مدينة عند تغيير البيانات
+  useEffect(() => {
+    if (data.selectedCities.length > 0 && data.arrivalAirport && data.departureAirport) {
+      const updatedCities = data.selectedCities.map(city => {
+        if (city.city) {
+          const mandatoryTours = getMandatoryTours(city.city, data.arrivalAirport, data.departureAirport);
+          console.log(`Calculating mandatory tours for ${city.city}: ${mandatoryTours}`);
+          return { ...city, mandatoryTours };
+        }
+        return city;
+      });
+      
+      // تحديث البيانات فقط إذا تغيرت
+      const hasChanged = updatedCities.some((city, index) => 
+        city.mandatoryTours !== data.selectedCities[index]?.mandatoryTours
+      );
+      
+      if (hasChanged) {
+        console.log('Updating cities with new mandatory tours:', updatedCities);
+        updateData({ selectedCities: updatedCities });
+      }
+    }
+  }, [data.selectedCities.map(c => c.city).join(','), data.arrivalAirport, data.departureAirport]);
 
   const addCity = () => {
     const newCity: CityStay = {
@@ -43,9 +67,20 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   };
 
   const updateCity = (index: number, updates: Partial<CityStay>) => {
-    const updatedCities = data.selectedCities.map((city, i) => 
-      i === index ? { ...city, ...updates } : city
-    );
+    const updatedCities = data.selectedCities.map((city, i) => {
+      if (i === index) {
+        const updatedCity = { ...city, ...updates };
+        
+        // إعادة حساب الجولات الإجبارية إذا تغيرت المدينة
+        if (updates.city && data.arrivalAirport && data.departureAirport) {
+          updatedCity.mandatoryTours = getMandatoryTours(updates.city, data.arrivalAirport, data.departureAirport);
+          console.log(`Updated mandatory tours for ${updates.city}: ${updatedCity.mandatoryTours}`);
+        }
+        
+        return updatedCity;
+      }
+      return city;
+    });
     updateData({ selectedCities: updatedCities });
   };
 
@@ -161,6 +196,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           <div className="space-y-2">
             <p><strong>ملاحظة:</strong> تم ترتيب الفنادق من الأرخص إلى الأغلى</p>
             <p>الأسعار النهائية ستظهر في مرحلة تفاصيل الأسعار</p>
+            <p><strong>الجولات الإجبارية:</strong> يتم حسابها تلقائياً حسب المدينة ومطارات الوصول/المغادرة</p>
           </div>
         </AlertDescription>
       </Alert>
@@ -168,6 +204,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
       <div className="space-y-4">
         {data.selectedCities.map((cityStay, index) => {
           const selectedHotel = getSelectedHotel(cityStay.city, cityStay.hotel);
+          const totalTours = (cityStay.tours || 0) + (cityStay.mandatoryTours || 0);
           
           return (
             <Card key={index} className="relative">
@@ -315,7 +352,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                 )}
 
                 <div className="space-y-2">
-                  <Label>عدد الجولات السياحية</Label>
+                  <Label>عدد الجولات السياحية الإضافية</Label>
                   <div className="flex items-center gap-2">
                     <Button
                       type="button"
@@ -338,7 +375,11 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">الجولات السياحية اختيارية</p>
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <p>• جولات إجبارية: {cityStay.mandatoryTours || 0}</p>
+                    <p>• جولات إضافية: {cityStay.tours || 0}</p>
+                    <p className="font-medium">• إجمالي الجولات: {totalTours}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -360,17 +401,20 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           <CardContent className="pt-6">
             <h3 className="font-bold text-emerald-800 mb-3">ملخص المدن المختارة:</h3>
             <div className="space-y-2">
-              {data.selectedCities.map((city, index) => (
-                <div key={index} className="flex justify-between items-center text-sm">
-                  <span>
-                    <strong>{city.city}</strong> - {city.hotel}
-                    {city.roomType && ` (${city.roomType})`}
-                  </span>
-                  <span className="text-emerald-700">
-                    {city.nights} ليالي، {city.tours} جولات
-                  </span>
-                </div>
-              ))}
+              {data.selectedCities.map((city, index) => {
+                const totalTours = (city.tours || 0) + (city.mandatoryTours || 0);
+                return (
+                  <div key={index} className="flex justify-between items-center text-sm">
+                    <span>
+                      <strong>{city.city}</strong> - {city.hotel}
+                      {city.roomType && ` (${city.roomType})`}
+                    </span>
+                    <span className="text-emerald-700">
+                      {city.nights} ليالي، {totalTours} جولات ({city.mandatoryTours || 0} إجبارية + {city.tours || 0} إضافية)
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
