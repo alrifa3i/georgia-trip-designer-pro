@@ -178,4 +178,12 @@ export interface AdditionalServiceData {
     pricePerPerson: number;
     nameAr: string;
   };
+  photoSession: {
+    price: number;
+    nameAr: string;
+  };
+  flowerReception: {
+    price: number;
+    nameAr: string;
+  };
 }

@@ -5,14 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Plus, Minus } from 'lucide-react';
-import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { Plus, Minus } from 'lucide-react';
 import { BookingData, Child } from '@/types/booking';
-import { currencies, convertFromUSD, formatCurrency } from '@/data/currencies';
-import { cn } from '@/lib/utils';
+import { currencies } from '@/data/currencies';
+import { DateInput } from '@/components/ui/date-input';
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
@@ -21,19 +17,6 @@ interface BasicTravelInfoStepProps {
 }
 
 export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: BasicTravelInfoStepProps) => {
-  const [arrivalDate, setArrivalDate] = useState<Date>();
-  const [departureDate, setDepartureDate] = useState<Date>();
-
-  // تحويل التواريخ من string إلى Date عند التحميل
-  useEffect(() => {
-    if (data.arrivalDate) {
-      setArrivalDate(new Date(data.arrivalDate));
-    }
-    if (data.departureDate) {
-      setDepartureDate(new Date(data.departureDate));
-    }
-  }, []);
-
   // التحقق من صحة البيانات
   useEffect(() => {
     const isValid = Boolean(
@@ -79,25 +62,18 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
     updateData({ children: newChildren });
   };
 
-  const handleArrivalDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setArrivalDate(date);
-      updateData({ arrivalDate: format(date, 'yyyy-MM-dd') });
-      // إذا كان تاريخ المغادرة أقل من تاريخ الوصول، قم بإعادة تعيينه
-      if (departureDate && date >= departureDate) {
-        const newDepartureDate = new Date(date);
-        newDepartureDate.setDate(newDepartureDate.getDate() + 1);
-        setDepartureDate(newDepartureDate);
-        updateData({ departureDate: format(newDepartureDate, 'yyyy-MM-dd') });
-      }
+  const handleArrivalDateChange = (date: string) => {
+    updateData({ arrivalDate: date });
+    // إذا كان تاريخ المغادرة أقل من تاريخ الوصول، قم بإعادة تعيينه
+    if (data.departureDate && new Date(date) >= new Date(data.departureDate)) {
+      const newDepartureDate = new Date(date);
+      newDepartureDate.setDate(newDepartureDate.getDate() + 1);
+      updateData({ departureDate: newDepartureDate.toISOString().split('T')[0] });
     }
   };
 
-  const handleDepartureDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setDepartureDate(date);
-      updateData({ departureDate: format(date, 'yyyy-MM-dd') });
-    }
+  const handleDepartureDateChange = (date: string) => {
+    updateData({ departureDate: date });
   };
 
   // الحصول على العملة المختارة
@@ -231,61 +207,21 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4 text-emerald-600">تواريخ السفر</h3>
           <div className="space-y-4">
-            <div>
-              <Label>تاريخ الوصول *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className={cn(
-                      "w-full justify-start text-right mt-1",
-                      !arrivalDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {arrivalDate ? format(arrivalDate, 'PPP', { locale: ar }) : "اختر تاريخ الوصول"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={arrivalDate}
-                    onSelect={handleArrivalDateSelect}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <DateInput
+              value={data.arrivalDate}
+              onChange={handleArrivalDateChange}
+              label="تاريخ الوصول"
+              required
+              minDate={new Date()}
+            />
 
-            <div>
-              <Label>تاريخ المغادرة *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className={cn(
-                      "w-full justify-start text-right mt-1",
-                      !departureDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {departureDate ? format(departureDate, 'PPP', { locale: ar }) : "اختر تاريخ المغادرة"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={departureDate}
-                    onSelect={handleDepartureDateSelect}
-                    disabled={(date) => date <= (arrivalDate || new Date())}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <DateInput
+              value={data.departureDate}
+              onChange={handleDepartureDateChange}
+              label="تاريخ المغادرة"
+              required
+              disabled={(date) => data.arrivalDate ? date <= new Date(data.arrivalDate) : date < new Date()}
+            />
           </div>
         </Card>
 
