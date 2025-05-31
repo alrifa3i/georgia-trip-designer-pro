@@ -21,6 +21,7 @@ export interface CityStay {
 
 export interface TourLocation {
   name: string;
+  description?: string;
   mandatoryTours: {
     fromTbilisi: number;
     fromBatumi: number;

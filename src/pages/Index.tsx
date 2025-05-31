@@ -2,13 +2,14 @@
 import { useState } from 'react';
 import { BookingWizard } from "@/components/BookingWizard";
 import { BookingSearch } from "@/components/BookingSearch";
+import { AdminAccess } from "@/components/AdminAccess";
 import { VideoBackground } from "@/components/VideoBackground";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Search, PlusCircle, ArrowRight } from "lucide-react";
+import { Search, PlusCircle, ArrowRight, Settings } from "lucide-react";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'home' | 'booking' | 'search'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'booking' | 'search' | 'admin'>('home');
 
   if (currentView === 'booking') {
     return (
@@ -50,9 +51,25 @@ const Index = () => {
     );
   }
 
+  if (currentView === 'admin') {
+    return <AdminAccess />;
+  }
+
   return (
     <div className="min-h-screen relative">
       <VideoBackground />
+      
+      {/* زر لوحة التحكم في الزاوية */}
+      <div className="absolute top-4 left-4 z-20">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentView('admin')}
+          className="bg-white/90 hover:bg-white border-white/50"
+        >
+          <Settings className="w-4 h-4" />
+        </Button>
+      </div>
       
       {/* المحتوى الرئيسي */}
       <div className="relative z-10 min-h-screen flex items-center justify-center">

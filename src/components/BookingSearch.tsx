@@ -11,7 +11,7 @@ import { formatCurrency } from '@/data/currencies';
 
 export const BookingSearch = () => {
   const [referenceNumber, setReferenceNumber] = useState('');
-  const { getBookingByReference, isLoading } = useBookings();
+  const { searchBooking, loading } = useBookings();
   const [searchResult, setSearchResult] = useState<any>(null);
   const [searchError, setSearchError] = useState('');
 
@@ -23,9 +23,9 @@ export const BookingSearch = () => {
 
     try {
       setSearchError('');
-      const booking = await getBookingByReference(referenceNumber);
-      if (booking) {
-        setSearchResult(booking);
+      const result = await searchBooking(referenceNumber);
+      if (result.success && result.data) {
+        setSearchResult(result.data);
       } else {
         setSearchError('لم يتم العثور على حجز بهذا الرقم المرجعي');
         setSearchResult(null);
@@ -61,8 +61,8 @@ export const BookingSearch = () => {
               onChange={(e) => setReferenceNumber(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={handleSearch} disabled={isLoading}>
-              {isLoading ? 'جارٍ البحث...' : 'بحث'}
+            <Button onClick={handleSearch} disabled={loading}>
+              {loading ? 'جارٍ البحث...' : 'بحث'}
             </Button>
           </div>
           
