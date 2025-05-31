@@ -1,9 +1,16 @@
 
 import { useState } from 'react';
+import { BookingData } from '@/types/booking';
 
 interface BookingSearchResult {
   success: boolean;
   data?: any;
+  error?: string;
+}
+
+interface SaveBookingResult {
+  success: boolean;
+  data?: { reference_number: string };
   error?: string;
 }
 
@@ -54,8 +61,37 @@ export const useBookings = () => {
     }
   };
 
+  const saveBooking = async (bookingData: BookingData): Promise<SaveBookingResult> => {
+    setLoading(true);
+    
+    try {
+      // Simulate API call for now
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Generate a mock reference number
+      const referenceNumber = `GEO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999) + 1).padStart(3, '0')}`;
+      
+      console.log('Saving booking:', bookingData);
+      
+      return {
+        success: true,
+        data: {
+          reference_number: referenceNumber
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to save booking'
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     searchBooking,
+    saveBooking,
     loading
   };
 };

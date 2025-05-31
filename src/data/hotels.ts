@@ -389,3 +389,96 @@ export const transportTypes = [
     is_active: true 
   }
 ];
+
+// Group hotels by city
+export const hotelData: { [city: string]: Hotel[] } = {
+  'تبليسي': georgianHotels.filter(hotel => hotel.city === 'تبليسي'),
+  'باتومي': georgianHotels.filter(hotel => hotel.city === 'باتومي'),
+  'كوتايسي': georgianHotels.filter(hotel => hotel.city === 'كوتايسي'),
+  'بورجومي': georgianHotels.filter(hotel => hotel.city === 'بورجومي'),
+  'غودوري': georgianHotels.filter(hotel => hotel.city === 'غودوري'),
+  'متسخيتا': georgianHotels.filter(hotel => hotel.city === 'متسخيتا'),
+  'زوغديدي': georgianHotels.filter(hotel => hotel.city === 'زوغديدي')
+};
+
+// Transport data export
+export const transportData = transportTypes;
+
+// Additional services data
+export const additionalServicesData = {
+  travelInsurance: { pricePerPerson: 25, nameAr: 'تأمين السفر' },
+  phoneLines: { pricePerLine: 15, nameAr: 'خطوط هاتف' },
+  roomDecoration: { price: 50, nameAr: 'تزيين الغرفة' },
+  airportReception: { pricePerPerson: 30, nameAr: 'استقبال المطار' },
+  photoSession: { price: 100, nameAr: 'جلسة تصوير' },
+  flowerReception: { price: 40, nameAr: 'استقبال بالورود' }
+};
+
+// Currencies data
+export const currencies = [
+  { code: 'USD', nameAr: 'دولار أمريكي', rate: 1 },
+  { code: 'EUR', nameAr: 'يورو', rate: 0.85 },
+  { code: 'SAR', nameAr: 'ريال سعودي', rate: 3.75 },
+  { code: 'AED', nameAr: 'درهم إماراتي', rate: 3.67 },
+  { code: 'KWD', nameAr: 'دينار كويتي', rate: 0.30 },
+  { code: 'QAR', nameAr: 'ريال قطري', rate: 3.64 },
+  { code: 'BHD', nameAr: 'دينار بحريني', rate: 0.38 }
+];
+
+// Airports data
+export const airports = [
+  { code: 'TBS', city: 'تبليسي', nameAr: 'مطار تبليسي الدولي' },
+  { code: 'BUS', city: 'باتومي', nameAr: 'مطار باتومي الدولي' },
+  { code: 'KUT', city: 'كوتايسي', nameAr: 'مطار كوتايسي الدولي' }
+];
+
+// Airport to city mapping
+export const airportCityMapping: { [key: string]: string } = {
+  'TBS': 'تبليسي',
+  'BUS': 'باتومي', 
+  'KUT': 'كوتايسي'
+};
+
+// Available tours data
+export const availableTours = georgianTourLocations;
+
+// Function to calculate mandatory tours based on cities and airports
+export const getMandatoryTours = (city: string, arrivalAirport: string, departureAirport: string): number => {
+  console.log(`Calculating mandatory tours for city: ${city}, arrival: ${arrivalAirport}, departure: ${departureAirport}`);
+  
+  const arrivalCity = airportCityMapping[arrivalAirport];
+  const departureCity = airportCityMapping[departureAirport];
+  
+  // Find the city's tour locations and calculate mandatory tours
+  const cityTours = georgianTourLocations.filter(location => {
+    // Check if this location is relevant to the current city
+    return location.mandatoryTours.fromTbilisi !== undefined;
+  });
+  
+  let mandatoryTours = 0;
+  
+  // Calculate tours based on arrival and departure cities
+  if (arrivalCity && departureCity) {
+    const fromKey = `from${arrivalCity === 'تبليسي' ? 'Tbilisi' : arrivalCity === 'باتومي' ? 'Batumi' : 'Kutaisi'}` as keyof typeof cityTours[0]['mandatoryTours'];
+    const toKey = `to${departureCity === 'تبليسي' ? 'Tbilisi' : departureCity === 'باتومي' ? 'Batumi' : 'Kutaisi'}` as keyof typeof cityTours[0]['mandatoryTours'];
+    
+    // For the current city, we need at least the minimum tours required
+    if (city === 'تبليسي') {
+      mandatoryTours = Math.max(
+        georgianTourLocations[0]?.mandatoryTours?.fromTbilisi || 0,
+        georgianTourLocations[0]?.mandatoryTours?.toTbilisi || 0
+      );
+    } else if (city === 'باتومي') {
+      mandatoryTours = Math.max(
+        georgianTourLocations[0]?.mandatoryTours?.fromBatumi || 0,
+        georgianTourLocations[0]?.mandatoryTours?.toBatumi || 0
+      );
+    } else {
+      // For other cities, use a default calculation
+      mandatoryTours = arrivalCity !== city || departureCity !== city ? 1 : 0;
+    }
+  }
+  
+  console.log(`Calculated mandatory tours: ${mandatoryTours}`);
+  return mandatoryTours;
+};
