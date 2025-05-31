@@ -329,9 +329,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   <div className="space-y-2">
-                    <p className="font-medium">كيفية الحصول على كود التحقق:</p>
-                    <p className="text-sm">الكود هو <strong>آخر 4 أرقام من رقم هاتفك معكوسة</strong></p>
-                    <p className="text-sm">مثال: إذا كان رقمك ينتهي بـ 1234، الكود هو: 4321</p>
+                    <p className="font-medium">تم تكوين الكود الخاص بك</p>
                     <p className="text-sm">رقمك الكامل: <strong className="text-blue-600">{getFullPhoneNumber()}</strong></p>
                     <p className="text-sm">الكود المطلوب: <strong className="text-green-600">{getReversedLastFourDigits(getFullPhoneNumber())}</strong></p>
                   </div>
