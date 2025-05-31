@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ interface AdditionalServicesStepProps {
 }
 
 export const AdditionalServicesStep = ({ data, updateData }: AdditionalServicesStepProps) => {
-  const isAirportTrip = airports.slice(0, 3).includes(data.arrivalAirport);
+  const isAirportTrip = airports.some(airport => airport.code === data.arrivalAirport);
   const hasDoubleRoom = data.roomTypes.includes('dbl_v') || data.roomTypes.includes('dbl_wv');
   
   const getDuration = () => {
@@ -99,7 +98,7 @@ export const AdditionalServicesStep = ({ data, updateData }: AdditionalServicesS
                   </Button>
                 </div>
                 <p className="text-sm text-gray-600">
-                  ({additionalServicesData.travelInsurance.pricePerPersonPerDay}$ للشخص يومياً × {getDuration()} أيام)
+                  ({additionalServicesData.travelInsurance.pricePerPerson}$ للشخص يومياً × {getDuration()} أيام)
                 </p>
               </div>
             )}

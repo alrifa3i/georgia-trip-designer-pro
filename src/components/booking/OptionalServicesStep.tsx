@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -11,11 +10,12 @@ import { Shield, Phone, Heart, UserCheck, Plus, Minus, Info, Flower } from 'luci
 interface OptionalServicesStepProps {
   data: BookingData;
   updateData: (data: Partial<BookingData>) => void;
-  onValidationChange?: (isValid: boolean) => void;
+  onValidationChange: (isValid: boolean) => void;
 }
 
 export const OptionalServicesStep = ({ data, updateData, onValidationChange }: OptionalServicesStepProps) => {
-  const isAirportTrip = airports.slice(0, 3).includes(data.arrivalAirport);
+  const isAirportTrip = airports.some(airport => airport.code === data.arrivalAirport);
+  
   const hasDoubleRoom = data.roomTypes?.includes('dbl_v') || data.roomTypes?.includes('dbl_wv');
   
   const getDuration = () => {

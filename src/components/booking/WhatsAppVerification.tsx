@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCode } from 'qrcode.react';
 import { Phone, MessageCircle, CheckCircle, Clock } from 'lucide-react';
 
 interface WhatsAppVerificationProps {
@@ -118,7 +118,7 @@ export const WhatsAppVerification = ({
                 <div className="flex flex-col items-center space-y-3">
                   <h4 className="font-medium">امسح QR Code للواتساب</h4>
                   <div className="p-4 bg-white rounded-lg border-2 border-gray-200">
-                    <QRCodeSVG 
+                    <QRCode 
                       value={qrCodeValue}
                       size={150}
                       level="M"
