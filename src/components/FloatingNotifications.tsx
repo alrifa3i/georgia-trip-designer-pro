@@ -158,11 +158,11 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
         incrementTravelerCount();
         onNotificationShow?.();
 
-        // إزالة الإشعار بعد 5 ثواني
+        // إزالة الإشعار بعد 3 ثواني
         setTimeout(() => {
           setNotifications(prev => prev.filter(n => n.id !== notification.id));
-        }, 5000);
-      }, i * 800); // تأخير 800ms بين كل اشعار
+        }, 3000);
+      }, i * 500); // تأخير 500ms بين كل اشعار
     }
 
     // الانتقال للدورة التالية
@@ -170,13 +170,13 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
   };
 
   useEffect(() => {
-    // عرض أول مجموعة اشعارات بعد 3 ثواني
-    const initialTimeout = setTimeout(showNotificationBatch, 3000);
+    // عرض أول مجموعة اشعارات بعد ثانيتين
+    const initialTimeout = setTimeout(showNotificationBatch, 2000);
 
-    // عرض مجموعة اشعارات جديدة كل 12-18 ثانية
+    // عرض مجموعة اشعارات جديدة كل 6-10 ثوان
     const interval = setInterval(() => {
       showNotificationBatch();
-    }, Math.random() * 6000 + 12000);
+    }, Math.random() * 4000 + 6000);
 
     return () => {
       clearTimeout(initialTimeout);
