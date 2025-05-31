@@ -14,7 +14,6 @@ import {
   verifyCode, 
   createCompanyWhatsAppLink 
 } from '@/utils/verification';
-import * as QRCode from 'qrcode';
 
 interface FinalConfirmationStepProps {
   data: BookingData;
@@ -84,6 +83,8 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
 
   const generateQRCode = async () => {
     try {
+      // Dynamically import QRCode to avoid build issues
+      const QRCode = await import('qrcode');
       const bookingDetails = generateBookingDetails();
       const qrDataUrl = await QRCode.toDataURL(bookingDetails, {
         width: 300,
