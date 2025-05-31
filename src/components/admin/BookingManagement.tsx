@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Calendar, 
   Users, 
@@ -15,7 +16,9 @@ import {
   Eye, 
   Download,
   FileText,
-  Upload
+  Upload,
+  Hotel,
+  Save
 } from 'lucide-react';
 
 interface Booking {
@@ -34,6 +37,16 @@ interface Booking {
   passportFiles?: string[];
   ticketFiles?: string[];
   createdAt: string;
+  budget?: number;
+  rooms?: number;
+  selectedHotels?: Array<{
+    city: string;
+    hotelName: string;
+    roomType: string;
+    nights: number;
+    roomCount: number;
+    totalPrice: number;
+  }>;
 }
 
 export const BookingManagement = () => {
@@ -53,7 +66,27 @@ export const BookingManagement = () => {
       status: 'confirmed',
       passportFiles: ['passport1.pdf', 'passport2.pdf'],
       ticketFiles: ['ticket.pdf'],
-      createdAt: '2024-01-15T10:30:00Z'
+      createdAt: '2024-01-15T10:30:00Z',
+      budget: 2500,
+      rooms: 2,
+      selectedHotels: [
+        {
+          city: 'تبليسي',
+          hotelName: 'Marjan plaza hotel',
+          roomType: 'مزدوجة مع إطلالة',
+          nights: 3,
+          roomCount: 2,
+          totalPrice: 540
+        },
+        {
+          city: 'باتومي',
+          hotelName: 'New Wave Hotel',
+          roomType: 'ثلاثية مع إطلالة',
+          nights: 4,
+          roomCount: 1,
+          totalPrice: 540
+        }
+      ]
     },
     {
       id: '2',
@@ -68,7 +101,35 @@ export const BookingManagement = () => {
       totalCost: 4200,
       currency: 'USD',
       status: 'pending',
-      createdAt: '2024-01-16T14:20:00Z'
+      createdAt: '2024-01-16T14:20:00Z',
+      budget: 4500,
+      rooms: 3,
+      selectedHotels: [
+        {
+          city: 'تبليسي',
+          hotelName: 'Gallery Palace',
+          roomType: 'مزدوجة بدون إطلالة',
+          nights: 3,
+          roomCount: 2,
+          totalPrice: 270
+        },
+        {
+          city: 'كوتايسي',
+          hotelName: 'kutaisi inn hotel*5',
+          roomType: 'ثلاثية مع إطلالة',
+          nights: 2,
+          roomCount: 1,
+          totalPrice: 260
+        },
+        {
+          city: 'باكورياني',
+          hotelName: 'Bakuriani inn 5*',
+          roomType: 'مزدوجة مع إطلالة',
+          nights: 4,
+          roomCount: 1,
+          totalPrice: 340
+        }
+      ]
     },
     {
       id: '3',
@@ -85,11 +146,32 @@ export const BookingManagement = () => {
       status: 'completed',
       passportFiles: ['passport3.pdf'],
       ticketFiles: ['ticket2.pdf'],
-      createdAt: '2024-01-17T09:15:00Z'
+      createdAt: '2024-01-17T09:15:00Z',
+      budget: 2000,
+      rooms: 1,
+      selectedHotels: [
+        {
+          city: 'تبليسي',
+          hotelName: 'EPISODE',
+          roomType: 'مزدوجة مع إطلالة',
+          nights: 4,
+          roomCount: 1,
+          totalPrice: 260
+        },
+        {
+          city: 'برجومي',
+          hotelName: 'Borjomi Likani 5*',
+          roomType: 'مزدوجة مع إطلالة',
+          nights: 3,
+          roomCount: 1,
+          totalPrice: 540
+        }
+      ]
     }
   ]);
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [editingStatus, setEditingStatus] = useState<string | null>(null);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -109,6 +191,21 @@ export const BookingManagement = () => {
       case 'cancelled': return 'ملغي';
       default: return status;
     }
+  };
+
+  const formatDateArabicIraqi = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ar-IQ', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const handleStatusUpdate = (bookingId: string, newStatus: string) => {
+    console.log(`تحديث حالة الحجز ${bookingId} إلى ${newStatus}`);
+    setEditingStatus(null);
+    // هنا يتم تحديث الحالة في قاعدة البيانات
   };
 
   const handleFileUpload = (bookingId: string, fileType: 'passport' | 'ticket') => {
@@ -150,6 +247,7 @@ export const BookingManagement = () => {
                   <TableHead className="text-right">عدد المسافرين</TableHead>
                   <TableHead className="text-right">تاريخ الوصول</TableHead>
                   <TableHead className="text-right">تاريخ المغادرة</TableHead>
+                  <TableHead className="text-right">الميزانية</TableHead>
                   <TableHead className="text-right">التكلفة الإجمالية</TableHead>
                   <TableHead className="text-right">الحالة</TableHead>
                   <TableHead className="text-right">الإجراءات</TableHead>
@@ -170,8 +268,14 @@ export const BookingManagement = () => {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>{new Date(booking.arrivalDate).toLocaleDateString('ar-SA')}</TableCell>
-                    <TableCell>{new Date(booking.departureDate).toLocaleDateString('ar-SA')}</TableCell>
+                    <TableCell>{formatDateArabicIraqi(booking.arrivalDate)}</TableCell>
+                    <TableCell>{formatDateArabicIraqi(booking.departureDate)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="w-4 h-4" />
+                        {booking.budget?.toLocaleString()} {booking.currency}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <DollarSign className="w-4 h-4" />
@@ -179,9 +283,36 @@ export const BookingManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusColor(booking.status)}>
-                        {getStatusText(booking.status)}
-                      </Badge>
+                      {editingStatus === booking.id ? (
+                        <div className="flex gap-2">
+                          <Select defaultValue={booking.status} onValueChange={(value) => handleStatusUpdate(booking.id, value)}>
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">في الانتظار</SelectItem>
+                              <SelectItem value="confirmed">مؤكد</SelectItem>
+                              <SelectItem value="completed">مكتمل</SelectItem>
+                              <SelectItem value="cancelled">ملغي</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingStatus(null)}
+                          >
+                            <Save className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Badge
+                          variant={getStatusColor(booking.status)}
+                          className="cursor-pointer"
+                          onClick={() => setEditingStatus(booking.id)}
+                        >
+                          {getStatusText(booking.status)}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Dialog>
@@ -194,7 +325,7 @@ export const BookingManagement = () => {
                             <Eye className="w-4 h-4" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" dir="rtl">
+                        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" dir="rtl">
                           <DialogHeader>
                             <DialogTitle>تفاصيل الحجز - {booking.referenceNumber}</DialogTitle>
                           </DialogHeader>
@@ -228,14 +359,18 @@ export const BookingManagement = () => {
                                   <CardTitle className="text-lg">تفاصيل الرحلة</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                  <div className="grid md:grid-cols-2 gap-4">
+                                  <div className="grid md:grid-cols-3 gap-4">
                                     <div>
                                       <span className="text-sm font-medium">تاريخ الوصول:</span>
-                                      <p className="text-lg">{new Date(selectedBooking.arrivalDate).toLocaleDateString('ar-SA')}</p>
+                                      <p className="text-lg">{formatDateArabicIraqi(selectedBooking.arrivalDate)}</p>
                                     </div>
                                     <div>
                                       <span className="text-sm font-medium">تاريخ المغادرة:</span>
-                                      <p className="text-lg">{new Date(selectedBooking.departureDate).toLocaleDateString('ar-SA')}</p>
+                                      <p className="text-lg">{formatDateArabicIraqi(selectedBooking.departureDate)}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium">عدد الغرف:</span>
+                                      <p className="text-lg">{selectedBooking.rooms}</p>
                                     </div>
                                     <div>
                                       <span className="text-sm font-medium">عدد البالغين:</span>
@@ -245,7 +380,14 @@ export const BookingManagement = () => {
                                       <span className="text-sm font-medium">عدد الأطفال:</span>
                                       <p className="text-lg">{selectedBooking.children}</p>
                                     </div>
-                                    <div className="md:col-span-2">
+                                    <div>
+                                      <span className="text-sm font-medium">الميزانية:</span>
+                                      <p className="text-lg flex items-center gap-1">
+                                        <DollarSign className="w-4 h-4" />
+                                        {selectedBooking.budget?.toLocaleString()} {selectedBooking.currency}
+                                      </p>
+                                    </div>
+                                    <div className="md:col-span-3">
                                       <span className="text-sm font-medium">المدن المختارة:</span>
                                       <div className="flex gap-2 mt-1">
                                         {selectedBooking.selectedCities.map((city, index) => (
@@ -256,6 +398,49 @@ export const BookingManagement = () => {
                                         ))}
                                       </div>
                                     </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+
+                              {/* الفنادق المختارة */}
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle className="text-lg flex items-center gap-2">
+                                    <Hotel className="w-5 h-5" />
+                                    الفنادق المختارة ونوع الغرف
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="overflow-x-auto">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead className="text-right">المدينة</TableHead>
+                                          <TableHead className="text-right">اسم الفندق</TableHead>
+                                          <TableHead className="text-right">نوع الغرفة</TableHead>
+                                          <TableHead className="text-right">عدد الليالي</TableHead>
+                                          <TableHead className="text-right">عدد الغرف</TableHead>
+                                          <TableHead className="text-right">السعر الإجمالي</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {selectedBooking.selectedHotels?.map((hotel, index) => (
+                                          <TableRow key={index}>
+                                            <TableCell>{hotel.city}</TableCell>
+                                            <TableCell className="font-medium">{hotel.hotelName}</TableCell>
+                                            <TableCell>{hotel.roomType}</TableCell>
+                                            <TableCell>{hotel.nights}</TableCell>
+                                            <TableCell>{hotel.roomCount}</TableCell>
+                                            <TableCell>
+                                              <div className="flex items-center gap-1">
+                                                <DollarSign className="w-4 h-4" />
+                                                {hotel.totalPrice.toLocaleString()} {selectedBooking.currency}
+                                              </div>
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
                                   </div>
                                 </CardContent>
                               </Card>
@@ -330,11 +515,22 @@ export const BookingManagement = () => {
                                   <CardTitle className="text-lg">ملخص التكلفة</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                  <div className="text-2xl font-bold text-emerald-600">
-                                    {selectedBooking.totalCost.toLocaleString()} {selectedBooking.currency}
+                                  <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                      <span className="text-sm font-medium">الميزانية المحددة:</span>
+                                      <div className="text-xl font-bold text-blue-600">
+                                        {selectedBooking.budget?.toLocaleString()} {selectedBooking.currency}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium">التكلفة الإجمالية:</span>
+                                      <div className="text-xl font-bold text-emerald-600">
+                                        {selectedBooking.totalCost.toLocaleString()} {selectedBooking.currency}
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-gray-500 mt-1">
-                                    تاريخ الحجز: {new Date(selectedBooking.createdAt).toLocaleDateString('ar-SA')}
+                                  <div className="text-sm text-gray-500 mt-4">
+                                    تاريخ الحجز: {formatDateArabicIraqi(selectedBooking.createdAt)}
                                   </div>
                                 </CardContent>
                               </Card>
