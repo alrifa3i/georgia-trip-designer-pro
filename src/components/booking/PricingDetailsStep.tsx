@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,11 @@ interface PricingDetailsStepProps {
   updateData: (data: Partial<BookingData>) => void;
   onValidationChange?: (isValid: boolean) => void;
 }
+
+// دالة التقريب لأقرب عشرة
+const roundToNearestTen = (amount: number): number => {
+  return Math.ceil(amount / 10) * 10;
+};
 
 export const PricingDetailsStep = ({ data, updateData, onValidationChange }: PricingDetailsStepProps) => {
   const [totalCost, setTotalCost] = useState(0);
@@ -130,7 +134,10 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     const profitMargin = (roomCost + toursCost) * 0.20;
     
     const subtotal = roomCost + toursCost + transportCost + servicesCost + profitMargin;
-    const finalTotal = subtotal - (data.discountAmount || 0);
+    const beforeRounding = subtotal - (data.discountAmount || 0);
+    
+    // تطبيق التقريب لأقرب عشرة
+    const finalTotal = roundToNearestTen(beforeRounding);
     
     setTotalCost(finalTotal);
     updateData({ totalCost: finalTotal });
@@ -152,7 +159,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
             <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white p-6 rounded-lg">
               <div className="flex justify-between items-center text-2xl font-bold">
                 <span>المبلغ النهائي:</span>
-                <span>{Math.round(totalCost)} {selectedCurrency?.symbol}</span>
+                <span>{totalCost} {selectedCurrency?.symbol}</span>
               </div>
             </div>
             
@@ -168,7 +175,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
                 <div>
                   <p className="text-sm text-gray-600">التكلفة الفعلية</p>
                   <div className="text-lg font-semibold text-emerald-600">
-                    {Math.round(totalCost)} {selectedCurrency?.symbol}
+                    {totalCost} {selectedCurrency?.symbol}
                   </div>
                 </div>
               </div>
@@ -178,8 +185,15 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
                     ✅ التكلفة ضمن ميزانيتك المحددة
                   </div>
                 ) : (
-                  <div className="text-red-600 font-medium">
-                    ⚠️ التكلفة تتجاوز ميزانيتك بـ {Math.round(totalCost - data.budget)} {selectedCurrency?.symbol}
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div className="text-orange-800 font-medium mb-2">
+                      📍 تجاوزت التكلفة ميزانيتك بمبلغ {totalCost - data.budget} {selectedCurrency?.symbol}
+                    </div>
+                    <div className="text-orange-700 text-sm leading-relaxed">
+                      الفنادق المختارة هي من أفضل الفنادق في جورجيا وتوفر مستوى راحة استثنائي. 
+                      الفرق البسيط في السعر يستحق الاستثمار مقابل الجودة العالية والخدمة المميزة التي ستحصل عليها. 
+                      راحتكم وسعادتكم أهم من توفير مبلغ صغير! 🌟
+                    </div>
                   </div>
                 )}
               </div>

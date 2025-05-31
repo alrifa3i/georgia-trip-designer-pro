@@ -25,6 +25,15 @@ const Index = () => {
             <BookingWizard />
           </div>
         </div>
+        
+        {/* Footer */}
+        <footer className="relative z-10 mt-8 py-6 bg-gray-800/90 backdrop-blur-sm">
+          <div className="container mx-auto px-4 text-center">
+            <p className="text-white/90 text-sm">
+              هذا الموقع مصمم خصيصاً لشركة عالم الفخامة في جورجيا وكل الحقوق محفوظة
+            </p>
+          </div>
+        </footer>
       </div>
     </div>
   );
