@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -422,14 +421,14 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-green-800">
             <Shield className="w-5 h-5" />
-            ضمان الأمان والدفع
+            معلومات الدفع والأمان
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3 text-green-700">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
-              <span>دفعك آمن معنا - لن يتم خصم أي مبالغ إلا بعد وصولك واستلام الغرفة</span>
+              <span>الدفع يتم بعد الوصول إلى جورجيا نقداً</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
@@ -438,10 +437,6 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
               <span>ضمان استرداد كامل في حالة عدم الحصول على الخدمة</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" />
-              <span>جميع المستندات محفوظة بشكل آمن على Google Drive</span>
             </div>
           </div>
         </CardContent>
@@ -458,7 +453,6 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
               <li>• أيام السبت والأحد عطلة رسمية</li>
               <li>• سيتم التواصل معك عبر الواتساب المحدد</li>
               <li>• يمكن تعديل التفاصيل قبل التأكيد النهائي</li>
-              <li>• سيتم حفظ المستندات على Google Drive بشكل آمن</li>
             </ul>
           </div>
         </AlertDescription>
