@@ -13,7 +13,7 @@ interface Country {
 }
 
 const countries: Country[] = [
-  // دول الخليج أولاً
+  // دول الخليج أولاً (ترتيب محدد)
   { code: 'SA', name: 'Saudi Arabia', nameAr: 'السعودية', flag: '🇸🇦', dialCode: '+966' },
   { code: 'QA', name: 'Qatar', nameAr: 'قطر', flag: '🇶🇦', dialCode: '+974' },
   { code: 'AE', name: 'UAE', nameAr: 'الإمارات', flag: '🇦🇪', dialCode: '+971' },

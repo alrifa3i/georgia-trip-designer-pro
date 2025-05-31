@@ -2,8 +2,9 @@ import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
-import { hotelData, transportData, additionalServicesData } from '@/data/hotels';
-import { currencies, convertFromUSD, formatCurrency } from '@/data/currencies';
+import { hotelData, additionalServicesData } from '@/data/hotels';
+import { currencies, convertFromUSD, formatCurrency, additionalCurrencies } from '@/data/currencies';
+import { transportPricing, mandatoryToursRules } from '@/data/transportRules';
 import { DollarSign, AlertTriangle, CheckCircle, MapPin, Building2, Car } from 'lucide-react';
 
 interface PricingStepProps {
@@ -12,7 +13,9 @@ interface PricingStepProps {
 }
 
 export const PricingStep = ({ data, updateData }: PricingStepProps) => {
-  const selectedCurrency = currencies.find(c => c.code === data.currency) || currencies[0];
+  // دمج العملات الأساسية مع العملات الإضافية
+  const allCurrencies = [...currencies, ...additionalCurrencies];
+  const selectedCurrency = allCurrencies.find(c => c.code === data.currency) || allCurrencies[0];
 
   const calculateHotelCosts = () => {
     const cityBreakdown: Array<{
@@ -48,11 +51,11 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             
             switch (room.roomType) {
               case 'single':
-                roomPrice = hotel.single || hotel.dbl_wv; // fallback to double if single not available
+                roomPrice = hotel.single || hotel.dbl_wv || 0;
                 roomTypeName = 'غرفة مفردة (بدون إطلالة)';
                 break;
               case 'single_v':
-                roomPrice = hotel.single_v || hotel.dbl_v; // fallback to double if single_v not available
+                roomPrice = hotel.single_v || hotel.dbl_v || 0;
                 roomTypeName = 'غرفة مفردة (مع إطلالة)';
                 break;
               case 'dbl_wv':
@@ -102,9 +105,10 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
   };
 
   const calculateTourCosts = () => {
-    const transport = transportData.find(t => t.type === data.carType);
+    // استخدام القواعد الجديدة للسيارات
+    const transport = transportPricing[data.carType as keyof typeof transportPricing];
     console.log('Selected car type:', data.carType);
-    console.log('Transport data found:', transport);
+    console.log('Transport pricing:', transport);
     
     if (!transport) return { total: 0, breakdown: [] };
 
@@ -118,13 +122,48 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
 
     let totalTourCost = 0;
 
-    data.selectedCities.forEach(cityStay => {
+    data.selectedCities.forEach((cityStay, index) => {
       const regularTours = cityStay.tours || 0;
-      const mandatoryTours = cityStay.mandatoryTours || 0;
-      const totalTours = regularTours + mandatoryTours;
-      const cityTourCost = totalTours * transport.price;
       
-      console.log(`${cityStay.city}: ${totalTours} tours × $${transport.price} = $${cityTourCost}`);
+      // حساب الجولات الإجبارية حسب القواعد الجديدة
+      let mandatoryTours = 0;
+      
+      if (cityStay.city === 'باتومي') {
+        mandatoryTours = mandatoryToursRules.batumi;
+      } else {
+        mandatoryTours = mandatoryToursRules.default;
+      }
+      
+      // تطبيق قواعد المطارات
+      const isFirstCity = index === 0;
+      const isLastCity = index === data.selectedCities.length - 1;
+      
+      if (isFirstCity) {
+        const arrivalAirport = data.arrivalAirport.toLowerCase();
+        if (arrivalAirport.includes('tbilisi')) {
+          mandatoryTours = mandatoryToursRules.arrivalRules.tbilisi;
+        } else if (arrivalAirport.includes('batumi')) {
+          mandatoryTours = mandatoryToursRules.arrivalRules.batumi;
+        } else if (arrivalAirport.includes('kutaisi')) {
+          mandatoryTours = mandatoryToursRules.arrivalRules.kutaisi;
+        }
+      }
+      
+      if (isLastCity) {
+        const departureAirport = data.departureAirport.toLowerCase();
+        if (departureAirport.includes('tbilisi')) {
+          mandatoryTours = mandatoryToursRules.departureRules.tbilisi;
+        } else if (departureAirport.includes('batumi')) {
+          mandatoryTours = mandatoryToursRules.departureRules.batumi;
+        } else if (departureAirport.includes('kutaisi')) {
+          mandatoryTours = mandatoryToursRules.departureRules.kutaisi;
+        }
+      }
+      
+      const totalTours = regularTours + mandatoryTours;
+      const cityTourCost = totalTours * transport.dailyPrice;
+      
+      console.log(`${cityStay.city}: ${totalTours} tours × $${transport.dailyPrice} = $${cityTourCost}`);
       
       totalTourCost += cityTourCost;
 
@@ -144,7 +183,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
   };
 
   const calculateTransportCosts = () => {
-    const transport = transportData.find(t => t.type === data.carType);
+    const transport = transportPricing[data.carType as keyof typeof transportPricing];
     if (!transport) return 0;
 
     const isSameCity = data.arrivalAirport === data.departureAirport;

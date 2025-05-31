@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QRCodeSVG } from 'qrcode.react';
 import { Phone, MessageCircle, CheckCircle, Clock } from 'lucide-react';
+import { generateVerificationCode, createWhatsAppURL, validateVerificationCode } from '@/utils/phoneVerification';
 
 interface WhatsAppVerificationProps {
   phoneNumber: string;
@@ -24,30 +25,20 @@ export const WhatsAppVerification = ({
   const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // تجهيز رابط الواتساب مع تفاصيل الحجز
-  const whatsappMessage = encodeURIComponent(
-    `مرحباً، أريد تأكيد حجز رحلة إلى جورجيا:\n\n` +
-    `📋 تفاصيل الحجز:\n` +
-    `• الاسم: ${bookingData.customerName}\n` +
-    `• عدد الأشخاص: ${bookingData.adults} بالغ${bookingData.children.length > 0 ? ` + ${bookingData.children.length} طفل` : ''}\n` +
-    `• تاريخ الوصول: ${bookingData.arrivalDate}\n` +
-    `• تاريخ المغادرة: ${bookingData.departureDate}\n` +
-    `• المدن المختارة: ${bookingData.selectedCities.map((c: any) => c.city).join('، ')}\n` +
-    `• العملة: ${bookingData.currency}\n` +
-    `• الميزانية: ${bookingData.budget}\n\n` +
-    `الرجاء تأكيد الحجز وإرسال رمز التحقق.`
-  );
-
-  const whatsappUrl = `https://wa.me/+995599292929?text=${whatsappMessage}`;
+  // إنشاء رابط الواتساب مع رمز التحقق
+  const whatsappUrl = createWhatsAppURL(phoneNumber);
   
   // إنشاء QR Code للواتساب
   const qrCodeValue = whatsappUrl;
+
+  // الحصول على رمز التحقق المتوقع (للعرض فقط)
+  const expectedCode = generateVerificationCode(phoneNumber);
 
   const sendVerificationCode = async () => {
     setLoading(true);
     try {
       // محاكاة إرسال رمز التحقق
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setIsCodeSent(true);
       // فتح الواتساب تلقائياً
       window.open(whatsappUrl, '_blank');
@@ -62,12 +53,13 @@ export const WhatsAppVerification = ({
     setLoading(true);
     try {
       // محاكاة التحقق من الرمز
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      if (verificationCode === '1234' || verificationCode.length >= 4) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (validateVerificationCode(phoneNumber, verificationCode)) {
         setIsVerified(true);
         onVerificationComplete(true);
       } else {
-        alert('رمز التحقق غير صحيح');
+        alert('رمز التحقق غير صحيح. تأكد من إدخال آخر 4 أرقام من رقم هاتفك معكوسة.');
       }
     } catch (error) {
       console.error('Error verifying code:', error);
@@ -144,37 +136,46 @@ export const WhatsAppVerification = ({
                     ) : (
                       <MessageCircle className="w-4 h-4 mr-2" />
                     )}
-                    فتح الواتساب وإرسال الرسالة
+                    إرسال رمز التحقق عبر الواتساب
                   </Button>
                   <p className="text-xs text-gray-600 text-center">
                     سيتم فتح تطبيق الواتساب مع الرسالة جاهزة للإرسال
                   </p>
                 </div>
               </div>
+              
+              {/* شرح آلية التحقق */}
+              <Alert className="bg-yellow-50 border-yellow-200">
+                <MessageCircle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-800">
+                  <strong>كيفية التحقق:</strong> رمز التحقق هو آخر 4 أرقام من رقم هاتفك معكوسة.<br/>
+                  مثال: إذا كان رقمك ينتهي بـ 1234، فالرمز سيكون 4321
+                </AlertDescription>
+              </Alert>
             </div>
           ) : (
             <div className="space-y-4">
               <Alert className="bg-blue-50 border-blue-200">
                 <MessageCircle className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-800">
-                  تم فتح الواتساب. بعد إرسال الرسالة، ستحصل على رمز التحقق. أدخل الرمز أدناه.
+                  تم إرسال رسالة التحقق عبر الواتساب. أدخل الرمز المكون من 4 أرقام أدناه.
                 </AlertDescription>
               </Alert>
 
               <div className="space-y-3">
-                <Label htmlFor="verificationCode">رمز التحقق</Label>
+                <Label htmlFor="verificationCode">رمز التحقق (آخر 4 أرقام من هاتفك معكوسة)</Label>
                 <Input
                   id="verificationCode"
                   type="text"
                   value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  placeholder="أدخل رمز التحقق الذي تلقيته"
-                  maxLength={6}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  placeholder="أدخل الرمز المكون من 4 أرقام"
+                  maxLength={4}
                   className="text-center text-lg"
                 />
                 <Button
                   onClick={verifyCode}
-                  disabled={loading || verificationCode.length < 4}
+                  disabled={loading || verificationCode.length !== 4}
                   className="w-full"
                 >
                   {loading ? (
