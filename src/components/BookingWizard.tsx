@@ -47,8 +47,8 @@ export const BookingWizard = () => {
   };
 
   const nextStep = () => {
-    // للمرحلة 3 (الخدمات الإضافية) دائماً صالحة
-    const isCurrentStepValid = currentStep === 3 ? true : stepValidations[currentStep];
+    // المراحل 3 و 4 دائماً صالحة (الخدمات الإضافية وتفاصيل الأسعار)
+    const isCurrentStepValid = (currentStep === 3 || currentStep === 4) ? true : stepValidations[currentStep];
     
     if (currentStep < totalSteps && isCurrentStepValid) {
       console.log(`Moving from step ${currentStep} to ${currentStep + 1}`);
@@ -97,7 +97,11 @@ export const BookingWizard = () => {
           onValidationChange={(isValid) => updateStepValidation(3, isValid)}
         />;
       case 4:
-        return <PricingDetailsStep data={bookingData} updateData={updateBookingData} />;
+        return <PricingDetailsStep 
+          data={bookingData} 
+          updateData={updateBookingData}
+          onValidationChange={(isValid) => updateStepValidation(4, isValid)}
+        />;
       case 5:
         return <FinalConfirmationStep data={bookingData} updateData={updateBookingData} />;
       default:
@@ -107,9 +111,9 @@ export const BookingWizard = () => {
 
   const totalPeople = bookingData.adults + bookingData.children.length;
 
-  // للمرحلة 3 (الخدمات الإضافية) زر التالي دائماً فعال
+  // المراحل 3 و 4 دائماً فعالة
   const isNextButtonEnabled = () => {
-    if (currentStep === 3) return true; // الخدمات الإضافية اختيارية
+    if (currentStep === 3 || currentStep === 4) return true;
     return stepValidations[currentStep];
   };
 

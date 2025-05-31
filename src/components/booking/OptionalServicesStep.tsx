@@ -17,14 +17,14 @@ interface OptionalServicesStepProps {
 export const OptionalServicesStep = ({ data, updateData, onValidationChange }: OptionalServicesStepProps) => {
   const totalPeopleForInsurance = data.adults + data.children.length;
 
-  // جعل هذه المرحلة اختيارية دائماً - إصلاح زر التالي
   useEffect(() => {
     if (onValidationChange) {
-      onValidationChange(true); // دائماً صحيح لأن المرحلة اختيارية
+      onValidationChange(true);
     }
   }, [onValidationChange]);
 
   const updateService = (service: string, field: string, value: any) => {
+    console.log(`Updating service ${service}, field ${field}, value:`, value);
     updateData({
       additionalServices: {
         ...data.additionalServices,
@@ -43,7 +43,6 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
         <p className="text-gray-600">خدمات اختيارية لجعل رحلتك أكثر راحة ومتعة</p>
       </div>
 
-      {/* Notice about optional services */}
       <Alert className="bg-blue-50 border-blue-200">
         <Info className="h-4 w-4 text-blue-600" />
         <AlertDescription className="text-blue-800">
@@ -52,7 +51,7 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
       </Alert>
 
       <div className="space-y-6">
-        {/* Travel Insurance - إصلاح تأمين السفر */}
+        {/* Travel Insurance */}
         <div className="p-6 border rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -63,7 +62,7 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
               </div>
             </div>
             <Switch
-              checked={data.additionalServices.travelInsurance.enabled}
+              checked={data.additionalServices.travelInsurance.enabled || false}
               onCheckedChange={(checked) => {
                 console.log('Travel insurance toggle:', checked);
                 updateService('travelInsurance', 'enabled', checked);
@@ -86,27 +85,29 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const newPersons = Math.max(1, data.additionalServices.travelInsurance.persons - 1);
+                      const current = data.additionalServices.travelInsurance.persons || 1;
+                      const newPersons = Math.max(1, current - 1);
                       console.log('Decreasing insurance persons to:', newPersons);
                       updateService('travelInsurance', 'persons', newPersons);
                     }}
-                    disabled={data.additionalServices.travelInsurance.persons <= 1}
+                    disabled={(data.additionalServices.travelInsurance.persons || 1) <= 1}
                   >
                     <Minus className="w-4 h-4" />
                   </Button>
                   <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
-                    {data.additionalServices.travelInsurance.persons}
+                    {data.additionalServices.travelInsurance.persons || 1}
                   </span>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const newPersons = Math.min(totalPeopleForInsurance, data.additionalServices.travelInsurance.persons + 1);
+                      const current = data.additionalServices.travelInsurance.persons || 1;
+                      const newPersons = Math.min(totalPeopleForInsurance, current + 1);
                       console.log('Increasing insurance persons to:', newPersons);
                       updateService('travelInsurance', 'persons', newPersons);
                     }}
-                    disabled={data.additionalServices.travelInsurance.persons >= totalPeopleForInsurance}
+                    disabled={(data.additionalServices.travelInsurance.persons || 1) >= totalPeopleForInsurance}
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
@@ -130,10 +131,10 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
               </div>
             </div>
             <Switch
-              checked={data.additionalServices.phoneLines.enabled}
+              checked={data.additionalServices.phoneLines.enabled || false}
               onCheckedChange={(checked) => {
                 updateService('phoneLines', 'enabled', checked);
-                if (checked && data.additionalServices.phoneLines.quantity === 0) {
+                if (checked && (data.additionalServices.phoneLines.quantity || 0) === 0) {
                   updateService('phoneLines', 'quantity', 1);
                 } else if (!checked) {
                   updateService('phoneLines', 'quantity', 0);
@@ -150,19 +151,25 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => updateService('phoneLines', 'quantity', Math.max(1, data.additionalServices.phoneLines.quantity - 1))}
-                  disabled={data.additionalServices.phoneLines.quantity <= 1}
+                  onClick={() => {
+                    const current = data.additionalServices.phoneLines.quantity || 1;
+                    updateService('phoneLines', 'quantity', Math.max(1, current - 1));
+                  }}
+                  disabled={(data.additionalServices.phoneLines.quantity || 1) <= 1}
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
                 <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
-                  {data.additionalServices.phoneLines.quantity}
+                  {data.additionalServices.phoneLines.quantity || 1}
                 </span>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => updateService('phoneLines', 'quantity', data.additionalServices.phoneLines.quantity + 1)}
+                  onClick={() => {
+                    const current = data.additionalServices.phoneLines.quantity || 1;
+                    updateService('phoneLines', 'quantity', current + 1);
+                  }}
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -171,7 +178,7 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
           )}
         </div>
 
-        {/* Room Decoration (Honeymoon) */}
+        {/* Room Decoration */}
         <div className="p-6 border rounded-lg bg-gradient-to-r from-pink-50 to-rose-50 border-pink-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -182,7 +189,7 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
               </div>
             </div>
             <Switch
-              checked={data.additionalServices.roomDecoration.enabled}
+              checked={data.additionalServices.roomDecoration.enabled || false}
               onCheckedChange={(checked) => updateService('roomDecoration', 'enabled', checked)}
             />
           </div>
@@ -223,10 +230,10 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
               </div>
             </div>
             <Switch
-              checked={data.additionalServices.airportReception.enabled}
+              checked={data.additionalServices.airportReception.enabled || false}
               onCheckedChange={(checked) => {
                 updateService('airportReception', 'enabled', checked);
-                if (checked && data.additionalServices.airportReception.persons === 0) {
+                if (checked && (data.additionalServices.airportReception.persons || 0) === 0) {
                   updateService('airportReception', 'persons', Math.min(data.adults, 1));
                 } else if (!checked) {
                   updateService('airportReception', 'persons', 0);
@@ -243,19 +250,25 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => updateService('airportReception', 'persons', Math.max(1, data.additionalServices.airportReception.persons - 1))}
-                  disabled={data.additionalServices.airportReception.persons <= 1}
+                  onClick={() => {
+                    const current = data.additionalServices.airportReception.persons || 1;
+                    updateService('airportReception', 'persons', Math.max(1, current - 1));
+                  }}
+                  disabled={(data.additionalServices.airportReception.persons || 1) <= 1}
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
                 <span className="w-12 text-center font-semibold bg-white py-2 px-3 rounded border">
-                  {data.additionalServices.airportReception.persons}
+                  {data.additionalServices.airportReception.persons || 1}
                 </span>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => updateService('airportReception', 'persons', data.additionalServices.airportReception.persons + 1)}
+                  onClick={() => {
+                    const current = data.additionalServices.airportReception.persons || 1;
+                    updateService('airportReception', 'persons', current + 1);
+                  }}
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -264,7 +277,7 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
           )}
         </div>
 
-        {/* Photo Session (Honeymoon) */}
+        {/* Photo Session */}
         <div className="p-6 border rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 border-indigo-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -296,13 +309,13 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
           <div className="space-y-2 text-sm">
             {data.additionalServices.travelInsurance.enabled && (
               <div className="flex justify-between">
-                <span>• تأمين السفر ({data.additionalServices.travelInsurance.persons} أشخاص)</span>
+                <span>• تأمين السفر ({data.additionalServices.travelInsurance.persons || 1} أشخاص)</span>
                 <span className="text-green-600">✓</span>
               </div>
             )}
             {data.additionalServices.phoneLines.enabled && (
               <div className="flex justify-between">
-                <span>• خطوط الاتصال ({data.additionalServices.phoneLines.quantity} خط)</span>
+                <span>• خطوط الاتصال ({data.additionalServices.phoneLines.quantity || 1} خط)</span>
                 <span className="text-green-600">✓</span>
               </div>
             )}
@@ -320,7 +333,7 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
             )}
             {data.additionalServices.airportReception.enabled && (
               <div className="flex justify-between">
-                <span>• الاستقبال VIP ({data.additionalServices.airportReception.persons} أشخاص)</span>
+                <span>• الاستقبال VIP ({data.additionalServices.airportReception.persons || 1} أشخاص)</span>
                 <span className="text-green-600">✓</span>
               </div>
             )}

@@ -1,20 +1,28 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
 import { hotelData, transportData, additionalServicesData, currencies } from '@/data/hotels';
-import { Calculator, Receipt, Percent, Gift } from 'lucide-react';
+import { Receipt, Gift } from 'lucide-react';
 
 interface PricingDetailsStepProps {
   data: BookingData;
   updateData: (data: Partial<BookingData>) => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
-export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps) => {
+export const PricingDetailsStep = ({ data, updateData, onValidationChange }: PricingDetailsStepProps) => {
   const [totalCost, setTotalCost] = useState(0);
   const [discountValue, setDiscountValue] = useState(0);
+
+  // تفعيل زر التالي دائماً
+  useEffect(() => {
+    if (onValidationChange) {
+      onValidationChange(true);
+    }
+  }, [onValidationChange]);
 
   const calculateRoomCost = () => {
     let total = 0;
@@ -55,15 +63,14 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
   const calculateAdditionalServices = () => {
     let total = 0;
     const services = data.additionalServices;
-    const totalPeople = data.adults + data.children.length;
 
     if (services.travelInsurance.enabled) {
       const tripNights = data.selectedCities.reduce((sum, city) => sum + city.nights, 0);
-      total += services.travelInsurance.persons * additionalServicesData.travelInsurance.pricePerPersonPerDay * tripNights;
+      total += (services.travelInsurance.persons || 0) * additionalServicesData.travelInsurance.pricePerPersonPerDay * tripNights;
     }
 
     if (services.phoneLines.enabled) {
-      total += services.phoneLines.quantity * additionalServicesData.phoneLines.pricePerLine;
+      total += (services.phoneLines.quantity || 0) * additionalServicesData.phoneLines.pricePerLine;
     }
 
     if (services.roomDecoration.enabled) {
@@ -75,7 +82,7 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
     }
 
     if (services.airportReception.enabled) {
-      total += services.airportReception.persons * additionalServicesData.airportReception.pricePerPerson;
+      total += (services.airportReception.persons || 0) * additionalServicesData.airportReception.pricePerPerson;
     }
 
     if (services.photoSession?.enabled) {
@@ -101,7 +108,7 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
         discount = subtotal * 0.15;
         break;
       case 'alfakhama':
-        discount = transportCost; // Free reception
+        discount = transportCost;
         break;
       default:
         discount = 0;
@@ -118,7 +125,6 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
     const transportCost = calculateCarAndTransport();
     const servicesCost = calculateAdditionalServices();
     
-    // Add 20% profit margin to accommodation and tours
     const profitMargin = (roomCost + toursCost) * 0.20;
     
     const subtotal = roomCost + toursCost + transportCost + servicesCost + profitMargin;
@@ -129,166 +135,105 @@ export const PricingDetailsStep = ({ data, updateData }: PricingDetailsStepProps
   }, [data.selectedCities, data.carType, data.additionalServices, data.discountAmount]);
 
   const selectedCurrency = currencies.find(c => c.code === data.currency);
-  const roomCost = calculateRoomCost();
-  const toursCost = calculateTotalTours();
-  const transportCost = calculateCarAndTransport();
-  const servicesCost = calculateAdditionalServices();
-  const profitMargin = (roomCost + toursCost) * 0.20;
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">تفاصيل الأسعار</h2>
-        <p className="text-gray-600">مراجعة تفاصيل التكلفة النهائية</p>
+        <p className="text-gray-600">مراجعة التكلفة النهائية لرحلتك</p>
       </div>
 
-      {/* Discount Coupon Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gift className="w-5 h-5" />
-            كوبون الخصم
+      {/* Final Total - Main Display */}
+      <Card className="border-2 border-emerald-200">
+        <CardContent className="p-8">
+          <div className="text-center space-y-4">
+            <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white p-6 rounded-lg">
+              <div className="flex justify-between items-center text-2xl font-bold">
+                <span>المبلغ النهائي:</span>
+                <span>{Math.round(totalCost)} {selectedCurrency?.symbol}</span>
+              </div>
+            </div>
+            
+            {/* Budget Comparison */}
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <div className="grid md:grid-cols-2 gap-4 text-center">
+                <div>
+                  <p className="text-sm text-gray-600">ميزانيتك المحددة</p>
+                  <div className="text-lg font-semibold text-blue-600">
+                    {data.budget} {selectedCurrency?.symbol}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">التكلفة الفعلية</p>
+                  <div className="text-lg font-semibold text-emerald-600">
+                    {Math.round(totalCost)} {selectedCurrency?.symbol}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4">
+                {totalCost <= data.budget ? (
+                  <div className="text-green-600 font-medium">
+                    ✅ التكلفة ضمن ميزانيتك المحددة
+                  </div>
+                ) : (
+                  <div className="text-red-600 font-medium">
+                    ⚠️ التكلفة تتجاوز ميزانيتك بـ {Math.round(totalCost - data.budget)} {selectedCurrency?.symbol}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Discount Coupon Section - Small and Optional */}
+      <Card className="border border-gray-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Gift className="w-4 h-4" />
+            كوبون الخصم (اختياري)
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="pt-0">
           <div className="flex gap-2">
             <Input
-              placeholder="أدخل كود الخصم"
+              placeholder="أدخل كود الخصم (اختياري)"
               value={data.discountCoupon || ''}
               onChange={(e) => updateData({ discountCoupon: e.target.value })}
+              className="text-sm"
             />
             <Button 
               onClick={() => data.discountCoupon && applyDiscount(data.discountCoupon)}
               disabled={!data.discountCoupon}
+              size="sm"
             >
               تطبيق
             </Button>
           </div>
           {data.discountAmount && data.discountAmount > 0 && (
-            <div className="text-green-600 font-medium">
-              تم تطبيق خصم بقيمة {data.discountAmount} {selectedCurrency?.symbol}
+            <div className="text-green-600 font-medium text-sm mt-2">
+              تم تطبيق خصم بقيمة {Math.round(data.discountAmount)} {selectedCurrency?.symbol}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Cost Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="w-5 h-5" />
-            تفصيل التكاليف
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Room Details */}
-          <div className="border-b pb-4">
-            <h4 className="font-medium mb-2">تفاصيل الإقامة</h4>
-            {data.selectedCities.map((city, index) => (
-              <div key={index} className="text-sm text-gray-600 mb-1">
-                {city.city} - {city.hotel} ({city.nights} ليالي)
-                {city.roomSelections?.map((room, roomIndex) => {
-                  const cityHotels = hotelData[city.city] || [];
-                  const selectedHotel = cityHotels.find(h => h.name === city.hotel);
-                  const roomPrice = selectedHotel?.[room.roomType as keyof typeof selectedHotel] as number || 0;
-                  return (
-                    <div key={roomIndex} className="mr-4">
-                      الغرفة {room.roomNumber}: {roomPrice} × {city.nights} = {roomPrice * city.nights} {selectedCurrency?.symbol}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-            <div className="font-medium">
-              إجمالي تكلفة الإقامة: {roomCost} {selectedCurrency?.symbol}
-            </div>
-          </div>
-
-          {/* Tours Cost */}
-          <div className="border-b pb-4">
-            <h4 className="font-medium">إجمالي الجولات السياحية</h4>
-            <div className="text-sm text-gray-600">
-              إجمالي الجولات: {data.selectedCities.reduce((sum, city) => sum + city.tours, 0)} جولة
-            </div>
-            <div className="font-medium">
-              التكلفة: {toursCost} {selectedCurrency?.symbol}
-            </div>
-          </div>
-
-          {/* Transport Cost */}
-          <div className="border-b pb-4">
-            <h4 className="font-medium">السيارة مع الاستقبال والتوديع</h4>
-            <div className="text-sm text-gray-600">
-              نوع السيارة: {data.carType}
-            </div>
-            <div className="font-medium">
-              التكلفة: {transportCost} {selectedCurrency?.symbol}
-            </div>
-          </div>
-
-          {/* Additional Services */}
-          {servicesCost > 0 && (
-            <div className="border-b pb-4">
-              <h4 className="font-medium">الخدمات الإضافية</h4>
-              <div className="font-medium">
-                التكلفة: {servicesCost} {selectedCurrency?.symbol}
-              </div>
-            </div>
-          )}
-
-          {/* Discount */}
-          {data.discountAmount && data.discountAmount > 0 && (
-            <div className="border-b pb-4 text-green-600">
-              <h4 className="font-medium">الخصم المطبق</h4>
-              <div className="font-medium">
-                - {data.discountAmount} {selectedCurrency?.symbol}
-              </div>
-            </div>
-          )}
-
-          {/* Final Total */}
-          <div className="bg-emerald-50 p-4 rounded-lg">
-            <div className="flex justify-between items-center text-lg font-bold text-emerald-800">
-              <span>المبلغ النهائي:</span>
-              <span>{totalCost} {selectedCurrency?.symbol}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Budget Comparison */}
+      {/* Payment Information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Receipt className="w-5 h-5" />
-            مقارنة مع الميزانية
+            معلومات الدفع
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <Label>ميزانيتك المحددة</Label>
-              <div className="text-lg font-semibold text-blue-600">
-                {data.budget} {selectedCurrency?.symbol}
-              </div>
-            </div>
-            <div>
-              <Label>التكلفة الفعلية</Label>
-              <div className="text-lg font-semibold text-emerald-600">
-                {totalCost} {selectedCurrency?.symbol}
-              </div>
-            </div>
-          </div>
-          <div className="mt-4">
-            {totalCost <= data.budget ? (
-              <div className="text-green-600 font-medium">
-                ✅ التكلفة ضمن ميزانيتك المحددة
-              </div>
-            ) : (
-              <div className="text-red-600 font-medium">
-                ⚠️ التكلفة تتجاوز ميزانيتك بـ {totalCost - data.budget} {selectedCurrency?.symbol}
-              </div>
-            )}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h4 className="font-medium text-blue-800 mb-2">طرق الدفع المتاحة:</h4>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• تحويل بنكي</li>
+              <li>• نقداً عند الوصول</li>
+              <li>• بطاقة ائتمان (فيزا/ماستركارد)</li>
+            </ul>
           </div>
         </CardContent>
       </Card>
