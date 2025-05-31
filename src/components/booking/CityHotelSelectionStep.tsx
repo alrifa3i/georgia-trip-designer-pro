@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData, CityStay, Hotel } from '@/types/booking';
-import { hotelData } from '@/data/hotels';
-import { MapPin, Building, Plus, Minus, Trash2, ArrowUpDown, Info } from 'lucide-react';
+import { hotelData, transportData } from '@/data/hotels';
+import { MapPin, Building, Plus, Minus, Trash2, Info, Car } from 'lucide-react';
 
 interface CityHotelSelectionStepProps {
   data: BookingData;
@@ -95,6 +95,18 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     updateData({ roomTypes: newRoomTypes });
   };
 
+  // Get recommended car type based on number of people
+  const getRecommendedCarType = () => {
+    const totalPeople = data.adults + data.children.length;
+    const recommendedCar = transportData.find(transport => {
+      const maxCapacity = parseInt(transport.capacity.split('-')[1] || transport.capacity.replace('+', ''));
+      return totalPeople <= maxCapacity;
+    });
+    return recommendedCar || transportData[transportData.length - 1];
+  };
+
+  const selectedCarType = data.carType || getRecommendedCarType().type;
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -102,11 +114,52 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         <p className="text-gray-600">اختر المدن التي تريد زيارتها والفنادق للإقامة</p>
       </div>
 
-      <Alert className="bg-blue-50 border-blue-200">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-800">
+      {/* Car Type Display */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Car className="w-5 h-5 text-blue-600" />
+            <h3 className="font-bold text-blue-800">نوع السيارة المختارة</h3>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>اختر نوع السيارة</Label>
+              <Select
+                value={selectedCarType}
+                onValueChange={(value) => updateData({ carType: value })}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="اختر نوع السيارة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {transportData.map((transport) => (
+                    <SelectItem key={transport.type} value={transport.type}>
+                      <div className="flex justify-between items-center w-full">
+                        <span>{transport.type}</span>
+                        <span className="text-sm text-gray-500">({transport.capacity})</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="bg-white p-3 rounded-lg border">
+              <p className="text-sm text-gray-600">
+                <strong>السعة:</strong> {getRecommendedCarType().capacity}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                * يتم استخدام نوع السيارة لحساب أسعار الجولات والاستقبال/التوديع
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Alert className="bg-emerald-50 border-emerald-200">
+        <Info className="h-4 w-4 text-emerald-600" />
+        <AlertDescription className="text-emerald-800">
           <div className="space-y-2">
-            <p><strong>ملاحظة:</strong> تم ترتيب الفنادق من الأرخص إلى الأغلى بناءً على أسعار الغرف</p>
+            <p><strong>ملاحظة:</strong> تم ترتيب الفنادق من الأرخص إلى الأغلى</p>
             <p>الأسعار النهائية ستظهر في مرحلة تفاصيل الأسعار</p>
           </div>
         </AlertDescription>
@@ -188,10 +241,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     <div className="flex items-center gap-2">
                       <Building className="w-4 h-4 text-emerald-600" />
                       <Label>الفندق *</Label>
-                      <div className="flex items-center gap-1 text-sm text-gray-600">
-                        <ArrowUpDown className="w-3 h-3" />
-                        <span>مرتب من الأرخص للأغلى</span>
-                      </div>
+                      <span className="text-sm text-gray-600">(مرتب من الأرخص للأغلى)</span>
                     </div>
                     <Select
                       value={cityStay.hotel}
@@ -201,32 +251,17 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                         <SelectValue placeholder="اختر الفندق" />
                       </SelectTrigger>
                       <SelectContent>
-                        {sortHotelsByPrice(hotelData[cityStay.city] || []).map((hotel) => {
-                          // Calculate cheapest room price for display
-                          const prices = [
-                            hotel.single,
-                            hotel.single_v,
-                            hotel.dbl_wv,
-                            hotel.dbl_v,
-                            hotel.trbl_wv,
-                            hotel.trbl_v
-                          ].filter(price => price !== undefined && price !== null && price > 0);
-                          
-                          const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-                          
-                          return (
-                            <SelectItem key={hotel.name} value={hotel.name}>
-                              <div className="flex items-center justify-between w-full">
-                                <span>{hotel.name}</span>
-                                <div className="flex items-center gap-2 text-xs text-gray-500">
-                                  <span>⭐ {hotel.rating}</span>
-                                  <span>{hotel.distanceFromCenter}km من المركز</span>
-                                  {minPrice > 0 && <span>من ${minPrice}</span>}
-                                </div>
+                        {sortHotelsByPrice(hotelData[cityStay.city] || []).map((hotel, hotelIndex) => (
+                          <SelectItem key={hotel.name} value={hotel.name}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{hotel.name}</span>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <span>⭐ {hotel.rating}</span>
+                                {hotelIndex === 0 && <span className="text-green-600">(الأرخص)</span>}
                               </div>
-                            </SelectItem>
-                          );
-                        })}
+                            </div>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -246,32 +281,32 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                       <SelectContent>
                         {selectedHotel.single && (
                           <SelectItem value="single">
-                            غرفة مفردة - ${selectedHotel.single}
+                            غرفة مفردة
                           </SelectItem>
                         )}
                         {selectedHotel.single_v && (
                           <SelectItem value="single_v">
-                            غرفة مفردة مع إطلالة - ${selectedHotel.single_v}
+                            غرفة مفردة مع إطلالة
                           </SelectItem>
                         )}
                         {selectedHotel.dbl_wv && (
                           <SelectItem value="dbl_wv">
-                            غرفة مزدوجة بدون إطلالة - ${selectedHotel.dbl_wv}
+                            غرفة مزدوجة بدون إطلالة
                           </SelectItem>
                         )}
                         {selectedHotel.dbl_v && (
                           <SelectItem value="dbl_v">
-                            غرفة مزدوجة مع إطلالة - ${selectedHotel.dbl_v}
+                            غرفة مزدوجة مع إطلالة
                           </SelectItem>
                         )}
                         {selectedHotel.trbl_wv && (
                           <SelectItem value="trbl_wv">
-                            غرفة ثلاثية بدون إطلالة - ${selectedHotel.trbl_wv}
+                            غرفة ثلاثية بدون إطلالة
                           </SelectItem>
                         )}
                         {selectedHotel.trbl_v && (
                           <SelectItem value="trbl_v">
-                            غرفة ثلاثية مع إطلالة - ${selectedHotel.trbl_v}
+                            غرفة ثلاثية مع إطلالة
                           </SelectItem>
                         )}
                       </SelectContent>
