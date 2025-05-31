@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { CheckCircle, X } from 'lucide-react';
@@ -241,37 +242,47 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
     // عرض أول إشعار بعد ثانيتين
     const initialTimeout = setTimeout(() => {
       const notification = createNotification();
-      setNotifications(prev => [...prev, notification]);
+      setNotifications([notification]); // عرض إشعار واحد فقط
       incrementTravelerCount();
       onNotificationShow?.();
 
       // إخفاء الإشعار بعد 5 ثواني
       setTimeout(() => {
-        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        setNotifications([]);
       }, 5000);
     }, 2000);
 
-    // عرض إشعار جديد كل 3 ثواني
-    const interval = setInterval(() => {
+    // نظام دوري: عرض إشعار لمدة 5 ثواني، ثم انتظار 3 ثواني
+    const startCycle = () => {
       const notification = createNotification();
-      setNotifications(prev => [...prev, notification]);
+      setNotifications([notification]); // عرض إشعار واحد فقط
       incrementTravelerCount();
       onNotificationShow?.();
 
       // إخفاء الإشعار بعد 5 ثواني
       setTimeout(() => {
-        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        setNotifications([]);
+        
+        // انتظار 3 ثواني ثم بدء دورة جديدة
+        setTimeout(() => {
+          startCycle();
+        }, 3000);
       }, 5000);
-    }, 3000);
+    };
+
+    // بدء الدورة بعد الإشعار الأول (2 + 5 + 3 = 10 ثواني)
+    const cycleTimeout = setTimeout(() => {
+      startCycle();
+    }, 10000);
 
     return () => {
       clearTimeout(initialTimeout);
-      clearInterval(interval);
+      clearTimeout(cycleTimeout);
     };
   }, []);
 
   const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    setNotifications([]);
   };
 
   return (
@@ -310,3 +321,4 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ on
     </div>
   );
 };
+
