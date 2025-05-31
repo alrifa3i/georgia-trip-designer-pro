@@ -70,9 +70,39 @@ const getPriceByCountry = (country: string): string => {
   }
 };
 
-export const FloatingNotifications = () => {
+// نظام العداد العالمي
+let globalTravelerCount = 994;
+
+export const incrementTravelerCount = () => {
+  globalTravelerCount++;
+  // حفظ العداد في localStorage للاستمرارية
+  localStorage.setItem('travelerCount', globalTravelerCount.toString());
+  
+  // إرسال حدث مخصص لتحديث العداد في المكونات الأخرى
+  window.dispatchEvent(new CustomEvent('travelerCountUpdated', { 
+    detail: { count: globalTravelerCount } 
+  }));
+  
+  return globalTravelerCount;
+};
+
+export const getTravelerCount = () => {
+  // استرجاع العداد من localStorage إذا كان موجوداً
+  const saved = localStorage.getItem('travelerCount');
+  if (saved) {
+    globalTravelerCount = parseInt(saved, 10);
+  }
+  return globalTravelerCount;
+};
+
+interface FloatingNotificationsProps {
+  onNotificationShow?: () => void;
+}
+
+export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({ onNotificationShow }) => {
   const [notifications, setNotifications] = useState<BookingNotification[]>([]);
   const [usedNames, setUsedNames] = useState<Set<string>>(new Set());
+  const [notificationCycle, setNotificationCycle] = useState(0); // 0: 2 اشعارات, 1: 1 اشعار, 2: 3 اشعارات
 
   const createNotification = (): BookingNotification => {
     // فلترة الأسماء غير المستخدمة
@@ -86,7 +116,7 @@ export const FloatingNotifications = () => {
       setUsedNames(newUsedNames);
       
       return {
-        id: Date.now().toString(),
+        id: Date.now().toString() + Math.random().toString(),
         name: nameObj.name,
         package: packages[Math.floor(Math.random() * packages.length)],
         price: getPriceByCountry(nameObj.country),
@@ -99,7 +129,7 @@ export const FloatingNotifications = () => {
     setUsedNames(prev => new Set([...prev, nameObj.name]));
 
     return {
-      id: Date.now().toString(),
+      id: Date.now().toString() + Math.random().toString(),
       name: nameObj.name,
       package: packages[Math.floor(Math.random() * packages.length)],
       price: getPriceByCountry(nameObj.country),
@@ -108,30 +138,51 @@ export const FloatingNotifications = () => {
     };
   };
 
-  useEffect(() => {
-    const showNotification = () => {
-      const notification = createNotification();
-      setNotifications(prev => [...prev, notification]);
+  const showNotificationBatch = () => {
+    let notificationCount = 1;
+    
+    // تحديد عدد الاشعارات حسب الدورة
+    switch (notificationCycle) {
+      case 0: notificationCount = 2; break; // 2 اشعارات
+      case 1: notificationCount = 1; break; // 1 اشعار
+      case 2: notificationCount = 3; break; // 3 اشعارات
+    }
 
-      // إزالة الإشعار بعد 5 ثواني
+    // إنشاء الاشعارات
+    for (let i = 0; i < notificationCount; i++) {
       setTimeout(() => {
-        setNotifications(prev => prev.filter(n => n.id !== notification.id));
-      }, 5000);
-    };
+        const notification = createNotification();
+        setNotifications(prev => [...prev, notification]);
+        
+        // زيادة العداد وإشعار المكونات الأخرى
+        incrementTravelerCount();
+        onNotificationShow?.();
 
-    // عرض أول إشعار بعد 3 ثواني
-    const initialTimeout = setTimeout(showNotification, 3000);
+        // إزالة الإشعار بعد 5 ثواني
+        setTimeout(() => {
+          setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        }, 5000);
+      }, i * 800); // تأخير 800ms بين كل اشعار
+    }
 
-    // عرض إشعار جديد كل 8-15 ثانية
+    // الانتقال للدورة التالية
+    setNotificationCycle(prev => (prev + 1) % 3);
+  };
+
+  useEffect(() => {
+    // عرض أول مجموعة اشعارات بعد 3 ثواني
+    const initialTimeout = setTimeout(showNotificationBatch, 3000);
+
+    // عرض مجموعة اشعارات جديدة كل 12-18 ثانية
     const interval = setInterval(() => {
-      showNotification();
-    }, Math.random() * 7000 + 8000);
+      showNotificationBatch();
+    }, Math.random() * 6000 + 12000);
 
     return () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, []);
+  }, [notificationCycle]);
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));

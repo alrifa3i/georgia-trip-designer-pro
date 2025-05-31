@@ -5,6 +5,7 @@ import { BookingSearch } from "@/components/BookingSearch";
 import { AdminAccess } from "@/components/AdminAccess";
 import { VideoBackground } from "@/components/VideoBackground";
 import { FloatingNotifications } from "@/components/FloatingNotifications";
+import { TravelerCounter } from "@/components/TravelerCounter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Search, PlusCircle, ArrowRight, Settings } from "lucide-react";
@@ -15,7 +16,9 @@ const Index = () => {
   if (currentView === 'booking') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50">
-        <div className="container mx-auto px-4 py-8">
+        <VideoBackground />
+        <FloatingNotifications />
+        <div className="container mx-auto px-4 py-8 relative z-10">
           <div className="mb-6">
             <Button 
               variant="outline" 
@@ -35,7 +38,9 @@ const Index = () => {
   if (currentView === 'search') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50">
-        <div className="container mx-auto px-4 py-8">
+        <VideoBackground />
+        <FloatingNotifications />
+        <div className="container mx-auto px-4 py-8 relative z-10">
           <div className="mb-6">
             <Button 
               variant="outline" 
@@ -136,12 +141,8 @@ const Index = () => {
             </Card>
           </div>
 
-          {/* معلومات إضافية */}
-          <div className="text-center mt-12">
-            <p className="text-white/80 text-lg">
-              🌟 أكثر من 1000 مسافر سعيد اختار جورجيا معنا
-            </p>
-          </div>
+          {/* عداد المسافرين */}
+          <TravelerCounter />
         </div>
       </div>
 
