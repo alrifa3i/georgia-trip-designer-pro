@@ -1,4 +1,3 @@
-
 import { Hotel, Transport, TourLocation } from '@/types/booking';
 
 export const cities = [
@@ -53,43 +52,93 @@ export const hotelData: Record<string, Hotel[]> = {
   ]
 };
 
-export const transportData: Transport[] = [
-  { 
-    type: "سيدان", 
+export const transportData = [
+  {
+    type: 'سيدان',
+    capacity: '1-3',
     price: 90,
-    capacity: "1-3 أشخاص",
-    reception: { sameCity: 25, differentCity: 25 },
-    farewell: { sameCity: 25, differentCity: 90 }
+    reception: {
+      sameCity: 25,
+      differentCity: 25
+    },
+    farewell: {
+      sameCity: 25,
+      differentCity: 90
+    }
   },
-  { 
-    type: "ميني فان", 
+  {
+    type: 'ميني فان',
+    capacity: '4-6',
     price: 100,
-    capacity: "4-6 أشخاص",
-    reception: { sameCity: 40, differentCity: 40 },
-    farewell: { sameCity: 40, differentCity: 100 }
+    reception: {
+      sameCity: 45,
+      differentCity: 45
+    },
+    farewell: {
+      sameCity: 45,
+      differentCity: 100
+    }
   },
-  { 
-    type: "فان", 
+  {
+    type: 'فان',
+    capacity: '7-8',
     price: 120,
-    capacity: "7-8 أشخاص",
-    reception: { sameCity: 65, differentCity: 65 },
-    farewell: { sameCity: 65, differentCity: 110 }
+    reception: {
+      sameCity: 55,
+      differentCity: 55
+    },
+    farewell: {
+      sameCity: 55,
+      differentCity: 120
+    }
   },
-  { 
-    type: "سبرنتر", 
+  {
+    type: 'سبرنتر',
+    capacity: '9-14',
     price: 250,
-    capacity: "9-14 شخص",
-    reception: { sameCity: 120, differentCity: 120 },
-    farewell: { sameCity: 120, differentCity: 250 }
-  },
-  { 
-    type: "باص", 
-    price: 400,
-    capacity: "15+ شخص",
-    reception: { sameCity: 150, differentCity: 150 },
-    farewell: { sameCity: 150, differentCity: 200 }
+    reception: {
+      sameCity: 160,
+      differentCity: 160
+    },
+    farewell: {
+      sameCity: 160,
+      differentCity: 250
+    }
   }
 ];
+
+// دالة لحساب الجولات الإجبارية حسب المدينة ومطارات الوصول والمغادرة
+export const getMandatoryTours = (cityName: string, arrivalAirport: string, departureAirport: string): number => {
+  // تحويل أسماء المطارات إلى أسماء المدن
+  const getLocationFromAirport = (airport: string): string => {
+    if (airport.includes('تبليسي') || airport.includes('Tbilisi')) return 'تبليسي';
+    if (airport.includes('باتومي') || airport.includes('Batumi')) return 'باتومي';
+    if (airport.includes('كوتايسي') || airport.includes('Kutaisi')) return 'كوتايسي';
+    return '';
+  };
+
+  const arrivalCity = getLocationFromAirport(arrivalAirport);
+  const departureCity = getLocationFromAirport(departureAirport);
+
+  // قواعد خاصة لمدينة الوصول والمغادرة
+  if (cityName === arrivalCity) {
+    if (arrivalCity === 'تبليسي') return 0;
+    if (arrivalCity === 'باتومي') return 2;
+    if (arrivalCity === 'كوتايسي') return 2;
+  }
+
+  if (cityName === departureCity) {
+    if (departureCity === 'تبليسي') return 0;
+    if (departureCity === 'باتومي') return 2;
+    if (departureCity === 'كوتايسي') return 2;
+  }
+
+  // القواعد العامة للمدن
+  if (cityName === 'باتومي') return 2;
+  
+  // باقي المدن
+  return 1;
+};
 
 // Available tours based on accommodation location
 export const availableTours: Record<string, TourLocation[]> = {
