@@ -1,30 +1,69 @@
-import React, { useState, useEffect } from 'react';
+
+import { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { BookingData } from '@/types/booking';
-import { airports } from '@/data/hotels';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Plus, Minus } from 'lucide-react';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
+import { BookingData, Child } from '@/types/booking';
 import { currencies } from '@/data/currencies';
-import { Plus, Minus, User, Users, Calendar, Plane, Shield, CheckCircle, DollarSign, Clock, AlertTriangle } from 'lucide-react';
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
   updateData: (data: Partial<BookingData>) => void;
-  onValidationChange?: (isValid: boolean) => void;
+  onValidationChange: (isValid: boolean) => void;
 }
 
-export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, updateData, onValidationChange }) => {
-  const [dateError, setDateError] = useState('');
-  const [tripDays, setTripDays] = useState(0);
-  const [tripNights, setTripNights] = useState(0);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: BasicTravelInfoStepProps) => {
+  const [arrivalDate, setArrivalDate] = useState<Date>();
+  const [departureDate, setDepartureDate] = useState<Date>();
+
+  // تحويل التواريخ من string إلى Date عند التحميل
+  useEffect(() => {
+    if (data.arrivalDate) {
+      setArrivalDate(new Date(data.arrivalDate));
+    }
+    if (data.departureDate) {
+      setDepartureDate(new Date(data.departureDate));
+    }
+  }, []);
+
+  // التحقق من صحة البيانات
+  useEffect(() => {
+    const isValid = Boolean(
+      data.customerName.trim() &&
+      data.arrivalDate &&
+      data.departureDate &&
+      data.arrivalAirport &&
+      data.departureAirport &&
+      data.adults > 0 &&
+      data.rooms > 0 &&
+      data.budget > 0
+    );
+    
+    console.log('Basic info validation:', {
+      customerName: data.customerName.trim(),
+      arrivalDate: data.arrivalDate,
+      departureDate: data.departureDate,
+      arrivalAirport: data.arrivalAirport,
+      departureAirport: data.departureAirport,
+      adults: data.adults,
+      rooms: data.rooms,
+      budget: data.budget,
+      isValid
+    });
+    
+    onValidationChange(isValid);
+  }, [data, onValidationChange]);
 
   const addChild = () => {
-    updateData({
-      children: [...data.children, { age: 0 }]
-    });
+    const newChild: Child = { age: 5 };
+    updateData({ children: [...data.children, newChild] });
   };
 
   const removeChild = (index: number) => {
@@ -33,376 +72,266 @@ export const BasicTravelInfoStep: React.FC<BasicTravelInfoStepProps> = ({ data, 
   };
 
   const updateChildAge = (index: number, age: number) => {
-    const newChildren = [...data.children];
-    newChildren[index] = { age };
+    const newChildren = data.children.map((child, i) => 
+      i === index ? { ...child, age } : child
+    );
     updateData({ children: newChildren });
   };
 
-  const calculateTripDuration = () => {
-    if (data.arrivalDate && data.departureDate) {
-      const arrival = new Date(data.arrivalDate);
-      const departure = new Date(data.departureDate);
-      const diffInTime = departure.getTime() - arrival.getTime();
-      const days = Math.floor(diffInTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
-      const nights = days - 1;
-      
-      setTripDays(days);
-      setTripNights(Math.max(0, nights));
-      
-      if (days < 3) {
-        setDateError('الحد الأدنى للإقامة 3 أيام لضمان أفضل تجربة');
-        return false;
-      } else {
-        setDateError('');
-        return true;
-      }
+  const handleArrivalDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setArrivalDate(date);
+      updateData({ arrivalDate: format(date, 'yyyy-MM-dd') });
     }
-    return true;
   };
 
-  const validateForm = () => {
-    const errors: string[] = [];
-    
-    if (!data.arrivalDate) {
-      errors.push('تاريخ الوصول مطلوب');
+  const handleDepartureDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setDepartureDate(date);
+      updateData({ departureDate: format(date, 'yyyy-MM-dd') });
     }
-    
-    if (!data.departureDate) {
-      errors.push('تاريخ المغادرة مطلوب');
-    }
-    
-    if (!data.arrivalAirport) {
-      errors.push('مطار الوصول مطلوب');
-    }
-    
-    if (!data.departureAirport) {
-      errors.push('مطار المغادرة مطلوب');
-    }
-    
-    if (!data.budget || data.budget <= 0) {
-      errors.push('الميزانية مطلوبة ويجب أن تكون أكبر من صفر');
-    }
-    
-    if (dateError) {
-      errors.push(dateError);
-    }
-    
-    setValidationErrors(errors);
-    const isValid = errors.length === 0;
-    
-    if (onValidationChange) {
-      onValidationChange(isValid);
-    }
-    return isValid;
   };
-
-  useEffect(() => {
-    calculateTripDuration();
-    validateForm();
-    // Set USD as default currency if not already set
-    if (!data.currency) {
-      updateData({ currency: 'USD' });
-    }
-  }, [data.arrivalDate, data.departureDate, data.arrivalAirport, data.departureAirport, data.budget]);
-
-  const selectedCurrency = currencies.find(c => c.code === data.currency);
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
+    <div className="space-y-8">
+      <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">معلومات السفر الأساسية</h2>
-        <p className="text-gray-600">معلومات بسيطة لبدء تصميم رحلتك المثالية</p>
+        <p className="text-gray-600">أدخل التفاصيل الأساسية لرحلتك</p>
       </div>
 
-      {/* Validation Errors */}
-      {validationErrors.length > 0 && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <div className="space-y-1">
-              <p className="font-medium">الرجاء إكمال البيانات التالية:</p>
-              <ul className="text-sm space-y-1">
-                {validationErrors.map((error, index) => (
-                  <li key={index}>• {error}</li>
-                ))}
-              </ul>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* معلومات المسافر */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4 text-emerald-600">معلومات المسافر الرئيسي</h3>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="customerName">الاسم الكامل *</Label>
+              <Input
+                id="customerName"
+                type="text"
+                value={data.customerName}
+                onChange={(e) => updateData({ customerName: e.target.value })}
+                placeholder="أدخل اسمك الكامل"
+                className="mt-1"
+              />
             </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Security Notice */}
-      <div className="bg-emerald-50 p-6 rounded-xl border-2 border-emerald-200 shadow-lg">
-        <div className="flex items-center gap-3 mb-3">
-          <Shield className="w-6 h-6 text-emerald-600" />
-          <span className="font-bold text-emerald-800 text-lg">لا يوجد دفع عبر الموقع</span>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-600" />
-            <span className="text-emerald-700 text-sm font-medium">الدفع فقط عند الوصول واستلام الغرفة بالدولار الأمريكي</span>
+            
+            <div>
+              <Label htmlFor="phoneNumber">رقم الهاتف</Label>
+              <Input
+                id="phoneNumber"
+                type="tel"
+                value={data.phoneNumber || ''}
+                onChange={(e) => updateData({ phoneNumber: e.target.value })}
+                placeholder="مثال: +966501234567"
+                className="mt-1"
+                dir="ltr"
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-600" />
-            <span className="text-emerald-700 text-sm font-medium">خصوصية معلوماتك مضمونة</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-600" />
-            <span className="text-emerald-700 text-sm font-medium">العملات المختلفة لحساب التكلفة فقط - الدفع بالدولار الأمريكي</span>
-          </div>
-        </div>
-      </div>
+        </Card>
 
-      {/* Travel Dates and Airports */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="arrivalDate" className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            تاريخ الوصول *
-          </Label>
-          <Input
-            id="arrivalDate"
-            type="date"
-            value={data.arrivalDate}
-            onChange={(e) => updateData({ arrivalDate: e.target.value })}
-            required
-          />
-        </div>
+        {/* عدد المسافرين */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4 text-emerald-600">عدد المسافرين</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label>البالغين *</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateData({ adults: Math.max(1, data.adults - 1) })}
+                  disabled={data.adults <= 1}
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <span className="w-8 text-center font-semibold">{data.adults}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateData({ adults: data.adults + 1 })}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
 
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <Plane className="w-4 h-4" />
-            مطار الوصول *
-          </Label>
-          <Select
-            value={data.arrivalAirport}
-            onValueChange={(value) => updateData({ arrivalAirport: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="اختر مطار الوصول" />
-            </SelectTrigger>
-            <SelectContent>
-              {airports.map((airport) => (
-                <SelectItem key={airport} value={airport}>
-                  {airport}
-                </SelectItem>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>الأطفال</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addChild}>
+                  إضافة طفل
+                </Button>
+              </div>
+              {data.children.map((child, index) => (
+                <div key={index} className="flex items-center gap-2 mt-2">
+                  <Input
+                    type="number"
+                    value={child.age}
+                    onChange={(e) => updateChildAge(index, parseInt(e.target.value) || 0)}
+                    placeholder="العمر"
+                    min="0"
+                    max="17"
+                    className="w-20"
+                  />
+                  <span className="text-sm text-gray-600">سنة</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeChild(index)}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                </div>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="departureDate" className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            تاريخ المغادرة *
-          </Label>
-          <Input
-            id="departureDate"
-            type="date"
-            value={data.departureDate}
-            onChange={(e) => updateData({ departureDate: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <Plane className="w-4 h-4" />
-            مطار المغادرة *
-          </Label>
-          <Select
-            value={data.departureAirport}
-            onValueChange={(value) => updateData({ departureAirport: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="اختر مطار المغادرة" />
-            </SelectTrigger>
-            <SelectContent>
-              {airports.map((airport) => (
-                <SelectItem key={airport} value={airport}>
-                  {airport}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Trip Duration Display */}
-      {data.arrivalDate && data.departureDate && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-6 h-6 text-blue-600" />
-            <span className="font-bold text-blue-800 text-lg">مدة الرحلة</span>
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-800">{tripDays}</div>
-              <div className="text-blue-600 font-medium">أيام</div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-800">{tripNights}</div>
-              <div className="text-blue-600 font-medium">ليالي</div>
+
+            <div className="flex items-center justify-between">
+              <Label>عدد الغرف *</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateData({ rooms: Math.max(1, data.rooms - 1) })}
+                  disabled={data.rooms <= 1}
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <span className="w-8 text-center font-semibold">{data.rooms}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateData({ rooms: data.rooms + 1 })}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        </Card>
 
-      {/* Date Validation Alert */}
-      {dateError && (
-        <Alert variant="destructive">
-          <Calendar className="h-4 w-4" />
-          <AlertDescription>{dateError}</AlertDescription>
-        </Alert>
-      )}
+        {/* تواريخ السفر */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4 text-emerald-600">تواريخ السفر</h3>
+          <div className="space-y-4">
+            <div>
+              <Label>تاريخ الوصول *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-right mt-1">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {arrivalDate ? format(arrivalDate, 'PPP', { locale: ar }) : "اختر تاريخ الوصول"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={arrivalDate}
+                    onSelect={handleArrivalDateSelect}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-      {/* People Count */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            عدد البالغين *
-          </Label>
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => updateData({ adults: Math.max(1, data.adults - 1) })}
-              disabled={data.adults <= 1}
-            >
-              <Minus className="w-4 h-4" />
-            </Button>
-            <span className="w-12 text-center font-semibold text-lg">{data.adults}</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => updateData({ adults: data.adults + 1 })}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
+            <div>
+              <Label>تاريخ المغادرة *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-right mt-1">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {departureDate ? format(departureDate, 'PPP', { locale: ar }) : "اختر تاريخ المغادرة"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={departureDate}
+                    onSelect={handleDepartureDateSelect}
+                    disabled={(date) => date < (arrivalDate || new Date())}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              الأطفال
-            </Label>
-            <Button type="button" onClick={addChild} variant="outline" size="sm">
-              <Plus className="w-4 h-4 ml-2" />
-              إضافة طفل
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Children Section */}
-      {data.children.length > 0 && (
-        <div className="space-y-4">
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h4 className="font-medium text-blue-800 mb-2">سياسة الأطفال:</h4>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• الأطفال أقل من 6 سنوات لا يحتاجون سرير منفصل</li>
-              <li>• يُسمح بطفلين كحد أقصى (أقل من 6 سنوات) في الغرفة الواحدة</li>
-            </ul>
-          </div>
-          
-          {data.children.map((child, index) => (
-            <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-              <Label>الطفل {index + 1} - العمر:</Label>
-              <Select
-                value={child.age.toString()}
-                onValueChange={(value) => updateChildAge(index, parseInt(value))}
-              >
-                <SelectTrigger className="w-20">
-                  <SelectValue />
+        {/* المطارات */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4 text-emerald-600">المطارات</h3>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="arrivalAirport">مطار الوصول *</Label>
+              <Select value={data.arrivalAirport} onValueChange={(value) => updateData({ arrivalAirport: value })}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="اختر مطار الوصول" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 18 }, (_, i) => (
-                    <SelectItem key={i} value={i.toString()}>
-                      {i}
+                  <SelectItem value="tbilisi">مطار تبليسي الدولي</SelectItem>
+                  <SelectItem value="batumi">مطار باتومي الدولي</SelectItem>
+                  <SelectItem value="kutaisi">مطار كوتايسي الدولي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="departureAirport">مطار المغادرة *</Label>
+              <Select value={data.departureAirport} onValueChange={(value) => updateData({ departureAirport: value })}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="اختر مطار المغادرة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tbilisi">مطار تبليسي الدولي</SelectItem>
+                  <SelectItem value="batumi">مطار باتومي الدولي</SelectItem>
+                  <SelectItem value="kutaisi">مطار كوتايسي الدولي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Card>
+
+        {/* الميزانية */}
+        <Card className="p-6 md:col-span-2">
+          <h3 className="text-lg font-semibold mb-4 text-emerald-600">الميزانية</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label htmlFor="budget">الميزانية المتوقعة *</Label>
+              <Input
+                id="budget"
+                type="number"
+                value={data.budget || ''}
+                onChange={(e) => updateData({ budget: parseFloat(e.target.value) || 0 })}
+                placeholder="أدخل الميزانية"
+                min="0"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="currency">العملة</Label>
+              <Select value={data.currency} onValueChange={(value) => updateData({ currency: value })}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="اختر العملة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      {currency.name} ({currency.symbol})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {child.age <= 6 && (
-                <span className="text-sm text-green-600 font-medium">
-                  (لا يحتاج سرير منفصل)
-                </span>
-              )}
-              {child.age > 6 && (
-                <span className="text-sm text-orange-600 font-medium">
-                  (سيتم اضافة سرير)
-                </span>
-              )}
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={() => removeChild(index)}
-              >
-                <Minus className="w-4 h-4" />
-              </Button>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Budget Section - Enhanced with Multiple Currencies */}
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
-        <h3 className="font-bold text-purple-800 text-lg mb-4 flex items-center gap-2">
-          <DollarSign className="w-5 h-5" />
-          الميزانية المناسبة لك *
-        </h3>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>الميزانية المطلوبة *</Label>
-            <Input
-              type="number"
-              placeholder="أدخل ميزانيتك"
-              value={data.budget || ''}
-              onChange={(e) => updateData({ budget: parseFloat(e.target.value) || 0 })}
-              required
-              min="0"
-            />
           </div>
-          <div className="space-y-2">
-            <Label>العملة للحساب (الدفع بالدولار الأمريكي)</Label>
-            <Select
-              value={data.currency || 'USD'}
-              onValueChange={(value) => updateData({ currency: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {currencies.map((currency) => (
-                  <SelectItem key={currency.code} value={currency.code}>
-                    {currency.symbol} - {currency.nameAr}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        {data.budget > 0 && selectedCurrency && (
-          <div className="mt-3 p-3 bg-purple-100 rounded-lg">
-            <p className="text-purple-700 text-sm">
-              ميزانيتك: <span className="font-bold">{data.budget} {selectedCurrency.symbol}</span>
-              {selectedCurrency.code !== 'USD' && (
-                <span className="text-purple-600 text-xs mr-2">
-                  (≈ ${Math.round(data.budget / selectedCurrency.exchangeRate)} USD)
-                </span>
-              )}
-            </p>
-            <p className="text-purple-600 text-xs mt-1">
-              الدفع سيتم بالدولار الأمريكي عند الوصول إلى جورجيا
-            </p>
-          </div>
-        )}
+        </Card>
       </div>
     </div>
   );

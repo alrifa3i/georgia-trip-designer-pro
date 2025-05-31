@@ -1,20 +1,11 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card } from '@/components/ui/card';
+import { CheckCircle, Loader2, Copy, Check } from 'lucide-react';
 import { BookingData } from '@/types/booking';
-import { currencies } from '@/data/currencies';
-import { CheckCircle, Upload, Phone, User, Clock, Shield, IdCard, MessageCircle, Plus, Minus, AlertTriangle, QrCode, Download } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { PhoneInput, countries } from '@/components/ui/phone-input';
-import { 
-  getReversedLastFourDigits, 
-  verifyCode, 
-  createCompanyWhatsAppLink 
-} from '@/utils/verification';
+import { useBookings } from '@/hooks/useBookings';
+import { useToast } from '@/hooks/use-toast';
 
 interface FinalConfirmationStepProps {
   data: BookingData;
@@ -22,816 +13,180 @@ interface FinalConfirmationStepProps {
 }
 
 export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationStepProps) => {
-  const [passportName, setPassportName] = useState('');
-  const [receptionName, setReceptionName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState('SA'); // السعودية افتراضياً
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isCodeSent, setIsCodeSent] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
-  const [passportFiles, setPassportFiles] = useState<File[]>([]);
-  const [ticketFiles, setTicketFiles] = useState<File[]>([]);
-  const [showReferenceNumber, setShowReferenceNumber] = useState(false);
-  const [referenceNumber, setReferenceNumber] = useState('');
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [isConfirmed, setIsConfirmed] = useState(false);
+  const [referenceNumber, setReferenceNumber] = useState<string>('');
+  const [copied, setCopied] = useState(false);
+  const { saveBooking, loading } = useBookings();
+  const { toast } = useToast();
 
-  const selectedCurrency = currencies.find(c => c.code === data.currency);
-  const totalPeople = data.adults + data.children.length;
-
-  const generateReferenceNumber = () => {
-    return Math.random().toString().slice(2, 14).padStart(12, '0');
-  };
-
-  const getFullPhoneNumber = () => {
-    const country = countries.find(c => c.code === selectedCountry);
-    return `${country?.dialCode}${phoneNumber}`;
-  };
-
-  // Validate phone number based on country
-  const validatePhoneNumber = (phone: string, countryCode: string) => {
-    const country = countries.find(c => c.code === countryCode);
-    if (!country) return false;
-    
-    // Remove any spaces or special characters
-    const cleanPhone = phone.replace(/\s+/g, '').replace(/[^\d]/g, '');
-    
-    // Basic validation - check if phone number has reasonable length
-    if (cleanPhone.length < 7 || cleanPhone.length > 15) return false;
-    
-    // Country specific validations
-    switch (countryCode) {
-      case 'SA': // Saudi Arabia
-        return cleanPhone.length === 9 && cleanPhone.startsWith('5');
-      case 'AE': // UAE
-        return cleanPhone.length === 9 && cleanPhone.startsWith('5');
-      case 'KW': // Kuwait
-        return cleanPhone.length === 8;
-      case 'QA': // Qatar
-        return cleanPhone.length === 8;
-      case 'BH': // Bahrain
-        return cleanPhone.length === 8;
-      case 'OM': // Oman
-        return cleanPhone.length === 8;
-      case 'JO': // Jordan
-        return cleanPhone.length === 9 && cleanPhone.startsWith('7');
-      case 'EG': // Egypt
-        return cleanPhone.length === 10 && cleanPhone.startsWith('1');
-      case 'LB': // Lebanon
-        return cleanPhone.length === 8;
-      case 'SY': // Syria
-        return cleanPhone.length === 9;
-      case 'IQ': // Iraq
-        return cleanPhone.length === 10;
-      case 'YE': // Yemen
-        return cleanPhone.length === 9;
-      case 'LY': // Libya
-        return cleanPhone.length === 10;
-      case 'TN': // Tunisia
-        return cleanPhone.length === 8;
-      case 'DZ': // Algeria
-        return cleanPhone.length === 9;
-      case 'MA': // Morocco
-        return cleanPhone.length === 9;
-      default:
-        return cleanPhone.length >= 7 && cleanPhone.length <= 15;
-    }
-  };
-
-  const generateBookingDetails = () => {
-    const roomTypes = data.roomTypes?.join(', ') || 'غير محدد';
-    const hotelNames = data.selectedCities.map(city => city.hotel).join(', ') || 'غير محدد';
-    const cityNames = data.selectedCities.map(city => city.city).join(', ') || 'غير محدد';
-    
-    // Calculate additional services costs
-    let additionalServicesCost = 0;
-    const servicesList: string[] = [];
-    
-    if (data.additionalServices?.travelInsurance?.enabled) {
-      const duration = data.arrivalDate && data.departureDate ? 
-        Math.ceil((new Date(data.departureDate).getTime() - new Date(data.arrivalDate).getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0;
-      const cost = (data.additionalServices.travelInsurance.persons || 0) * 15 * duration;
-      additionalServicesCost += cost;
-      servicesList.push(`تأمين السفر: ${cost}$`);
-    }
-    
-    if (data.additionalServices?.phoneLines?.enabled) {
-      const cost = (data.additionalServices.phoneLines.quantity || 0) * 25;
-      additionalServicesCost += cost;
-      servicesList.push(`خطوط الاتصال: ${cost}$`);
-    }
-    
-    if (data.additionalServices?.airportReception?.enabled) {
-      const cost = (data.additionalServices.airportReception.persons || 0) * 50;
-      additionalServicesCost += cost;
-      servicesList.push(`استقبال VIP: ${cost}$`);
-    }
-    
-    if (data.additionalServices?.roomDecoration?.enabled) {
-      additionalServicesCost += 75;
-      servicesList.push(`تزيين الغرف: 75$`);
-    }
-    
-    if (data.additionalServices?.flowerReception?.enabled) {
-      additionalServicesCost += 50;
-      servicesList.push(`الاستقبال بالورود: 50$`);
-    }
-    
-    if (data.additionalServices?.photoSession?.enabled) {
-      additionalServicesCost += 200;
-      servicesList.push(`جلسة تصوير: 200$`);
-    }
-    
-    return `
-حجز رحلة جورجيا - الرقم المرجعي: ${referenceNumber}
-
-📋 تفاصيل الحجز:
-• اسم العميل: ${passportName}
-• اسم الاستقبال: ${receptionName}
-• رقم الواتساب: ${getFullPhoneNumber()}
-• عدد البالغين: ${data.adults}
-• عدد الأطفال: ${data.children.length}
-• تاريخ الوصول: ${data.arrivalDate}
-• تاريخ المغادرة: ${data.departureDate}
-• مطار الوصول: ${data.arrivalAirport}
-• مطار المغادرة: ${data.departureAirport}
-
-🏨 الإقامة:
-• عدد الغرف: ${data.rooms}
-• نوع الغرف: ${roomTypes}
-• أسماء الفنادق: ${hotelNames}
-• عدد المدن: ${data.selectedCities.length}
-• أسماء المدن: ${cityNames}
-
-🚗 النقل:
-• نوع السيارة: ${data.carType}
-
-${servicesList.length > 0 ? `🎯 الخدمات الإضافية:
-${servicesList.map(service => `• ${service}`).join('\n')}
-• تكلفة الخدمات الإضافية: ${additionalServicesCost}$
-` : ''}
-
-💰 التكلفة النهائية:
-• تكلفة الباقة الأساسية: ${(data.totalCost || 0) - additionalServicesCost} ${selectedCurrency?.symbol}
-• تكلفة الخدمات الإضافية: ${additionalServicesCost}$
-• التكلفة الإجمالية: ${data.totalCost} ${selectedCurrency?.symbol}
-• العملة: ${data.currency}
-
-📞 للاستفسار: +995514000668
-🎫 رقم الحجز: ${referenceNumber}
-📅 تاريخ الحجز: ${new Date().toLocaleDateString('ar-SA')}
-    `.trim();
-  };
-
-  const generateQRCode = async () => {
+  const handleConfirmBooking = async () => {
     try {
-      // Dynamically import QRCode to avoid build issues
-      const QRCode = await import('qrcode');
-      // استخدام تفاصيل الحجز الكاملة بدلاً من الرقم المرجعي فقط
-      const bookingDetails = generateBookingDetails();
-      const qrDataUrl = await QRCode.toDataURL(bookingDetails, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#059669', // emerald-600
-          light: '#FFFFFF'
-        }
-      });
-      setQrCodeUrl(qrDataUrl);
+      const result = await saveBooking(data);
+      if (result.success) {
+        setIsConfirmed(true);
+        setReferenceNumber(result.referenceNumber || '');
+        updateData({ referenceNumber: result.referenceNumber });
+      }
     } catch (error) {
-      console.error('Error generating QR code:', error);
+      console.error('Error confirming booking:', error);
     }
   };
 
-  useEffect(() => {
-    if (showReferenceNumber && referenceNumber && passportName) {
-      generateQRCode();
-    }
-  }, [showReferenceNumber, referenceNumber, passportName, data]);
-
-  const sendVerificationCode = () => {
-    if (!phoneNumber.trim()) {
+  const copyReferenceNumber = async () => {
+    try {
+      await navigator.clipboard.writeText(referenceNumber);
+      setCopied(true);
       toast({
-        title: "خطأ",
-        description: "يرجى إدخال رقم الهاتف",
-        variant: "destructive"
+        title: "تم النسخ! 📋",
+        description: "تم نسخ الرقم المرجعي بنجاح",
       });
-      return;
-    }
-
-    if (!validatePhoneNumber(phoneNumber, selectedCountry)) {
-      const country = countries.find(c => c.code === selectedCountry);
-      toast({
-        title: "رقم هاتف غير صحيح",
-        description: `يرجى إدخال رقم هاتف صحيح لـ ${country?.name}`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const fullPhoneNumber = getFullPhoneNumber();
-    
-    // إنشاء رابط الواتساب للشركة
-    const whatsappLink = createCompanyWhatsAppLink(fullPhoneNumber);
-    
-    // فتح رابط الواتساب
-    window.open(whatsappLink, '_blank');
-    
-    setIsCodeSent(true);
-    toast({
-      title: "تم الإرسال",
-      description: "تم إرسال طلب التحقق إلى الشركة عبر الواتساب"
-    });
-  };
-
-  const handleVerifyCode = () => {
-    const fullPhoneNumber = getFullPhoneNumber();
-    
-    if (verifyCode(verificationCode, fullPhoneNumber)) {
-      setIsVerified(true);
-      toast({
-        title: "تم التحقق بنجاح! ✅",
-        description: "تم تأكيد رقم الهاتف"
-      });
-    } else {
-      toast({
-        title: "كود خاطئ",
-        description: "يرجى إدخال الكود الصحيح الظاهر في رسالة الواتساب",
-        variant: "destructive"
-      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
     }
   };
 
-  const handlePassportUpload = (index: number, file: File | null) => {
-    const newFiles = [...passportFiles];
-    if (file) {
-      newFiles[index] = file;
-    } else {
-      newFiles.splice(index, 1);
-    }
-    setPassportFiles(newFiles);
-  };
-
-  const handleTicketUpload = (index: number, file: File | null) => {
-    const newFiles = [...ticketFiles];
-    if (file) {
-      newFiles[index] = file;
-    } else {
-      newFiles.splice(index, 1);
-    }
-    setTicketFiles(newFiles);
-  };
-
-  const addPassportSlot = () => {
-    if (passportFiles.length < totalPeople) {
-      setPassportFiles([...passportFiles, new File([], '')]);
-    }
-  };
-
-  const addTicketSlot = () => {
-    if (ticketFiles.length < 2) {
-      setTicketFiles([...ticketFiles, new File([], '')]);
-    }
-  };
-
-  const confirmBooking = () => {
-    if (!passportName.trim()) {
-      toast({
-        title: "مطلوب",
-        description: "يرجى إدخال الاسم كما في جواز السفر",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!receptionName.trim()) {
-      toast({
-        title: "مطلوب",
-        description: "يرجى إدخال الاسم كما سيظهر في لوحة الاستقبال",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!phoneNumber.trim()) {
-      toast({
-        title: "مطلوب",
-        description: "يرجى إدخال رقم الواتساب",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!validatePhoneNumber(phoneNumber, selectedCountry)) {
-      const country = countries.find(c => c.code === selectedCountry);
-      toast({
-        title: "رقم هاتف غير صحيح",
-        description: `يرجى إدخال رقم هاتف صحيح لـ ${country?.name}`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!isVerified) {
-      toast({
-        title: "مطلوب التحقق",
-        description: "يرجى التحقق من رقم الهاتف أولاً",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (passportFiles.length === 0 || !passportFiles[0] || passportFiles[0].size === 0) {
-      toast({
-        title: "مطلوب",
-        description: "يرجى رفع جواز السفر الأول على الأقل",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (ticketFiles.length === 0 || !ticketFiles[0] || ticketFiles[0].size === 0) {
-      toast({
-        title: "مطلوب",
-        description: "يرجى رفع تذكرة السفر",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Generate reference number
-    const refNumber = generateReferenceNumber();
-    setReferenceNumber(refNumber);
-    setShowReferenceNumber(true);
-
-    // Update booking data
-    updateData({ 
-      customerName: passportName,
-      referenceNumber: refNumber
-    });
-
-    toast({
-      title: "تم تأكيد الحجز بنجاح! 🎉",
-      description: `رقمك المرجعي: ${refNumber}`
-    });
-  };
-
-  const sendToWhatsApp = () => {
-    const bookingDetails = generateBookingDetails();
-    const message = `${bookingDetails}\n\nالسلام عليكم لقد قمت بحجز مبدئي على اداة تصميم الحجز الرجاء تأكيد الحجز و بانتظار الحجوزات`;
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=995514000668&text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
-  const downloadQRCode = () => {
-    if (qrCodeUrl) {
-      const link = document.createElement('a');
-      link.download = `booking-${referenceNumber}.png`;
-      link.href = qrCodeUrl;
-      link.click();
-      
-      toast({
-        title: "تم التحميل",
-        description: "تم حفظ QR Code الحجز بنجاح"
-      });
-    }
-  };
-
-  const shareQRCode = async () => {
-    const bookingDetails = generateBookingDetails();
-    
-    if (navigator.share) {
-      // Convert QR code to blob for sharing
-      const response = await fetch(qrCodeUrl);
-      const blob = await response.blob();
-      const file = new File([blob], `booking-qr-${referenceNumber}.png`, { type: 'image/png' });
-      
-      await navigator.share({
-        title: 'QR Code - حجز رحلة جورجيا',
-        text: bookingDetails,
-        files: [file]
-      });
-    } else {
-      // Fallback for browsers that don't support Web Share API
-      downloadQRCode();
-    }
-  };
-
-  const shareBookingDetails = async () => {
-    const bookingDetails = generateBookingDetails();
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'تفاصيل حجز رحلة جورجيا',
-          text: bookingDetails,
-        });
-      } catch (error) {
-        console.log('Error sharing:', error);
-        // Fallback to copying to clipboard
-        await navigator.clipboard.writeText(bookingDetails);
-        toast({
-          title: "تم النسخ",
-          description: "تم نسخ تفاصيل الحجز إلى الحافظة"
-        });
-      }
-    } else {
-      // Fallback for browsers that don't support Web Share API
-      try {
-        await navigator.clipboard.writeText(bookingDetails);
-        toast({
-          title: "تم النسخ",
-          description: "تم نسخ تفاصيل الحجز إلى الحافظة"
-        });
-      } catch (error) {
-        console.log('Clipboard not supported');
-        // Open WhatsApp as final fallback
-        sendToWhatsApp();
-      }
-    }
-  };
-
-  if (showReferenceNumber) {
+  if (isConfirmed) {
     return (
-      <div className="space-y-6 text-center">
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-8 rounded-xl border-2 border-green-200">
-          <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-green-800 mb-6">تم تأكيد الحجز بنجاح! 🎉</h2>
-          
-          {/* QR Code Section */}
-          <div className="mb-6">
-            <div className="bg-white p-6 rounded-lg border-2 border-green-300 max-w-sm mx-auto">
-              <p className="text-gray-700 text-lg mb-4">QR Code - تفاصيل الحجز الكاملة</p>
-              {qrCodeUrl && (
-                <div className="space-y-3">
-                  <img src={qrCodeUrl} alt="QR Code للحجز" className="mx-auto" />
-                  <div className="flex gap-2 justify-center">
-                    <Button
-                      onClick={downloadQRCode}
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      <Download className="w-4 h-4 ml-2" />
-                      حفظ كصورة
-                    </Button>
-                    <Button
-                      onClick={shareQRCode}
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      <Plus className="w-4 h-4 ml-2" />
-                      مشاركة الكود
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Reference Number in Center */}
-          <div className="bg-white p-8 rounded-xl border-2 border-green-400 shadow-lg mb-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">الرقم المرجعي للحجز</h3>
-            <div className="text-5xl font-bold text-green-600 tracking-widest">{referenceNumber}</div>
-            <p className="text-green-700 mt-4">احفظ هذا الرقم للمراجعة</p>
-          </div>
-          
-          <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
-            <div className="flex items-center gap-2 justify-center mb-2">
-              <QrCode className="w-5 h-5 text-blue-600" />
-              <p className="text-blue-800 font-semibold">نصيحة مهمة</p>
-            </div>
-            <p className="text-blue-700 text-sm">
-              QR Code يحتوي على جميع تفاصيل حجزك الكاملة مع الأسعار المحفوظة والخدمات المطلوبة
-            </p>
-          </div>
-          
-          <div className="flex gap-4 justify-center">
-            <Button
-              onClick={sendToWhatsApp}
-              size="lg"
-              className="bg-green-600 hover:bg-green-700 px-8 py-3 text-lg font-bold"
-            >
-              <MessageCircle className="w-5 h-5 ml-2" />
-              إرسال للواتساب
-            </Button>
-            
-            <Button
-              onClick={shareBookingDetails}
-              size="lg"
-              variant="outline"
-              className="px-8 py-3 text-lg font-bold border-2 border-green-600 text-green-600 hover:bg-green-50"
-            >
-              <Plus className="w-5 h-5 ml-2" />
-              مشاركة التفاصيل
-            </Button>
-          </div>
+      <div className="text-center space-y-6">
+        <div className="flex justify-center">
+          <CheckCircle className="w-20 h-20 text-green-500" />
         </div>
         
-        <Alert>
-          <Clock className="h-4 w-4" />
-          <AlertDescription>
-            سيتم التواصل معك خلال 24 ساعة عمل لتأكيد التفاصيل النهائية
-          </AlertDescription>
-        </Alert>
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold text-green-600">
+            🎉 تم تأكيد حجزك بنجاح!
+          </h2>
+          
+          <Card className="p-6 bg-green-50 border-green-200">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-green-800">
+                رقم الحجز المرجعي
+              </h3>
+              
+              <div className="flex items-center justify-center gap-3 bg-white p-4 rounded-lg border-2 border-green-300">
+                <span className="text-2xl font-bold text-green-700 tracking-wide">
+                  {referenceNumber}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyReferenceNumber}
+                  className="text-green-600 hover:text-green-700"
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              
+              <p className="text-sm text-green-700">
+                احتفظ بهذا الرقم لمراجعة حجزك لاحقاً
+              </p>
+            </div>
+          </Card>
+          
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h4 className="font-semibold text-blue-800 mb-2">الخطوات التالية:</h4>
+            <ul className="text-sm text-blue-700 space-y-1 text-right">
+              <li>• سيتم التواصل معك خلال 24 ساعة لتأكيد التفاصيل</li>
+              <li>• ستتلقى برنامجاً مفصلاً للرحلة</li>
+              <li>• سيتم إرسال تفاصيل الدفع والتأكيد النهائي</li>
+            </ul>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">التأكيد النهائي</h2>
-        <p className="text-gray-600">آخر خطوة لإتمام حجز رحلتك إلى جورجيا</p>
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          مراجعة نهائية وتأكيد الحجز
+        </h2>
+        <p className="text-gray-600">
+          يرجى مراجعة جميع التفاصيل قبل تأكيد الحجز
+        </p>
       </div>
 
-      {/* Final Booking Summary */}
-      <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-emerald-800">
-            <CheckCircle className="w-5 h-5" />
-            ملخص الحجز النهائي
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-4 text-sm">
-            <div className="space-y-2">
-              <p><strong>عدد المسافرين:</strong> {data.adults} بالغ، {data.children.length} طفل</p>
-              <p><strong>تاريخ السفر:</strong> {data.arrivalDate} إلى {data.departureDate}</p>
-              <p><strong>عدد الغرف:</strong> {data.rooms}</p>
-              <p><strong>مطار الوصول:</strong> {data.arrivalAirport}</p>
-            </div>
-            <div className="space-y-2">
-              <p><strong>مطار المغادرة:</strong> {data.departureAirport}</p>
-              <p><strong>نوع السيارة:</strong> {data.carType}</p>
-              <p><strong>عدد المدن:</strong> {data.selectedCities.length}</p>
-              <p className="text-xl font-bold text-emerald-600">
-                <strong>التكلفة الإجمالية:</strong> {data.totalCost} {selectedCurrency?.symbol}
-              </p>
-            </div>
+      {/* ملخص الحجز */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3 text-emerald-600">معلومات المسافر</h3>
+          <div className="space-y-2 text-sm">
+            <p><strong>الاسم:</strong> {data.customerName}</p>
+            <p><strong>البالغين:</strong> {data.adults}</p>
+            <p><strong>الأطفال:</strong> {data.children.length}</p>
+            <p><strong>الغرف:</strong> {data.rooms}</p>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
 
-      {/* Names Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IdCard className="w-5 h-5" />
-            بيانات الأسماء المطلوبة
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="passportName">الاسم كما في جواز السفر *</Label>
-            <Input
-              id="passportName"
-              value={passportName}
-              onChange={(e) => setPassportName(e.target.value)}
-              placeholder="أدخل الاسم بالضبط كما هو مكتوب في جواز السفر"
-              className="text-right"
-              required
-            />
-            <p className="text-xs text-gray-500">تأكد من كتابة الاسم بنفس طريقة كتابته في جواز السفر</p>
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3 text-emerald-600">تفاصيل السفر</h3>
+          <div className="space-y-2 text-sm">
+            <p><strong>تاريخ الوصول:</strong> {data.arrivalDate}</p>
+            <p><strong>تاريخ المغادرة:</strong> {data.departureDate}</p>
+            <p><strong>مطار الوصول:</strong> {data.arrivalAirport}</p>
+            <p><strong>مطار المغادرة:</strong> {data.departureAirport}</p>
           </div>
+        </Card>
 
-          <div className="space-y-2">
-            <Label htmlFor="receptionName">الاسم كما سيظهر في لوحة الاستقبال *</Label>
-            <Input
-              id="receptionName"
-              value={receptionName}
-              onChange={(e) => setReceptionName(e.target.value)}
-              placeholder="الاسم الذي تريده أن يظهر في لوحة استقبال المطار"
-              className="text-right"
-              required
-            />
-            <p className="text-xs text-gray-500">يمكن أن يكون مختلف عن اسم جواز السفر (مثل: اسم مختصر أو لقب)</p>
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3 text-emerald-600">المدن والسيارة</h3>
+          <div className="space-y-2 text-sm">
+            <p><strong>المدن:</strong> {data.selectedCities.join(', ') || 'لم يتم الاختيار'}</p>
+            <p><strong>نوع السيارة:</strong> {data.carType || 'لم يتم الاختيار'}</p>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
 
-      {/* Enhanced Phone Verification */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Phone className="w-5 h-5" />
-            رقم الواتساب للتواصل *
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <Label>رقم الواتساب مع رمز الدولة</Label>
-            <PhoneInput
-              value={phoneNumber}
-              onChange={setPhoneNumber}
-              selectedCountry={selectedCountry}
-              onCountryChange={setSelectedCountry}
-              placeholder="رقم الهاتف (بدون رمز الدولة)"
-              disabled={isVerified}
-            />
-            
-            {!validatePhoneNumber(phoneNumber, selectedCountry) && phoneNumber.length > 0 && (
-              <p className="text-sm text-red-600">
-                رقم الهاتف غير صحيح لـ {countries.find(c => c.code === selectedCountry)?.name}
-              </p>
-            )}
-            
-            <Button 
-              onClick={sendVerificationCode}
-              disabled={isCodeSent || isVerified || !phoneNumber.trim() || !validatePhoneNumber(phoneNumber, selectedCountry)}
-              variant="outline"
-              className="w-full"
-            >
-              إرسال طلب التحقق للشركة
-            </Button>
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3 text-emerald-600">التكلفة</h3>
+          <div className="space-y-2 text-sm">
+            <p><strong>الميزانية:</strong> {data.budget} {data.currency}</p>
+            <p><strong>التكلفة الإجمالية:</strong> {data.totalCost} {data.currency}</p>
           </div>
-          
-          {isCodeSent && !isVerified && (
-            <div className="space-y-3">
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="space-y-2">
-                    <p className="font-medium">تم تكوين الكود الخاص بك</p>
-                    <p className="text-sm">رقمك الكامل: <strong className="text-blue-600">{getFullPhoneNumber()}</strong></p>
-                    <p className="text-sm">الكود المطلوب: <strong className="text-green-600">{getReversedLastFourDigits(getFullPhoneNumber())}</strong></p>
-                  </div>
-                </AlertDescription>
-              </Alert>
-              
-              <div className="flex gap-2">
-                <Input
-                  placeholder="اكتب الكود الظاهر أعلى هذه الرسالة"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  maxLength={4}
-                />
-                <Button onClick={handleVerifyCode}>
-                  تحقق
-                </Button>
-              </div>
-            </div>
+        </Card>
+      </div>
+
+      {/* الخدمات الإضافية */}
+      <Card className="p-4">
+        <h3 className="font-semibold mb-3 text-emerald-600">الخدمات الإضافية</h3>
+        <div className="grid gap-2 text-sm">
+          {data.additionalServices.travelInsurance.enabled && (
+            <p>• التأمين الصحي: {data.additionalServices.travelInsurance.persons} أشخاص</p>
           )}
-          
-          {isVerified && (
-            <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
-              <CheckCircle className="w-4 h-4" />
-              <span>تم التحقق من رقم الواتساب بنجاح</span>
-            </div>
+          {data.additionalServices.phoneLines.enabled && (
+            <p>• خطوط الاتصال: {data.additionalServices.phoneLines.quantity} خط</p>
           )}
-        </CardContent>
+          {data.additionalServices.roomDecoration.enabled && (
+            <p>• تزيين الغرف</p>
+          )}
+          {data.additionalServices.airportReception.enabled && (
+            <p>• استقبال المطار VIP: {data.additionalServices.airportReception.persons} أشخاص</p>
+          )}
+          {data.additionalServices.photoSession.enabled && (
+            <p>• جلسة تصوير</p>
+          )}
+          {data.additionalServices.flowerReception.enabled && (
+            <p>• استقبال بالزهور</p>
+          )}
+        </div>
       </Card>
 
-      {/* Document Upload */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="w-5 h-5" />
-            رفع المستندات المطلوبة
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Passport Upload */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <Label>جوازات السفر (الأول مطلوب) *</Label>
-              <Button
-                onClick={addPassportSlot}
-                variant="outline"
-                size="sm"
-                disabled={passportFiles.length >= totalPeople}
-              >
-                <Plus className="w-4 h-4 ml-1" />
-                إضافة جواز
-              </Button>
-            </div>
-            
-            <div className="space-y-3">
-              {Array.from({ length: Math.max(1, passportFiles.length) }, (_, index) => (
-                <div key={index}>
-                  <Label htmlFor={`passport-${index}`}>
-                    جواز السفر {index + 1} {index === 0 ? '(مطلوب)' : '(اختياري)'}
-                  </Label>
-                  <Input
-                    id={`passport-${index}`}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handlePassportUpload(index, e.target.files?.[0] || null)}
-                    className="mt-1"
-                    required={index === 0}
-                  />
-                  {passportFiles[index] && passportFiles[index].size > 0 && (
-                    <p className="text-sm text-green-600 mt-1">
-                      ✅ تم رفع: {passportFiles[index].name}
-                    </p>
-                  )}
-                </div>
-              ))}
-              
-              {passportFiles.length < totalPeople && (
-                <p className="text-xs text-gray-500">
-                  يمكن رفع حتى {totalPeople} جواز سفر (عدد المسافرين)
-                </p>
-              )}
-            </div>
-          </div>
-          
-          {/* Ticket Upload */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <Label>تذاكر السفر (الأولى مطلوبة) *</Label>
-              <Button
-                onClick={addTicketSlot}
-                variant="outline"
-                size="sm"
-                disabled={ticketFiles.length >= 2}
-              >
-                <Plus className="w-4 h-4 ml-1" />
-                إضافة تذكرة
-              </Button>
-            </div>
-            
-            <div className="space-y-3">
-              {Array.from({ length: Math.max(1, ticketFiles.length) }, (_, index) => (
-                <div key={index}>
-                  <Label htmlFor={`ticket-${index}`}>
-                    تذكرة السفر {index + 1} {index === 0 ? '(مطلوبة)' : '(اختيارية)'}
-                  </Label>
-                  <Input
-                    id={`ticket-${index}`}
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={(e) => handleTicketUpload(index, e.target.files?.[0] || null)}
-                    className="mt-1"
-                    required={index === 0}
-                  />
-                  {ticketFiles[index] && ticketFiles[index].size > 0 && (
-                    <p className="text-sm text-green-600 mt-1">
-                      ✅ تم رفع: {ticketFiles[index].name}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Security and Payment Reminder */}
-      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-800">
-            <Shield className="w-5 h-5" />
-            معلومات الدفع والأمان
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 text-green-700">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" />
-              <span>الدفع يتم بعد الوصول إلى جورجيا نقداً</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" />
-              <span>إمكانية الإلغاء المجاني حتى 72 ساعة قبل السفر</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" />
-              <span>ضمان استرداد كامل في حالة عدم الحصول على الخدمة</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Final Confirmation */}
-      <Alert>
-        <Clock className="h-4 w-4" />
-        <AlertDescription>
-          <div className="space-y-2">
-            <p className="font-medium">معلومات مهمة:</p>
-            <ul className="text-sm space-y-1">
-              <li>• سيتم تأكيد الحجز خلال 24 ساعة عمل</li>
-              <li>• أيام السبت والأحد عطلة رسمية</li>
-              <li>• سيتم التواصل معك عبر الواتساب المحدد</li>
-              <li>• يمكن تعديل التفاصيل قبل التأكيد النهائي</li>
-            </ul>
-          </div>
-        </AlertDescription>
-      </Alert>
-
-      {/* Confirm Button */}
       <div className="text-center">
         <Button
-          onClick={confirmBooking}
-          size="lg"
-          className="bg-emerald-600 hover:bg-emerald-700 px-8 py-3 text-lg font-bold"
-          disabled={!isVerified || passportFiles.length === 0 || ticketFiles.length === 0 || !passportName.trim() || !receptionName.trim() || !validatePhoneNumber(phoneNumber, selectedCountry)}
+          onClick={handleConfirmBooking}
+          disabled={loading}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 text-lg"
         >
-          🎉 تأكيد الحجز النهائي 🎉
+          {loading ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              جاري حفظ الحجز...
+            </>
+          ) : (
+            'تأكيد الحجز نهائياً'
+          )}
         </Button>
-        <p className="text-xs text-gray-500 mt-2">
-          بالضغط على "تأكيد الحجز" فإنك توافق على شروط وأحكام الخدمة
-        </p>
       </div>
     </div>
   );

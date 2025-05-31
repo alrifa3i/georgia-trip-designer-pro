@@ -3,23 +3,6 @@ export interface Child {
   age: number;
 }
 
-export interface RoomSelection {
-  roomNumber: number;
-  roomType: string;
-}
-
-export interface CityStay {
-  city: string;
-  nights: number;
-  hotel: string;
-  tours: number;
-  mandatoryTours: number;
-  roomType?: string;
-  roomSelections?: RoomSelection[];
-  additionalTours?: number;
-  availableTours?: string[];
-}
-
 export interface AdditionalServices {
   travelInsurance: {
     enabled: boolean;
@@ -32,21 +15,23 @@ export interface AdditionalServices {
   roomDecoration: {
     enabled: boolean;
   };
-  flowerReception?: {
-    enabled: boolean;
-  };
   airportReception: {
     enabled: boolean;
     persons: number;
   };
-  photoSession?: {
+  photoSession: {
     enabled: boolean;
-    quantity?: number;
+  };
+  flowerReception: {
+    enabled: boolean;
   };
 }
 
 export interface BookingData {
+  id?: string;
+  referenceNumber?: string;
   customerName: string;
+  phoneNumber?: string;
   adults: number;
   children: Child[];
   arrivalDate: string;
@@ -58,45 +43,57 @@ export interface BookingData {
   currency: string;
   roomTypes: string[];
   carType: string;
-  selectedCities: CityStay[];
+  selectedCities: string[];
   totalCost: number;
   additionalServices: AdditionalServices;
   discountCoupon?: string;
   discountAmount?: number;
-  referenceNumber?: string;
-  passportFiles?: File[];
-  ticketFiles?: File[];
+  status?: string;
 }
 
-// Add missing types for data/hotels.ts
 export interface Hotel {
+  id: string;
   name: string;
-  single?: number;
-  single_v?: number;
-  dbl_wv: number;
-  dbl_v: number;
-  trbl_wv: number;
-  trbl_v: number;
+  city: string;
+  single_price: number;
+  single_view_price: number;
+  double_without_view_price: number;
+  double_view_price: number;
+  triple_without_view_price: number;
+  triple_view_price: number;
   rating: number;
-  distanceFromCenter: number;
+  distance_from_center: number;
+  amenities: string[];
+  is_active: boolean;
+}
+
+export interface City {
+  id: string;
+  name: string;
+  description: string;
+  available_tours: string[];
+  tour_prices: Record<string, number>;
+  is_active: boolean;
 }
 
 export interface Transport {
+  id: string;
   type: string;
-  price: number;
+  daily_price: number;
   capacity: string;
-  reception: {
-    sameCity: number;
-    differentCity: number;
-  };
-  farewell: {
-    sameCity: number;
-    differentCity: number;
-  };
+  reception_same_city_price: number;
+  reception_different_city_price: number;
+  farewell_same_city_price: number;
+  farewell_different_city_price: number;
+  is_active: boolean;
 }
 
-export interface TourLocation {
+export interface Service {
+  id: string;
   name: string;
-  price?: number;
+  type: string;
+  price: number;
+  unit: string;
   description: string;
+  is_active: boolean;
 }
