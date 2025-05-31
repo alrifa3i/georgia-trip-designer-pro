@@ -3,6 +3,22 @@ export interface Child {
   age: number;
 }
 
+export interface RoomSelection {
+  roomNumber: number;
+  roomType: string;
+}
+
+export interface CityStay {
+  city: string;
+  nights: number;
+  hotel: string;
+  tours: number;
+  mandatoryTours: number;
+  roomType?: string;
+  roomSelections?: RoomSelection[];
+  availableTours?: string[];
+}
+
 export interface AdditionalServices {
   travelInsurance: {
     enabled: boolean;
@@ -43,7 +59,7 @@ export interface BookingData {
   currency: string;
   roomTypes: string[];
   carType: string;
-  selectedCities: string[];
+  selectedCities: CityStay[];
   totalCost: number;
   additionalServices: AdditionalServices;
   discountCoupon?: string;
@@ -65,6 +81,13 @@ export interface Hotel {
   distance_from_center: number;
   amenities: string[];
   is_active: boolean;
+  // إضافة الخصائص المطلوبة للتوافق مع الكود الموجود
+  single?: number;
+  single_v?: number;
+  dbl_wv?: number;
+  dbl_v?: number;
+  trbl_wv?: number;
+  trbl_v?: number;
 }
 
 export interface City {

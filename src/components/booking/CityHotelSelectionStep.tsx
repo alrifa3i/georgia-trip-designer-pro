@@ -87,14 +87,14 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   // Sort hotels from cheapest to most expensive based on actual room prices
   const sortHotelsByPrice = (hotels: Hotel[]): Hotel[] => {
     return [...hotels].sort((a, b) => {
-      // Get the cheapest available room price for each hotel
+      // Get the cheapest available room price for each hotel using database field names
       const getPrices = (hotel: Hotel) => [
-        hotel.single,
-        hotel.single_v,
-        hotel.dbl_wv,
-        hotel.dbl_v,
-        hotel.trbl_wv,
-        hotel.trbl_v
+        hotel.single_price,
+        hotel.single_view_price,
+        hotel.double_without_view_price,
+        hotel.double_view_price,
+        hotel.triple_without_view_price,
+        hotel.triple_view_price
       ].filter(price => price !== undefined && price !== null && price > 0);
       
       const pricesA = getPrices(a);
@@ -316,32 +316,32 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                         <SelectValue placeholder="اختر نوع الغرفة" />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedHotel.single && (
+                        {selectedHotel.single_price && (
                           <SelectItem value="single">
                             غرفة مفردة
                           </SelectItem>
                         )}
-                        {selectedHotel.single_v && (
+                        {selectedHotel.single_view_price && (
                           <SelectItem value="single_v">
                             غرفة مفردة مع إطلالة
                           </SelectItem>
                         )}
-                        {selectedHotel.dbl_wv && (
+                        {selectedHotel.double_without_view_price && (
                           <SelectItem value="dbl_wv">
                             غرفة مزدوجة بدون إطلالة
                           </SelectItem>
                         )}
-                        {selectedHotel.dbl_v && (
+                        {selectedHotel.double_view_price && (
                           <SelectItem value="dbl_v">
                             غرفة مزدوجة مع إطلالة
                           </SelectItem>
                         )}
-                        {selectedHotel.trbl_wv && (
+                        {selectedHotel.triple_without_view_price && (
                           <SelectItem value="trbl_wv">
                             غرفة ثلاثية بدون إطلالة
                           </SelectItem>
                         )}
-                        {selectedHotel.trbl_v && (
+                        {selectedHotel.triple_view_price && (
                           <SelectItem value="trbl_v">
                             غرفة ثلاثية مع إطلالة
                           </SelectItem>

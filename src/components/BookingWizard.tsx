@@ -27,7 +27,7 @@ export const BookingWizard = () => {
     currency: 'USD',
     roomTypes: [],
     carType: '',
-    selectedCities: [],
+    selectedCities: [], // تهيئة كمصفوفة فارغة من كائنات CityStay
     totalCost: 0,
     additionalServices: {
       travelInsurance: { enabled: false, persons: 0 },
