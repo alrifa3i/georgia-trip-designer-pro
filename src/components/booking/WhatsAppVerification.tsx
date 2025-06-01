@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MessageCircle, Copy, Check, Clock, ArrowLeft } from 'lucide-react';
-import { generateBookingReference, getVerificationCode } from '@/utils/phoneVerification';
+import { generateBookingReference, generateVerificationCode } from '@/utils/phoneVerification';
 
 interface WhatsAppVerificationProps {
   phoneNumber: string;
@@ -29,7 +29,7 @@ export const WhatsAppVerification = ({ phoneNumber, onVerificationSuccess, onCan
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     } else if (step === 2 && timeLeft === 0) {
-      const code = getVerificationCode(phoneNumber);
+      const code = generateVerificationCode(phoneNumber);
       setVerificationCode(code);
       setStep(3);
     }

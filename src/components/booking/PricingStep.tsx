@@ -1,11 +1,11 @@
-
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
-import { hotelData, additionalServicesData } from '@/data/hotels';
+import { additionalServicesData } from '@/data/hotels';
 import { currencies, convertFromUSD, formatCurrency, additionalCurrencies } from '@/data/currencies';
 import { transportPricing, mandatoryToursRules } from '@/data/transportRules';
+import { useHotelData } from '@/hooks/useHotelData';
 import { DollarSign, AlertTriangle, CheckCircle, MapPin, Building2, Car } from 'lucide-react';
 
 interface PricingStepProps {
@@ -14,6 +14,8 @@ interface PricingStepProps {
 }
 
 export const PricingStep = ({ data, updateData }: PricingStepProps) => {
+  const { hotels: databaseHotels, loading: hotelsLoading } = useHotelData();
+  
   // دمج العملات الأساسية مع العملات الإضافية
   const allCurrencies = [...currencies, ...additionalCurrencies];
   const selectedCurrency = allCurrencies.find(c => c.code === data.currency) || allCurrencies[0];
@@ -31,13 +33,15 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     
     console.log('=== HOTEL COST CALCULATION ===');
     console.log('Selected cities:', data.selectedCities);
+    console.log('Database hotels:', databaseHotels);
     
     data.selectedCities.forEach((cityStay, cityIndex) => {
       console.log(`Processing city ${cityIndex + 1}: ${cityStay.city}`);
       
       if (cityStay.city && cityStay.hotel && cityStay.roomSelections && cityStay.roomSelections.length > 0) {
-        const hotel = hotelData[cityStay.city]?.find(h => h.name === cityStay.hotel);
-        console.log('Found hotel:', hotel?.name);
+        // البحث في قاعدة البيانات أولاً
+        const hotel = databaseHotels[cityStay.city]?.find(h => h.name === cityStay.hotel);
+        console.log('Found hotel from database:', hotel?.name);
         
         if (hotel) {
           let roomCostPerNight = 0;
@@ -50,7 +54,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             let roomPrice = 0;
             let roomTypeName = '';
             
-            // استخدام الأسعار من البيانات الحقيقية للفندق
+            // استخدام الأسعار من قاعدة البيانات
             switch (room.roomType) {
               case 'single':
                 roomPrice = hotel.single_price || hotel.double_without_view_price || 0;
@@ -145,24 +149,24 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
       const isLastCity = index === data.selectedCities.length - 1;
       
       if (isFirstCity) {
-        const arrivalAirport = data.arrivalAirport.toLowerCase();
-        if (arrivalAirport.includes('tbilisi') || arrivalAirport.includes('تبليسي')) {
-          mandatoryTours = mandatoryToursRules.arrivalRules.tbilisi;
-        } else if (arrivalAirport.includes('batumi') || arrivalAirport.includes('باتومي')) {
-          mandatoryTours = mandatoryToursRules.arrivalRules.batumi;
-        } else if (arrivalAirport.includes('kutaisi') || arrivalAirport.includes('كوتايسي')) {
-          mandatoryTours = mandatoryToursRules.arrivalRules.kutaisi;
+        const arrivalAirport = data.arrivalAirport;
+        if (arrivalAirport === 'TBS') {
+          mandatoryTours = mandatoryToursRules.arrivalRules.TBS;
+        } else if (arrivalAirport === 'BUS') {
+          mandatoryTours = mandatoryToursRules.arrivalRules.BUS;
+        } else if (arrivalAirport === 'KUT') {
+          mandatoryTours = mandatoryToursRules.arrivalRules.KUT;
         }
       }
       
       if (isLastCity) {
-        const departureAirport = data.departureAirport.toLowerCase();
-        if (departureAirport.includes('tbilisi') || departureAirport.includes('تبليسي')) {
-          mandatoryTours = mandatoryToursRules.departureRules.tbilisi;
-        } else if (departureAirport.includes('batumi') || departureAirport.includes('باتومي')) {
-          mandatoryTours = mandatoryToursRules.departureRules.batumi;
-        } else if (departureAirport.includes('kutaisi') || departureAirport.includes('كوتايسي')) {
-          mandatoryTours = mandatoryToursRules.departureRules.kutaisi;
+        const departureAirport = data.departureAirport;
+        if (departureAirport === 'TBS') {
+          mandatoryTours = mandatoryToursRules.departureRules.TBS;
+        } else if (departureAirport === 'BUS') {
+          mandatoryTours = mandatoryToursRules.departureRules.BUS;
+        } else if (departureAirport === 'KUT') {
+          mandatoryTours = mandatoryToursRules.departureRules.KUT;
         }
       }
       
@@ -264,6 +268,17 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     }
     return 1;
   };
+
+  if (hotelsLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري تحميل بيانات الفنادق...</p>
+        </div>
+      </div>
+    );
+  }
 
   const hotelCostData = calculateHotelCosts();
   const tourCostData = calculateTourCosts();
@@ -384,7 +399,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
         </CardContent>
       </Card>
 
-      {/* Cost Summary with Currency Display */}
+      {/* Cost Summary */}
       <Card>
         <CardHeader>
           <CardTitle>ملخص التكلفة</CardTitle>

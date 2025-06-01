@@ -3,7 +3,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BookingData, CityStay, RoomSelection } from '@/types/booking';
-import { hotelData, availableTours, airportCityMapping } from '@/data/hotels';
+import { useHotelData } from '@/hooks/useHotelData';
+import { availableTours, airportCityMapping } from '@/data/hotels';
 import { Plus, Minus, MapPin, Building2, Car, Info, Hotel, Users, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -13,7 +14,8 @@ interface CitySelectionStepProps {
 }
 
 export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) => {
-  const availableCities = Object.keys(hotelData);
+  const { hotels: databaseHotels, loading: hotelsLoading } = useHotelData();
+  const availableCities = Object.keys(databaseHotels);
 
   const roomTypes = [
     { id: 'single', label: 'غرفة مفردة مع إفطار (بدون إطلالة)', capacity: 1, hasView: false },
@@ -98,7 +100,10 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
         hotel: '',
         tours: 0,
         mandatoryTours: mandatoryTours,
-        roomSelections: []
+        roomSelections: Array.from({ length: data.rooms }, (_, i) => ({
+          roomNumber: i + 1,
+          roomType: ''
+        }))
       });
     }
     
@@ -112,7 +117,10 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
         hotel: '',
         tours: 0,
         mandatoryTours: mandatoryTours,
-        roomSelections: []
+        roomSelections: Array.from({ length: data.rooms }, (_, i) => ({
+          roomNumber: i + 1,
+          roomType: ''
+        }))
       });
     }
     
@@ -126,7 +134,10 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       hotel: '',
       tours: 0,
       mandatoryTours: 0,
-      roomSelections: []
+      roomSelections: Array.from({ length: data.rooms }, (_, i) => ({
+        roomNumber: i + 1,
+        roomType: ''
+      }))
     };
     updateData({
       selectedCities: [...data.selectedCities, newCity]
@@ -155,12 +166,18 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       
       // Reset hotel and room selections when city changes
       newCities[index].hotel = '';
-      newCities[index].roomSelections = [];
+      newCities[index].roomSelections = Array.from({ length: data.rooms }, (_, i) => ({
+        roomNumber: i + 1,
+        roomType: ''
+      }));
     }
     
     // Reset room selections when hotel changes
     if (field === 'hotel') {
-      newCities[index].roomSelections = [];
+      newCities[index].roomSelections = Array.from({ length: data.rooms }, (_, i) => ({
+        roomNumber: i + 1,
+        roomType: ''
+      }));
     }
     
     updateData({ selectedCities: newCities });
@@ -234,6 +251,28 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       autoAddAirportCities();
     }
   }, [data.arrivalAirport, data.departureAirport]);
+
+  // Update room selections when room count changes
+  useEffect(() => {
+    const newCities = data.selectedCities.map(city => ({
+      ...city,
+      roomSelections: Array.from({ length: data.rooms }, (_, i) => 
+        city.roomSelections?.[i] || { roomNumber: i + 1, roomType: '' }
+      )
+    }));
+    updateData({ selectedCities: newCities });
+  }, [data.rooms]);
+
+  if (hotelsLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري تحميل بيانات الفنادق...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -322,9 +361,8 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       )}
 
       {/* Add City Button */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">المدن المختارة</h3>
-        <Button onClick={addCity} variant="outline" size="sm">
+      <div className="flex justify-center">
+        <Button onClick={addCity} variant="outline">
           <Plus className="w-4 h-4 mr-2" />
           إضافة مدينة
         </Button>
@@ -333,7 +371,7 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       {/* Cities List */}
       <div className="space-y-4">
         {data.selectedCities.map((cityStay, index) => {
-          const cityHotels = cityStay.city ? sortHotelsByPrice(hotelData[cityStay.city] || []) : [];
+          const cityHotels = cityStay.city ? sortHotelsByPrice(databaseHotels[cityStay.city] || []) : [];
           const selectedHotel = cityHotels.find(h => h.name === cityStay.hotel);
           const isArrivalCity = cityStay.city === airportCityMapping[data.arrivalAirport];
 
@@ -423,7 +461,7 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
                           <div className="flex justify-between items-center w-full">
                             <span>{hotel.name}</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-yellow-500">{'⭐'.repeat(hotel.rating)}</span>
+                              <span className="text-yellow-500">{'⭐'.repeat(hotel.rating || 5)}</span>
                               {hotelIndex === 0 && <span className="text-green-600 text-xs">(الأرخص)</span>}
                               {hotelIndex === cityHotels.length - 1 && cityHotels.length > 1 && 
                                 <span className="text-blue-600 text-xs">(الأغلى)</span>}
@@ -437,91 +475,56 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
               )}
 
               {/* Room Selection */}
-              {selectedHotel && (
+              {selectedHotel && cityStay.roomSelections && (
                 <div className="mt-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h5 className="font-medium text-gray-800">
-                      اختيار الغرف (مرتبة من الأرخص إلى الأغلى)
-                    </h5>
-                    <Button
-                      onClick={() => addRoom(index)}
-                      variant="outline"
-                      size="sm"
-                      className="bg-green-50 hover:bg-green-100"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      إضافة غرفة
-                    </Button>
-                  </div>
+                  <h5 className="font-medium text-gray-800">
+                    اختيار أنواع الغرف ({data.rooms} غرف)
+                  </h5>
 
-                  {(!cityStay.roomSelections || cityStay.roomSelections.length === 0) ? (
-                    <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                      <Hotel className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-                      <p className="text-gray-600 mb-3">لم يتم إضافة غرف بعد</p>
-                      <Button
-                        onClick={() => addRoom(index)}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        إضافة غرفة
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {cityStay.roomSelections.map((room, roomIndex) => {
-                        const sortedRooms = sortRoomsByPrice(selectedHotel);
-                        
-                        return (
-                          <div key={roomIndex} className="p-4 bg-gray-50 rounded-lg border">
-                            <div className="flex items-center justify-between mb-3">
-                              <h5 className="font-medium">الغرفة {room.roomNumber}</h5>
-                              <Button
-                                onClick={() => removeRoom(index, roomIndex)}
-                                variant="destructive"
-                                size="sm"
-                              >
-                                حذف
-                              </Button>
-                            </div>
-                            
-                            <Select
-                              value={room.roomType}
-                              onValueChange={(roomType) => updateRoomSelection(index, roomIndex, roomType)}
-                            >
-                              <SelectTrigger className="bg-white">
-                                <SelectValue placeholder="اختر نوع الغرفة" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-white border shadow-lg z-50">
-                                {sortedRooms.map(({ roomType, price, roomInfo }, roomTypeIndex) => (
-                                  <SelectItem key={roomType} value={roomType}>
-                                    <div className="flex justify-between items-center w-full">
-                                      <span>{roomInfo!.label}</span>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xs text-gray-500">({roomInfo!.capacity} أشخاص - ${price})</span>
-                                        {roomTypeIndex === 0 && <span className="text-green-600 text-xs">(الأرخص)</span>}
-                                        {roomTypeIndex === sortedRooms.length - 1 && sortedRooms.length > 1 && 
-                                          <span className="text-blue-600 text-xs">(الأغلى)</span>}
-                                      </div>
+                  <div className="space-y-3">
+                    {cityStay.roomSelections.map((room, roomIndex) => {
+                      const sortedRooms = sortRoomsByPrice(selectedHotel);
+                      
+                      return (
+                        <div key={roomIndex} className="p-4 bg-gray-50 rounded-lg border">
+                          <h5 className="font-medium mb-3">الغرفة {room.roomNumber}</h5>
+                          
+                          <Select
+                            value={room.roomType}
+                            onValueChange={(roomType) => updateRoomSelection(index, roomIndex, roomType)}
+                          >
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="اختر نوع الغرفة" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border shadow-lg z-50">
+                              {sortedRooms.map(({ roomType, price, roomInfo }, roomTypeIndex) => (
+                                <SelectItem key={roomType} value={roomType}>
+                                  <div className="flex justify-between items-center w-full">
+                                    <span>{roomInfo!.label}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-gray-500">({roomInfo!.capacity} أشخاص - ${price})</span>
+                                      {roomTypeIndex === 0 && <span className="text-green-600 text-xs">(الأرخص)</span>}
+                                      {roomTypeIndex === sortedRooms.length - 1 && sortedRooms.length > 1 && 
+                                        <span className="text-blue-600 text-xs">(الأغلى)</span>}
                                     </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            
-                            {room.roomType && (
-                              <div className="mt-2 text-sm text-green-600 font-medium">
-                                ✅ تم اختيار: {roomTypes.find(rt => rt.id === room.roomType)?.label}
-                                <div className="text-xs text-gray-500">
-                                  السعر: ${sortedRooms.find(sr => sr.roomType === room.roomType)?.price || 0}/ليلة
-                                </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          
+                          {room.roomType && (
+                            <div className="mt-2 text-sm text-green-600 font-medium">
+                              ✅ تم اختيار: {roomTypes.find(rt => rt.id === room.roomType)?.label}
+                              <div className="text-xs text-gray-500">
+                                السعر: ${sortedRooms.find(sr => sr.roomType === room.roomType)?.price || 0}/ليلة
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -561,21 +564,6 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
                   ({cityStay.mandatoryTours || 0} إجبارية + {cityStay.tours} اختيارية)
                 </p>
               </div>
-
-              {/* Available Tours Display */}
-              {cityStay.availableTours && cityStay.availableTours.length > 0 && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                  <h5 className="font-medium text-sm mb-2 text-blue-800">الجولات المتاحة:</h5>
-                  <div className="text-xs text-blue-700 space-y-1">
-                    {cityStay.availableTours.map((tourName, tourIndex) => {
-                      const tourDetails = availableTours[cityStay.city]?.find(tour => tour.name === tourName);
-                      return (
-                        <div key={tourIndex}>• {tourName} - {tourDetails?.description || ''}</div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
