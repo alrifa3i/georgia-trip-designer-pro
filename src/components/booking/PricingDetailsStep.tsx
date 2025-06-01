@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { BookingData } from '@/types/booking';
-import { hotelData, transportData, additionalServicesData, currencyData } from '@/data/hotels';
+import { hotelData, transportData, additionalServicesData, currencies } from '@/data/hotels';
 import { transportPricing } from '@/data/transportRules';
 import { Calculator, DollarSign, Users, Building, MapPin, Car, Plane } from 'lucide-react';
 
@@ -141,7 +141,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     }
   }, [data.selectedCities, data.carType, data.additionalServices, data.discountAmount, updateData, onValidationChange]);
 
-  const currentCurrency = currencyData.find(c => c.code === data.currency);
+  const currentCurrency = currencies.find(c => c.code === data.currency);
   const exchangeRate = currentCurrency?.exchangeRate || 1;
 
   const formatPrice = (amount: number) => {
