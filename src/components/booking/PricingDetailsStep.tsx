@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -38,7 +39,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
 
     let totalHotelCost = 0;
     
-    console.log('=== HOTEL COST CALCULATION (NEW METHOD) ===');
+    console.log('=== HOTEL COST CALCULATION (UPDATED) ===');
     
     data.selectedCities.forEach((cityStay, cityIndex) => {
       console.log(`Processing city ${cityIndex + 1}: ${cityStay.city}`);
@@ -60,28 +61,28 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
             
             switch (room.roomType) {
               case 'single':
-                roomPrice = hotel.single_price || hotel.double_without_view_price || 0;
-                roomTypeName = 'غرفة مفردة (بدون إطلالة)';
+                roomPrice = hotel.single_price || 0;
+                roomTypeName = 'غرفة مفردة';
                 break;
               case 'single_v':
-                roomPrice = hotel.single_view_price || hotel.double_view_price || 0;
-                roomTypeName = 'غرفة مفردة (مع إطلالة)';
+                roomPrice = hotel.single_view_price || 0;
+                roomTypeName = 'غرفة مفردة مع إطلالة';
                 break;
               case 'dbl_wv':
                 roomPrice = hotel.double_without_view_price || 0;
-                roomTypeName = 'غرفة مزدوجة (بدون إطلالة)';
+                roomTypeName = 'غرفة مزدوجة بدون إطلالة';
                 break;
               case 'dbl_v':
                 roomPrice = hotel.double_view_price || 0;
-                roomTypeName = 'غرفة مزدوجة (مع إطلالة)';
+                roomTypeName = 'غرفة مزدوجة مع إطلالة';
                 break;
               case 'trbl_wv':
                 roomPrice = hotel.triple_without_view_price || 0;
-                roomTypeName = 'غرفة ثلاثية (بدون إطلالة)';
+                roomTypeName = 'غرفة ثلاثية بدون إطلالة';
                 break;
               case 'trbl_v':
                 roomPrice = hotel.triple_view_price || 0;
-                roomTypeName = 'غرفة ثلاثية (مع إطلالة)';
+                roomTypeName = 'غرفة ثلاثية مع إطلالة';
                 break;
               default:
                 roomPrice = 0;
@@ -116,7 +117,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
 
   const calculateTourCosts = () => {
     const transport = transportPricing[data.carType as keyof typeof transportPricing];
-    console.log('=== TOUR COST CALCULATION (NEW METHOD) ===');
+    console.log('=== TOUR COST CALCULATION (UPDATED) ===');
     console.log('Selected car type:', data.carType);
     console.log('Transport pricing:', transport);
     
@@ -131,36 +132,44 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
       mandatoryTours: number;
       totalTours: number;
       totalCost: number;
+      hasAirportTransfer: boolean;
     }> = [];
 
     let totalTourCost = 0;
 
+    // Airport to city mapping
+    const arrivalCity = airportCityMapping[data.arrivalAirport];
+    const departureCity = airportCityMapping[data.departureAirport];
+
     // حساب تكلفة الجولات لكل مدينة
     data.selectedCities.forEach((cityStay, index) => {
       const regularTours = cityStay.tours || 0;
-      let mandatoryTours = 0;
+      const mandatoryTours = cityStay.mandatoryTours || 0;
       
-      // قواعد الجولات الإجبارية
-      if (cityStay.city === 'باتومي') {
-        mandatoryTours = 2;
-      } else {
-        mandatoryTours = 1;
-      }
+      // Check if this city needs airport transfer
+      const isFirstCity = index === 0;
+      const isLastCity = index === data.selectedCities.length - 1;
+      const hasAirportTransfer = (isFirstCity && cityStay.city === arrivalCity) || 
+                                (isLastCity && cityStay.city === departureCity);
       
       const totalTours = regularTours + mandatoryTours;
       const cityTourCost = totalTours * transport.dailyPrice;
       
       console.log(`${cityStay.city}: ${totalTours} tours (${regularTours} regular + ${mandatoryTours} mandatory) × $${transport.dailyPrice} = $${cityTourCost}`);
+      if (hasAirportTransfer) {
+        console.log(`  - includes airport transfer`);
+      }
       
       totalTourCost += cityTourCost;
 
-      if (totalTours > 0) {
+      if (totalTours > 0 || hasAirportTransfer) {
         cityBreakdown.push({
           city: cityStay.city,
           regularTours,
           mandatoryTours,
           totalTours,
-          totalCost: cityTourCost
+          totalCost: cityTourCost,
+          hasAirportTransfer
         });
       }
     });
@@ -170,8 +179,8 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     const receptionCost = isSameAirport ? transport.reception.sameCity : transport.reception.differentCity;
     const farewellCost = isSameAirport ? transport.farewell.sameCity : transport.farewell.differentCity;
     
-    console.log(`Reception cost: $${receptionCost}`);
-    console.log(`Farewell cost: $${farewellCost}`);
+    console.log(`Reception cost: $${receptionCost} (${isSameAirport ? 'same city' : 'different city'})`);
+    console.log(`Farewell cost: $${farewellCost} (${isSameAirport ? 'same city' : 'different city'})`);
     console.log('Total tour cost (cities only):', totalTourCost);
     
     return { 
@@ -258,7 +267,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
   const totalCostUSD = subtotal * (1 + profitMargin);
   const totalCostLocal = convertFromUSD(totalCostUSD, selectedCurrency.code);
 
-  console.log('=== FINAL COST BREAKDOWN (NEW METHOD) ===');
+  console.log('=== FINAL COST BREAKDOWN (UPDATED) ===');
   console.log('Hotel costs: $', hotelCostData.total);
   console.log('Tour costs (cities): $', tourCostData.total);
   console.log('Reception cost: $', tourCostData.reception);
@@ -514,13 +523,16 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
                     </span>
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
-                    {city.regularTours > 0 && (
-                      <div>• جولات اختيارية: {city.regularTours}</div>
+                    {city.hasAirportTransfer && (
+                      <div>• نقل من أو إلى المطار: 1</div>
                     )}
                     {city.mandatoryTours > 0 && (
                       <div>• جولات إجبارية: {city.mandatoryTours}</div>
                     )}
-                    <div>• إجمالي الجولات: {city.totalTours}</div>
+                    {city.regularTours > 0 && (
+                      <div>• جولات إضافية: {city.regularTours}</div>
+                    )}
+                    <div className="font-medium">• إجمالي الجولات: {city.totalTours}</div>
                     <div className="font-medium">
                       {city.totalTours} جولات × ${transportPricing[data.carType as keyof typeof transportPricing]?.dailyPrice || 0}/جولة
                     </div>

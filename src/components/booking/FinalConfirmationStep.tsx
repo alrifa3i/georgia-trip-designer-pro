@@ -6,6 +6,7 @@ import { BookingData } from '@/types/booking';
 import { WhatsAppVerification } from './WhatsAppVerification';
 import { generateBookingReference } from '@/utils/phoneVerification';
 import { supabase } from '@/integrations/supabase/client';
+import QRCode from 'qrcode.react';
 import { 
   CheckCircle, 
   MapPin, 
@@ -17,7 +18,9 @@ import {
   Phone,
   MessageCircle,
   Copy,
-  Save
+  Save,
+  Download,
+  Printer
 } from 'lucide-react';
 
 interface FinalConfirmationStepProps {
@@ -39,7 +42,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
       updateData({ referenceNumber: reference });
       setShowWhatsAppVerification(true);
     } else {
-      alert('الرجاء إدخال رقم الهاتف أولاً');
+      alert('الرجاء إدخال رقم الهاتف أولاً في المرحلة الأولى');
     }
   };
 
@@ -51,7 +54,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
         customer_name: data.customerName,
         phone_number: data.phoneNumber,
         adults: data.adults,
-        children: JSON.parse(JSON.stringify(data.children)), // Convert to proper JSON
+        children: JSON.stringify(data.children),
         arrival_date: data.arrivalDate,
         departure_date: data.departureDate,
         arrival_airport: data.arrivalAirport,
@@ -60,10 +63,10 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
         budget: data.budget || 0,
         currency: data.currency,
         car_type: data.carType,
-        room_types: JSON.parse(JSON.stringify(data.roomTypes)), // Convert to proper JSON
-        selected_cities: JSON.parse(JSON.stringify(data.selectedCities)), // Convert to proper JSON
+        room_types: JSON.stringify(data.roomTypes || []),
+        selected_cities: JSON.stringify(data.selectedCities),
         total_cost: data.totalCost || 0,
-        additional_services: JSON.parse(JSON.stringify(data.additionalServices)), // Convert to proper JSON
+        additional_services: JSON.stringify(data.additionalServices),
         status: 'confirmed'
       };
 
@@ -106,6 +109,73 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
     navigator.clipboard.writeText(bookingReference);
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const generateBookingDetails = () => {
+    const details = {
+      referenceNumber: bookingReference,
+      customerName: data.customerName,
+      phoneNumber: data.phoneNumber,
+      adults: data.adults,
+      children: data.children.length,
+      arrivalDate: data.arrivalDate,
+      departureDate: data.departureDate,
+      arrivalAirport: data.arrivalAirport,
+      departureAirport: data.departureAirport,
+      cities: data.selectedCities.map(city => ({
+        name: city.city,
+        hotel: city.hotel,
+        nights: city.nights,
+        tours: city.tours + (city.mandatoryTours || 0)
+      })),
+      carType: data.carType,
+      totalCost: Math.round(data.totalCost || 0)
+    };
+
+    return encodeURIComponent(JSON.stringify(details));
+  };
+
+  const sendWhatsAppBookingDetails = () => {
+    const message = `
+🌟 تأكيد حجز رحلة جورجيا 🌟
+
+📋 رقم الحجز: ${bookingReference}
+👤 اسم العميل: ${data.customerName}
+📱 رقم الهاتف: ${data.phoneNumber}
+
+👥 تفاصيل المسافرين:
+• البالغين: ${data.adults}
+• الأطفال: ${data.children.length}
+
+📅 تواريخ السفر:
+• الوصول: ${data.arrivalDate}
+• المغادرة: ${data.departureDate}
+
+✈️ المطارات:
+• مطار الوصول: ${data.arrivalAirport}
+• مطار المغادرة: ${data.departureAirport}
+
+🏨 المدن والفنادق:
+${data.selectedCities.map((city, index) => 
+  `${index + 1}. ${city.city} - ${city.hotel} (${city.nights} ليالي)`
+).join('\n')}
+
+🚗 نوع السيارة: ${data.carType}
+
+💰 إجمالي التكلفة: $${Math.round(data.totalCost || 0)} USD
+
+📞 للاستفسارات والتأكيد النهائي، يرجى التواصل معنا.
+
+شكراً لاختياركم خدماتنا! 🙏
+    `;
+
+    const phoneNumber = data.phoneNumber?.replace(/\D/g, '');
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   if (showWhatsAppVerification) {
     return (
       <div className="space-y-4">
@@ -142,41 +212,138 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
 
   if (isVerificationComplete) {
     return (
-      <div className="text-center space-y-6">
-        <div className="flex justify-center">
-          <CheckCircle className="w-16 h-16 text-green-600" />
+      <div className="space-y-6 print-section">
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <CheckCircle className="w-16 h-16 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-green-800">تم تأكيد الحجز بنجاح!</h2>
         </div>
-        <h2 className="text-2xl font-bold text-green-800">تم تأكيد الحجز بنجاح!</h2>
         
         <Card className="bg-green-50 border-green-200">
           <CardContent className="pt-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-green-800">رقم الحجز:</span>
-                <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-medium text-green-800">رقم الحجز:</span>
                   <span className="text-lg font-bold text-green-600">{bookingReference}</span>
-                  <Button
-                    onClick={copyReferenceNumber}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Save className="w-4 h-4 text-green-600" />
+                  <span className="text-green-700 text-sm">تم حفظ الحجز في النظام بنجاح</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Save className="w-4 h-4 text-green-600" />
-                <span className="text-green-700 text-sm">تم حفظ الحجز في النظام بنجاح</span>
+              <div className="flex flex-col items-center gap-2">
+                <QRCode value={generateBookingDetails()} size={100} />
+                <span className="text-xs text-gray-600">QR كود الحجز</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <p className="text-gray-600">
-          تم إرسال تفاصيل الحجز إلى رقم الواتساب الخاص بك.
-          <br />
-          سيتم التواصل معك من قبل فريق خدمة العملاء خلال 24 ساعة.
-        </p>
+        {/* Booking Details Summary for Print */}
+        <Card className="print-visible">
+          <CardHeader>
+            <CardTitle>تفاصيل الحجز الكاملة</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <strong>معلومات العميل:</strong>
+                <p>الاسم: {data.customerName}</p>
+                <p>الهاتف: {data.phoneNumber}</p>
+                <p>البالغين: {data.adults}</p>
+                <p>الأطفال: {data.children.length}</p>
+              </div>
+              <div>
+                <strong>تفاصيل السفر:</strong>
+                <p>الوصول: {data.arrivalDate}</p>
+                <p>المغادرة: {data.departureDate}</p>
+                <p>مطار الوصول: {data.arrivalAirport}</p>
+                <p>مطار المغادرة: {data.departureAirport}</p>
+              </div>
+            </div>
+            
+            <div>
+              <strong>المدن والفنادق:</strong>
+              {data.selectedCities.map((city, index) => (
+                <div key={index} className="ml-4 mb-2">
+                  <p>{index + 1}. {city.city} - {city.hotel}</p>
+                  <p className="text-sm text-gray-600">
+                    {city.nights} ليالي، {(city.tours || 0) + (city.mandatoryTours || 0)} جولات
+                  </p>
+                </div>
+              ))}
+            </div>
+            
+            <div>
+              <strong>نوع السيارة:</strong> {data.carType}
+            </div>
+            
+            <div className="text-lg font-bold border-t pt-2">
+              <strong>إجمالي التكلفة: ${Math.round(data.totalCost || 0)} USD</strong>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-4 justify-center print-hidden">
+          <Button
+            onClick={copyReferenceNumber}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Copy className="w-4 h-4" />
+            نسخ رقم الحجز
+          </Button>
+          
+          <Button
+            onClick={handlePrint}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Printer className="w-4 h-4" />
+            طباعة التفاصيل
+          </Button>
+          
+          <Button
+            onClick={sendWhatsAppBookingDetails}
+            className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+          >
+            <MessageCircle className="w-4 h-4" />
+            تأكيد الحجز عبر الواتساب
+          </Button>
+        </div>
+
+        <Card className="bg-blue-50 border-blue-200 print-hidden">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h3 className="font-bold text-blue-800 mb-2">الخطوات التالية</h3>
+              <p className="text-blue-700 text-sm mb-4">
+                تم إرسال تفاصيل الحجز إلى رقم الواتساب الخاص بك.
+                سيتم التواصل معك من قبل فريق خدمة العملاء خلال 24 ساعة لتأكيد الحجز نهائياً.
+              </p>
+              <p className="text-blue-600 text-xs">
+                * الدفع سيتم بالدولار الأمريكي نقداً عند الوصول إلى جورجيا
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <style jsx>{`
+          @media print {
+            .print-hidden {
+              display: none !important;
+            }
+            .print-visible {
+              display: block !important;
+            }
+            .print-section {
+              margin: 0;
+              padding: 20px;
+            }
+          }
+        `}</style>
       </div>
     );
   }
@@ -266,8 +433,23 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
                 </div>
                 <div className="text-sm text-gray-600">
                   <div>الفندق: {city.hotel || 'غير محدد'}</div>
-                  <div>الجولات: {city.tours + (city.mandatoryTours || 0)} جولة</div>
+                  <div>الجولات: {(city.tours || 0) + (city.mandatoryTours || 0)} جولة</div>
                   <div>عدد الغرف: {city.roomSelections?.length || 0}</div>
+                  {city.roomSelections && (
+                    <div className="mt-1">
+                      الغرف: {city.roomSelections.map((room, roomIndex) => 
+                        `الغرفة ${room.roomNumber}: ${
+                          room.roomType === 'single' ? 'مفردة' :
+                          room.roomType === 'single_v' ? 'مفردة مع إطلالة' :
+                          room.roomType === 'dbl_wv' ? 'مزدوجة بدون إطلالة' :
+                          room.roomType === 'dbl_v' ? 'مزدوجة مع إطلالة' :
+                          room.roomType === 'trbl_wv' ? 'ثلاثية بدون إطلالة' :
+                          room.roomType === 'trbl_v' ? 'ثلاثية مع إطلالة' :
+                          'غير محدد'
+                        }`
+                      ).join(', ')}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -320,7 +502,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
           disabled={!data.phoneNumber || isSaving}
         >
           <MessageCircle className="w-5 h-5 mr-2" />
-          {isSaving ? 'جاري الحفظ...' : 'تأكيد الحجز عبر الواتساب'}
+          {isSaving ? 'جاري الحفظ...' : 'تأكيد الحجز والتحقق من الواتساب'}
         </Button>
         
         {!data.phoneNumber && (

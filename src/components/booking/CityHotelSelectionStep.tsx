@@ -5,8 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { BookingData, CityStay, Hotel } from '@/types/booking';
-import { hotelData, transportData, getMandatoryTours } from '@/data/hotels';
+import { BookingData, CityStay, Hotel, RoomSelection } from '@/types/booking';
+import { hotelData, transportData } from '@/data/hotels';
+import { calculateMandatoryTours } from '@/data/transportRules';
 import { MapPin, Building, Plus, Minus, Trash2, Info, Car } from 'lucide-react';
 
 interface CityHotelSelectionStepProps {
@@ -18,35 +19,27 @@ interface CityHotelSelectionStepProps {
 export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }: CityHotelSelectionStepProps) => {
   useEffect(() => {
     const isValid = data.selectedCities.length > 0 && 
-                   data.selectedCities.every(city => city.city && city.hotel && city.nights > 0);
+                   data.selectedCities.every(city => 
+                     city.city && 
+                     city.hotel && 
+                     city.nights > 0 && 
+                     city.roomSelections && 
+                     city.roomSelections.length === data.rooms &&
+                     city.roomSelections.every(room => room.roomType)
+                   ) &&
+                   data.carType;
+    
     if (onValidationChange) {
       onValidationChange(isValid);
     }
-  }, [data.selectedCities, onValidationChange]);
+  }, [data.selectedCities, data.carType, data.rooms, onValidationChange]);
 
-  // حساب الجولات الإجبارية لكل مدينة عند تغيير البيانات
-  useEffect(() => {
-    if (data.selectedCities.length > 0 && data.arrivalAirport && data.departureAirport) {
-      const updatedCities = data.selectedCities.map(city => {
-        if (city.city) {
-          const mandatoryTours = getMandatoryTours(city.city, data.arrivalAirport, data.departureAirport);
-          console.log(`Calculating mandatory tours for ${city.city}: ${mandatoryTours}`);
-          return { ...city, mandatoryTours };
-        }
-        return city;
-      });
-      
-      // تحديث البيانات فقط إذا تغيرت
-      const hasChanged = updatedCities.some((city, index) => 
-        city.mandatoryTours !== data.selectedCities[index]?.mandatoryTours
-      );
-      
-      if (hasChanged) {
-        console.log('Updating cities with new mandatory tours:', updatedCities);
-        updateData({ selectedCities: updatedCities });
-      }
-    }
-  }, [data.selectedCities.map(c => c.city).join(','), data.arrivalAirport, data.departureAirport]);
+  // Airport to city mapping
+  const airportCityMapping: Record<string, string> = {
+    'TBS': 'تبليسي',
+    'BUS': 'باتومي', 
+    'KUT': 'كوتايسي'
+  };
 
   const addCity = () => {
     const newCity: CityStay = {
@@ -54,7 +47,11 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
       nights: 1,
       hotel: '',
       tours: 0,
-      mandatoryTours: 0
+      mandatoryTours: 0,
+      roomSelections: Array.from({ length: data.rooms }, (_, index) => ({
+        roomNumber: index + 1,
+        roomType: ''
+      }))
     };
     updateData({
       selectedCities: [...data.selectedCities, newCity]
@@ -73,8 +70,23 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         
         // إعادة حساب الجولات الإجبارية إذا تغيرت المدينة
         if (updates.city && data.arrivalAirport && data.departureAirport) {
-          updatedCity.mandatoryTours = getMandatoryTours(updates.city, data.arrivalAirport, data.departureAirport);
-          console.log(`Updated mandatory tours for ${updates.city}: ${updatedCity.mandatoryTours}`);
+          const isFirstCity = i === 0;
+          const isLastCity = i === data.selectedCities.length - 1;
+          updatedCity.mandatoryTours = calculateMandatoryTours(
+            updates.city, 
+            data.arrivalAirport, 
+            data.departureAirport,
+            isFirstCity,
+            isLastCity
+          );
+        }
+
+        // إذا تم تغيير الفندق، أعد تعيين اختيارات الغرف
+        if (updates.hotel && updates.hotel !== city.hotel) {
+          updatedCity.roomSelections = Array.from({ length: data.rooms }, (_, roomIndex) => ({
+            roomNumber: roomIndex + 1,
+            roomType: ''
+          }));
         }
         
         return updatedCity;
@@ -84,10 +96,43 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     updateData({ selectedCities: updatedCities });
   };
 
-  // Sort hotels from cheapest to most expensive based on actual room prices
+  // تحديث اختيارات الغرف عند تغيير عدد الغرف
+  useEffect(() => {
+    const updatedCities = data.selectedCities.map(city => ({
+      ...city,
+      roomSelections: Array.from({ length: data.rooms }, (_, index) => 
+        city.roomSelections?.[index] || {
+          roomNumber: index + 1,
+          roomType: ''
+        }
+      )
+    }));
+    
+    const hasChanged = updatedCities.some((city, index) => 
+      city.roomSelections?.length !== data.selectedCities[index]?.roomSelections?.length
+    );
+    
+    if (hasChanged) {
+      updateData({ selectedCities: updatedCities });
+    }
+  }, [data.rooms]);
+
+  const updateRoomSelection = (cityIndex: number, roomIndex: number, roomType: string) => {
+    const updatedCities = data.selectedCities.map((city, i) => {
+      if (i === cityIndex && city.roomSelections) {
+        const updatedRoomSelections = city.roomSelections.map((room, j) => 
+          j === roomIndex ? { ...room, roomType } : room
+        );
+        return { ...city, roomSelections: updatedRoomSelections };
+      }
+      return city;
+    });
+    updateData({ selectedCities: updatedCities });
+  };
+
+  // Sort hotels from cheapest to most expensive
   const sortHotelsByPrice = (hotels: Hotel[]): Hotel[] => {
     return [...hotels].sort((a, b) => {
-      // Get the cheapest available room price for each hotel using database field names
       const getPrices = (hotel: Hotel) => [
         hotel.single_price,
         hotel.single_view_price,
@@ -114,22 +159,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     return cityHotels.find(hotel => hotel.name === hotelName) || null;
   };
 
-  // Handle room type selection
-  const handleRoomTypeChange = (cityIndex: number, roomType: string) => {
-    const updatedCities = data.selectedCities.map((city, i) => {
-      if (i === cityIndex) {
-        return { ...city, roomType };
-      }
-      return city;
-    });
-    updateData({ selectedCities: updatedCities });
-
-    // Also update the main roomTypes array for pricing calculations
-    const newRoomTypes = [...(data.roomTypes || [])];
-    newRoomTypes[cityIndex] = roomType;
-    updateData({ roomTypes: newRoomTypes });
-  };
-
   // Get selected car type details
   const getSelectedCarType = () => {
     return transportData.find(transport => transport.type === data.carType) || transportData[0];
@@ -138,6 +167,16 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   // Handle car type change
   const handleCarTypeChange = (carType: string) => {
     updateData({ carType });
+  };
+
+  // Check if city needs airport transfer
+  const needsAirportTransfer = (cityIndex: number, cityName: string) => {
+    const isFirstCity = cityIndex === 0;
+    const isLastCity = cityIndex === data.selectedCities.length - 1;
+    const arrivalCity = airportCityMapping[data.arrivalAirport];
+    const departureCity = airportCityMapping[data.departureAirport];
+    
+    return (isFirstCity && cityName === arrivalCity) || (isLastCity && cityName === departureCity);
   };
 
   return (
@@ -156,7 +195,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>اختر نوع السيارة</Label>
+              <Label>اختر نوع السيارة *</Label>
               <Select
                 value={data.carType || ''}
                 onValueChange={handleCarTypeChange}
@@ -192,7 +231,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         <Info className="h-4 w-4 text-emerald-600" />
         <AlertDescription className="text-emerald-800">
           <div className="space-y-2">
-            <p><strong>ملاحظة:</strong> تم ترتيب الفنادق من الأرخص إلى الأغلى (بدون عرض الأسعار)</p>
+            <p><strong>ملاحظة:</strong> تم ترتيب الفنادق من الأرخص إلى الأغلى</p>
             <p>الأسعار النهائية ستظهر في مرحلة تفاصيل الأسعار</p>
             <p><strong>الجولات الإجبارية:</strong> يتم حسابها تلقائياً حسب المدينة ومطارات الوصول/المغادرة</p>
           </div>
@@ -203,6 +242,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         {data.selectedCities.map((cityStay, index) => {
           const selectedHotel = getSelectedHotel(cityStay.city, cityStay.hotel);
           const totalTours = (cityStay.tours || 0) + (cityStay.mandatoryTours || 0);
+          const hasAirportTransfer = needsAirportTransfer(index, cityStay.city);
           
           return (
             <Card key={index} className="relative">
@@ -229,7 +269,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     <Label>المدينة *</Label>
                     <Select
                       value={cityStay.city}
-                      onValueChange={(value) => updateCity(index, { city: value, hotel: '', roomType: '' })}
+                      onValueChange={(value) => updateCity(index, { city: value, hotel: '', roomSelections: Array.from({ length: data.rooms }, (_, i) => ({ roomNumber: i + 1, roomType: '' })) })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر المدينة" />
@@ -280,7 +320,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     </div>
                     <Select
                       value={cityStay.hotel}
-                      onValueChange={(value) => updateCity(index, { hotel: value, roomType: '' })}
+                      onValueChange={(value) => updateCity(index, { hotel: value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر الفندق" />
@@ -302,50 +342,55 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                   </div>
                 )}
 
-                {/* Room Type Selection - Show only when hotel is selected */}
-                {selectedHotel && (
-                  <div className="space-y-2">
-                    <Label>نوع الغرفة *</Label>
-                    <Select
-                      value={cityStay.roomType || ''}
-                      onValueChange={(value) => handleRoomTypeChange(index, value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر نوع الغرفة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedHotel.single_price && selectedHotel.single_price > 0 && (
-                          <SelectItem value="single">
-                            غرفة مفردة
-                          </SelectItem>
-                        )}
-                        {selectedHotel.single_view_price && selectedHotel.single_view_price > 0 && (
-                          <SelectItem value="single_v">
-                            غرفة مفردة مع إطلالة
-                          </SelectItem>
-                        )}
-                        {selectedHotel.double_without_view_price && selectedHotel.double_without_view_price > 0 && (
-                          <SelectItem value="dbl_wv">
-                            غرفة مزدوجة بدون إطلالة
-                          </SelectItem>
-                        )}
-                        {selectedHotel.double_view_price && selectedHotel.double_view_price > 0 && (
-                          <SelectItem value="dbl_v">
-                            غرفة مزدوجة مع إطلالة
-                          </SelectItem>
-                        )}
-                        {selectedHotel.triple_without_view_price && selectedHotel.triple_without_view_price > 0 && (
-                          <SelectItem value="trbl_wv">
-                            غرفة ثلاثية بدون إطلالة
-                          </SelectItem>
-                        )}
-                        {selectedHotel.triple_view_price && selectedHotel.triple_view_price > 0 && (
-                          <SelectItem value="trbl_v">
-                            غرفة ثلاثية مع إطلالة
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
+                {/* Room Selections - Show for each room */}
+                {selectedHotel && cityStay.roomSelections && (
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">أنواع الغرف *</Label>
+                    {cityStay.roomSelections.map((room, roomIndex) => (
+                      <div key={roomIndex} className="p-3 bg-gray-50 rounded-lg">
+                        <Label className="block mb-2">الغرفة {room.roomNumber}</Label>
+                        <Select
+                          value={room.roomType || ''}
+                          onValueChange={(value) => updateRoomSelection(index, roomIndex, value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={`اختر نوع الغرفة ${room.roomNumber}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedHotel.single_price && selectedHotel.single_price > 0 && (
+                              <SelectItem value="single">
+                                غرفة مفردة
+                              </SelectItem>
+                            )}
+                            {selectedHotel.single_view_price && selectedHotel.single_view_price > 0 && (
+                              <SelectItem value="single_v">
+                                غرفة مفردة مع إطلالة
+                              </SelectItem>
+                            )}
+                            {selectedHotel.double_without_view_price && selectedHotel.double_without_view_price > 0 && (
+                              <SelectItem value="dbl_wv">
+                                غرفة مزدوجة بدون إطلالة
+                              </SelectItem>
+                            )}
+                            {selectedHotel.double_view_price && selectedHotel.double_view_price > 0 && (
+                              <SelectItem value="dbl_v">
+                                غرفة مزدوجة مع إطلالة
+                              </SelectItem>
+                            )}
+                            {selectedHotel.triple_without_view_price && selectedHotel.triple_without_view_price > 0 && (
+                              <SelectItem value="trbl_wv">
+                                غرفة ثلاثية بدون إطلالة
+                              </SelectItem>
+                            )}
+                            {selectedHotel.triple_view_price && selectedHotel.triple_view_price > 0 && (
+                              <SelectItem value="trbl_v">
+                                غرفة ثلاثية مع إطلالة
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
                   </div>
                 )}
 
@@ -374,6 +419,9 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     </Button>
                   </div>
                   <div className="text-xs text-gray-600 space-y-1">
+                    {hasAirportTransfer && (
+                      <p>• نقل من أو إلى المطار: 1</p>
+                    )}
                     <p>• جولات إجبارية: {cityStay.mandatoryTours || 0}</p>
                     <p>• جولات إضافية: {cityStay.tours || 0}</p>
                     <p className="font-medium">• إجمالي الجولات: {totalTours}</p>
@@ -401,23 +449,32 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
             <div className="space-y-2">
               {data.selectedCities.map((city, index) => {
                 const totalTours = (city.tours || 0) + (city.mandatoryTours || 0);
+                const hasAirportTransfer = needsAirportTransfer(index, city.city);
+                
                 return (
-                  <div key={index} className="flex justify-between items-center text-sm">
-                    <span>
+                  <div key={index} className="text-sm space-y-1">
+                    <div className="font-semibold">
                       <strong>{city.city}</strong> - {city.hotel}
-                      {city.roomType && ` (${
-                        city.roomType === 'single' ? 'غرفة مفردة' :
-                        city.roomType === 'single_v' ? 'غرفة مفردة مع إطلالة' :
-                        city.roomType === 'dbl_wv' ? 'غرفة مزدوجة بدون إطلالة' :
-                        city.roomType === 'dbl_v' ? 'غرفة مزدوجة مع إطلالة' :
-                        city.roomType === 'trbl_wv' ? 'غرفة ثلاثية بدون إطلالة' :
-                        city.roomType === 'trbl_v' ? 'غرفة ثلاثية مع إطلالة' :
-                        city.roomType
-                      })`}
-                    </span>
-                    <span className="text-emerald-700">
-                      {city.nights} ليالي، {totalTours} جولات ({city.mandatoryTours || 0} إجبارية + {city.tours || 0} إضافية)
-                    </span>
+                    </div>
+                    <div className="text-emerald-700 mr-4">
+                      • {city.nights} ليالي، {totalTours} جولات
+                      {hasAirportTransfer && ' (تشمل نقل المطار)'}
+                    </div>
+                    {city.roomSelections && city.roomSelections.length > 0 && (
+                      <div className="text-emerald-600 mr-4 text-xs">
+                        الغرف: {city.roomSelections.map((room, roomIndex) => 
+                          `الغرفة ${room.roomNumber}: ${
+                            room.roomType === 'single' ? 'مفردة' :
+                            room.roomType === 'single_v' ? 'مفردة مع إطلالة' :
+                            room.roomType === 'dbl_wv' ? 'مزدوجة بدون إطلالة' :
+                            room.roomType === 'dbl_v' ? 'مزدوجة مع إطلالة' :
+                            room.roomType === 'trbl_wv' ? 'ثلاثية بدون إطلالة' :
+                            room.roomType === 'trbl_v' ? 'ثلاثية مع إطلالة' :
+                            'غير محدد'
+                          }`
+                        ).join(', ')}
+                      </div>
+                    )}
                   </div>
                 );
               })}

@@ -65,9 +65,10 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
     if (currentStep < totalSteps && isCurrentStepValid) {
       console.log(`Moving from step ${currentStep} to ${currentStep + 1}`);
       
-      // حفظ رقم الهاتف عند الانتقال من المرحلة الأولى
+      // حفظ رقم الهاتف عند الانتقال من المرحلة الأولى للثانية
       if (currentStep === 1 && bookingData.phoneNumber) {
-        console.log('Phone number saved:', bookingData.phoneNumber);
+        console.log('Phone number automatically saved:', bookingData.phoneNumber);
+        // رقم الهاتف محفوظ بالفعل في bookingData
       }
       
       setCurrentStep(currentStep + 1);
