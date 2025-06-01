@@ -36,7 +36,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
       // إنشاء رقم مرجعي
       const reference = generateBookingReference(data.totalCost || 0);
       setBookingReference(reference);
-      updateData({ reference_number: reference });
+      updateData({ referenceNumber: reference });
       setShowWhatsAppVerification(true);
     } else {
       alert('الرجاء إدخال رقم الهاتف أولاً');
@@ -51,7 +51,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
         customer_name: data.customerName,
         phone_number: data.phoneNumber,
         adults: data.adults,
-        children: data.children,
+        children: JSON.parse(JSON.stringify(data.children)), // Convert to proper JSON
         arrival_date: data.arrivalDate,
         departure_date: data.departureDate,
         arrival_airport: data.arrivalAirport,
@@ -60,16 +60,16 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
         budget: data.budget || 0,
         currency: data.currency,
         car_type: data.carType,
-        room_types: data.roomTypes,
-        selected_cities: data.selectedCities,
+        room_types: JSON.parse(JSON.stringify(data.roomTypes)), // Convert to proper JSON
+        selected_cities: JSON.parse(JSON.stringify(data.selectedCities)), // Convert to proper JSON
         total_cost: data.totalCost || 0,
-        additional_services: data.additionalServices,
+        additional_services: JSON.parse(JSON.stringify(data.additionalServices)), // Convert to proper JSON
         status: 'confirmed'
       };
 
       const { data: savedBooking, error } = await supabase
         .from('bookings')
-        .insert([bookingToSave])
+        .insert(bookingToSave)
         .select()
         .single();
 

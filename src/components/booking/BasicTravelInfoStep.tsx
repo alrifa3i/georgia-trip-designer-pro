@@ -9,7 +9,21 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { BookingData } from '@/types/booking';
 import { Plus, Minus, Users, Calendar, Phone, User, Baby, Info, Hotel, DollarSign } from 'lucide-react';
-import { currencies, formatCurrency, additionalCurrencies } from '@/data/currencies';
+import { currencies, formatCurrency } from '@/data/currencies';
+
+// إضافة العملات الإضافية مع العلم
+const additionalCurrencies = [
+  { code: 'SAR', name: 'Saudi Riyal', nameAr: 'ريال سعودي', symbol: 'ر.س', exchangeRate: 3.75, flag: '🇸🇦' },
+  { code: 'AED', name: 'UAE Dirham', nameAr: 'درهم إماراتي', symbol: 'د.إ', exchangeRate: 3.67, flag: '🇦🇪' },
+  { code: 'QAR', name: 'Qatari Riyal', nameAr: 'ريال قطري', symbol: 'ر.ق', exchangeRate: 3.64, flag: '🇶🇦' },
+  { code: 'KWD', name: 'Kuwaiti Dinar', nameAr: 'دينار كويتي', symbol: 'د.ك', exchangeRate: 0.30, flag: '🇰🇼' },
+  { code: 'BHD', name: 'Bahraini Dinar', nameAr: 'دينار بحريني', symbol: 'د.ب', exchangeRate: 0.38, flag: '🇧🇭' },
+  { code: 'OMR', name: 'Omani Rial', nameAr: 'ريال عماني', symbol: 'ر.ع', exchangeRate: 0.38, flag: '🇴🇲' },
+  { code: 'EGP', name: 'Egyptian Pound', nameAr: 'جنيه مصري', symbol: 'ج.م', exchangeRate: 30.9, flag: '🇪🇬' },
+  { code: 'JOD', name: 'Jordanian Dinar', nameAr: 'دينار أردني', symbol: 'د.أ', exchangeRate: 0.71, flag: '🇯🇴' },
+  { code: 'LBP', name: 'Lebanese Pound', nameAr: 'ليرة لبنانية', symbol: 'ل.ل', exchangeRate: 15000, flag: '🇱🇧' },
+  { code: 'TRY', name: 'Turkish Lira', nameAr: 'ليرة تركية', symbol: '₺', exchangeRate: 29.4, flag: '🇹🇷' }
+];
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
@@ -35,8 +49,13 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
 
   const minimumRooms = getMinimumRoomsNeeded();
 
-  // دمج العملات الأساسية مع الإضافية
-  const allCurrencies = [...currencies, ...additionalCurrencies];
+  // دمج العملات الأساسية مع الإضافية وإضافة العلم للعملات الأساسية
+  const baseCurrenciesWithFlags = currencies.map(curr => ({
+    ...curr,
+    flag: curr.code === 'USD' ? '🇺🇸' : curr.code === 'EUR' ? '🇪🇺' : curr.code === 'GBP' ? '🇬🇧' : '🌍'
+  }));
+  
+  const allCurrencies = [...baseCurrenciesWithFlags, ...additionalCurrencies];
 
   const validateForm = () => {
     const isValid = 
