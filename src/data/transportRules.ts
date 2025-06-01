@@ -48,7 +48,7 @@ export const transportPricing = {
   }
 };
 
-// قواعد الجولات الإجبارية المحدثة
+// قواعد الجولات الإجبارية المحدثة والدقيقة
 export const mandatoryToursRules = {
   // القواعد العامة للمدن
   batumi: 2, // باتومي دائماً 2 جولة إجبارية
@@ -68,7 +68,14 @@ export const mandatoryToursRules = {
   }
 };
 
-// تطبيق قواعد الجولات الإجبارية
+// ربط المطارات بالمدن
+export const airportCityMapping: Record<string, string> = {
+  'TBS': 'تبليسي',
+  'BUS': 'باتومي',
+  'KUT': 'كوتايسي'
+};
+
+// تطبيق قواعد الجولات الإجبارية المطورة
 export const calculateMandatoryTours = (
   cityName: string, 
   arrivalAirport: string, 
@@ -78,29 +85,98 @@ export const calculateMandatoryTours = (
 ): number => {
   let mandatoryTours = 0;
 
-  // قواعد المدن العامة
+  // القاعدة الأساسية: باتومي = 2 جولات، باقي المدن = 1 جولة
   if (cityName === 'باتومي') {
     mandatoryTours = 2;
   } else {
     mandatoryTours = 1;
   }
 
-  // قواعد المطارات - تطبق فقط على المدينة الأولى والأخيرة
-  if (isFirstCity && arrivalAirport === 'TBS') {
-    mandatoryTours = 0;
+  // تطبيق قواعد المطارات على المدينة الأولى والأخيرة فقط
+  if (isFirstCity) {
+    // إذا كانت المدينة الأولى وكان مطار الوصول تبليسي
+    if (arrivalAirport === 'TBS') {
+      mandatoryTours = 0;
+    }
+    // إذا كان مطار الوصول باتومي أو كوتايسي
+    else if (arrivalAirport === 'BUS' || arrivalAirport === 'KUT') {
+      mandatoryTours = 2;
+    }
   }
   
-  if (isLastCity && departureAirport === 'TBS') {
-    mandatoryTours = 0;
-  }
-
-  if (isFirstCity && (arrivalAirport === 'BUS' || arrivalAirport === 'KUT')) {
-    mandatoryTours = 2;
-  }
-  
-  if (isLastCity && (departureAirport === 'BUS' || departureAirport === 'KUT')) {
-    mandatoryTours = 2;
+  if (isLastCity) {
+    // إذا كانت المدينة الأخيرة وكان مطار المغادرة تبليسي
+    if (departureAirport === 'TBS') {
+      mandatoryTours = 0;
+    }
+    // إذا كان مطار المغادرة باتومي أو كوتايسي
+    else if (departureAirport === 'BUS' || departureAirport === 'KUT') {
+      mandatoryTours = 2;
+    }
   }
 
   return mandatoryTours;
+};
+
+// دالة للتحقق من تطابق المدينة مع المطار
+export const validateCityAirportMatch = (
+  cityName: string,
+  airportCode: string,
+  isArrival: boolean = true
+): { isValid: boolean; message: string } => {
+  const expectedCity = airportCityMapping[airportCode];
+  
+  if (!expectedCity) {
+    return {
+      isValid: false,
+      message: `مطار غير معروف: ${airportCode}`
+    };
+  }
+  
+  if (cityName !== expectedCity) {
+    const directionText = isArrival ? 'الوصول' : 'المغادرة';
+    return {
+      isValid: false,
+      message: `يجب أن تكون مدينة ${directionText} مطابقة لمطار ${directionText}: ${expectedCity}`
+    };
+  }
+  
+  return {
+    isValid: true,
+    message: 'المدينة مطابقة للمطار'
+  };
+};
+
+// دالة حساب إجمالي الليالي المطلوبة
+export const calculateRequiredNights = (arrivalDate: string, departureDate: string): number => {
+  if (!arrivalDate || !departureDate) return 0;
+  
+  const arrival = new Date(arrivalDate);
+  const departure = new Date(departureDate);
+  const diffInMs = departure.getTime() - arrival.getTime();
+  const nights = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  
+  return Math.max(0, nights);
+};
+
+// دالة التحقق من توزيع الليالي
+export const validateNightsDistribution = (
+  selectedCities: Array<{ city: string; nights: number }>,
+  requiredNights: number
+): { isValid: boolean; message: string; totalNights: number } => {
+  const totalNights = selectedCities.reduce((sum, city) => sum + city.nights, 0);
+  
+  if (totalNights !== requiredNights) {
+    return {
+      isValid: false,
+      message: `إجمالي الليالي (${totalNights}) يجب أن يكون مساوياً لمدة الرحلة (${requiredNights} ليالي)`,
+      totalNights
+    };
+  }
+  
+  return {
+    isValid: true,
+    message: 'توزيع الليالي صحيح',
+    totalNights
+  };
 };

@@ -5,9 +5,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
 import { additionalServicesData } from '@/data/hotels';
 import { currencies, convertFromUSD, formatCurrency, additionalCurrencies } from '@/data/currencies';
-import { transportPricing } from '@/data/transportRules';
+import { transportPricing, airportCityMapping } from '@/data/transportRules';
 import { useHotelData } from '@/hooks/useHotelData';
-import { DollarSign, AlertTriangle, CheckCircle, MapPin, Building2, Car, Plane } from 'lucide-react';
+import { DollarSign, AlertTriangle, CheckCircle, MapPin, Building2, Car, Plane, Calculator } from 'lucide-react';
 
 interface PricingDetailsStepProps {
   data: BookingData;
@@ -21,13 +21,6 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
   const allCurrencies = [...currencies, ...additionalCurrencies];
   const selectedCurrency = allCurrencies.find(c => c.code === data.currency) || allCurrencies[0];
 
-  // Airport to city mapping
-  const airportCityMapping: Record<string, string> = {
-    'TBS': 'تبليسي',
-    'BUS': 'باتومي', 
-    'KUT': 'كوتايسي'
-  };
-
   const calculateHotelCosts = () => {
     const cityBreakdown: Array<{
       city: string;
@@ -39,14 +32,14 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
 
     let totalHotelCost = 0;
     
-    console.log('=== HOTEL COST CALCULATION (UPDATED) ===');
+    console.log('=== حساب تكلفة الفنادق المحدث ===');
     
     data.selectedCities.forEach((cityStay, cityIndex) => {
-      console.log(`Processing city ${cityIndex + 1}: ${cityStay.city}`);
+      console.log(`معالجة المدينة ${cityIndex + 1}: ${cityStay.city}`);
       
       if (cityStay.city && cityStay.hotel && cityStay.roomSelections && cityStay.roomSelections.length > 0) {
         const hotel = databaseHotels[cityStay.city]?.find(h => h.name === cityStay.hotel);
-        console.log('Found hotel from database:', hotel?.name);
+        console.log('الفندق الموجود في قاعدة البيانات:', hotel?.name);
         
         if (hotel) {
           let totalRoomCostPerNight = 0;
@@ -54,7 +47,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
           
           // حساب تكلفة كل غرفة حسب النوع المختار
           cityStay.roomSelections.forEach((room, roomIndex) => {
-            console.log(`Room ${roomIndex + 1} type: ${room.roomType}`);
+            console.log(`الغرفة ${roomIndex + 1} نوع: ${room.roomType}`);
             
             let roomPrice = 0;
             let roomTypeName = '';
@@ -89,16 +82,16 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
                 roomTypeName = 'غير محدد';
             }
             
-            console.log(`Room ${roomIndex + 1} price per night: $${roomPrice}`);
+            console.log(`الغرفة ${roomIndex + 1} سعر الليلة الواحدة: $${roomPrice}`);
             totalRoomCostPerNight += roomPrice;
             roomDetails.push(`الغرفة ${roomIndex + 1}: ${roomTypeName} ($${roomPrice}/ليلة)`);
           });
 
-          // المدينة = (عدد الليالي * (الغرفة الأولى + الغرفة الثانية + الغرفة الثالثة))
+          // المدينة = (عدد الليالي × (الغرفة الأولى + الغرفة الثانية + الغرفة الثالثة))
           const cityTotal = cityStay.nights * totalRoomCostPerNight;
           totalHotelCost += cityTotal;
           
-          console.log(`${cityStay.city}: ${cityStay.nights} nights × $${totalRoomCostPerNight} (total rooms) = $${cityTotal}`);
+          console.log(`${cityStay.city}: ${cityStay.nights} ليالي × $${totalRoomCostPerNight} (إجمالي الغرف) = $${cityTotal}`);
 
           cityBreakdown.push({
             city: cityStay.city,
@@ -111,18 +104,18 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
       }
     });
     
-    console.log('Total hotel cost:', totalHotelCost);
+    console.log('إجمالي تكلفة الفنادق:', totalHotelCost);
     return { total: totalHotelCost, breakdown: cityBreakdown };
   };
 
   const calculateTourCosts = () => {
     const transport = transportPricing[data.carType as keyof typeof transportPricing];
-    console.log('=== TOUR COST CALCULATION (UPDATED) ===');
-    console.log('Selected car type:', data.carType);
-    console.log('Transport pricing:', transport);
+    console.log('=== حساب تكلفة الجولات والنقل المحدث ===');
+    console.log('نوع السيارة المختار:', data.carType);
+    console.log('أسعار النقل:', transport);
     
     if (!transport) {
-      console.log('No transport pricing found');
+      console.log('لم يتم العثور على أسعار النقل');
       return { total: 0, breakdown: [], reception: 0, farewell: 0 };
     }
 
@@ -132,44 +125,35 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
       mandatoryTours: number;
       totalTours: number;
       totalCost: number;
-      hasAirportTransfer: boolean;
+      isFirstCity: boolean;
+      isLastCity: boolean;
     }> = [];
 
     let totalTourCost = 0;
 
-    // Airport to city mapping
-    const arrivalCity = airportCityMapping[data.arrivalAirport];
-    const departureCity = airportCityMapping[data.departureAirport];
-
     // حساب تكلفة الجولات لكل مدينة
     data.selectedCities.forEach((cityStay, index) => {
-      const regularTours = cityStay.tours || 0;
+      const regularTours = Math.max(0, (cityStay.tours || 0) - (cityStay.mandatoryTours || 0));
       const mandatoryTours = cityStay.mandatoryTours || 0;
-      
-      // Check if this city needs airport transfer
       const isFirstCity = index === 0;
       const isLastCity = index === data.selectedCities.length - 1;
-      const hasAirportTransfer = (isFirstCity && cityStay.city === arrivalCity) || 
-                                (isLastCity && cityStay.city === departureCity);
       
       const totalTours = regularTours + mandatoryTours;
       const cityTourCost = totalTours * transport.dailyPrice;
       
-      console.log(`${cityStay.city}: ${totalTours} tours (${regularTours} regular + ${mandatoryTours} mandatory) × $${transport.dailyPrice} = $${cityTourCost}`);
-      if (hasAirportTransfer) {
-        console.log(`  - includes airport transfer`);
-      }
+      console.log(`${cityStay.city}: ${totalTours} جولات (${regularTours} عادية + ${mandatoryTours} إجبارية) × $${transport.dailyPrice} = $${cityTourCost}`);
       
       totalTourCost += cityTourCost;
 
-      if (totalTours > 0 || hasAirportTransfer) {
+      if (totalTours > 0) {
         cityBreakdown.push({
           city: cityStay.city,
           regularTours,
           mandatoryTours,
           totalTours,
           totalCost: cityTourCost,
-          hasAirportTransfer
+          isFirstCity,
+          isLastCity
         });
       }
     });
@@ -179,9 +163,9 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     const receptionCost = isSameAirport ? transport.reception.sameCity : transport.reception.differentCity;
     const farewellCost = isSameAirport ? transport.farewell.sameCity : transport.farewell.differentCity;
     
-    console.log(`Reception cost: $${receptionCost} (${isSameAirport ? 'same city' : 'different city'})`);
-    console.log(`Farewell cost: $${farewellCost} (${isSameAirport ? 'same city' : 'different city'})`);
-    console.log('Total tour cost (cities only):', totalTourCost);
+    console.log(`تكلفة الاستقبال: $${receptionCost} (${isSameAirport ? 'نفس المطار' : 'مطار مختلف'})`);
+    console.log(`تكلفة التوديع: $${farewellCost} (${isSameAirport ? 'نفس المطار' : 'مطار مختلف'})`);
+    console.log('إجمالي تكلفة الجولات (المدن فقط):', totalTourCost);
     
     return { 
       total: totalTourCost, 
@@ -195,48 +179,48 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     let totalCost = 0;
     const duration = getDuration();
 
-    console.log('=== ADDITIONAL SERVICES CALCULATION ===');
-    console.log('Trip duration (days):', duration);
-    console.log('Additional services:', data.additionalServices);
+    console.log('=== حساب الخدمات الإضافية ===');
+    console.log('مدة الرحلة (أيام):', duration);
+    console.log('الخدمات الإضافية:', data.additionalServices);
 
     if (data.additionalServices.travelInsurance.enabled) {
       const insuranceCost = data.additionalServices.travelInsurance.persons * 
                            additionalServicesData.travelInsurance.pricePerPersonPerDay * 
                            duration;
       totalCost += insuranceCost;
-      console.log(`Travel Insurance: ${data.additionalServices.travelInsurance.persons} persons × $${additionalServicesData.travelInsurance.pricePerPersonPerDay}/day × ${duration} days = $${insuranceCost}`);
+      console.log(`تأمين السفر: ${data.additionalServices.travelInsurance.persons} أشخاص × $${additionalServicesData.travelInsurance.pricePerPersonPerDay}/يوم × ${duration} أيام = $${insuranceCost}`);
     }
 
     if (data.additionalServices.phoneLines.enabled) {
       const phoneLinesCost = data.additionalServices.phoneLines.quantity * 
                             additionalServicesData.phoneLines.pricePerLine;
       totalCost += phoneLinesCost;
-      console.log(`Phone Lines: ${data.additionalServices.phoneLines.quantity} lines × $${additionalServicesData.phoneLines.pricePerLine} = $${phoneLinesCost}`);
+      console.log(`خطوط الهاتف: ${data.additionalServices.phoneLines.quantity} خطوط × $${additionalServicesData.phoneLines.pricePerLine} = $${phoneLinesCost}`);
     }
 
     if (data.additionalServices.roomDecoration.enabled) {
       totalCost += additionalServicesData.roomDecoration.price;
-      console.log(`Room Decoration: $${additionalServicesData.roomDecoration.price}`);
+      console.log(`تزيين الغرفة: $${additionalServicesData.roomDecoration.price}`);
     }
 
     if (data.additionalServices.airportReception.enabled) {
       const receptionCost = data.additionalServices.airportReception.persons * 
                            additionalServicesData.airportReception.pricePerPerson;
       totalCost += receptionCost;
-      console.log(`VIP Airport Reception: ${data.additionalServices.airportReception.persons} persons × $${additionalServicesData.airportReception.pricePerPerson} = $${receptionCost}`);
+      console.log(`استقبال VIP بالمطار: ${data.additionalServices.airportReception.persons} أشخاص × $${additionalServicesData.airportReception.pricePerPerson} = $${receptionCost}`);
     }
 
     if (data.additionalServices.photoSession.enabled) {
       totalCost += additionalServicesData.photoSession.price;
-      console.log(`Photo Session: $${additionalServicesData.photoSession.price}`);
+      console.log(`جلسة التصوير: $${additionalServicesData.photoSession.price}`);
     }
 
     if (data.additionalServices.flowerReception.enabled) {
       totalCost += additionalServicesData.flowerReception.price;
-      console.log(`Flower Reception: $${additionalServicesData.flowerReception.price}`);
+      console.log(`استقبال بالورود: $${additionalServicesData.flowerReception.price}`);
     }
 
-    console.log('Total additional services cost:', totalCost);
+    console.log('إجمالي تكلفة الخدمات الإضافية:', totalCost);
     return totalCost;
   };
 
@@ -267,17 +251,17 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
   const totalCostUSD = subtotal * (1 + profitMargin);
   const totalCostLocal = convertFromUSD(totalCostUSD, selectedCurrency.code);
 
-  console.log('=== FINAL COST BREAKDOWN (UPDATED) ===');
-  console.log('Hotel costs: $', hotelCostData.total);
-  console.log('Tour costs (cities): $', tourCostData.total);
-  console.log('Reception cost: $', tourCostData.reception);
-  console.log('Farewell cost: $', tourCostData.farewell);
-  console.log('Total tours + transport: $', totalToursAndTransport);
-  console.log('Additional services: $', additionalServicesCosts);
-  console.log('Subtotal: $', subtotal);
-  console.log('Profit margin (22%): $', subtotal * profitMargin);
-  console.log('Total USD: $', totalCostUSD);
-  console.log('Total Local Currency:', totalCostLocal, selectedCurrency.code);
+  console.log('=== تفصيل التكلفة النهائية المحدث ===');
+  console.log('تكلفة الفنادق: $', hotelCostData.total);
+  console.log('تكلفة الجولات (المدن): $', tourCostData.total);
+  console.log('تكلفة الاستقبال: $', tourCostData.reception);
+  console.log('تكلفة التوديع: $', tourCostData.farewell);
+  console.log('إجمالي الجولات + النقل: $', totalToursAndTransport);
+  console.log('الخدمات الإضافية: $', additionalServicesCosts);
+  console.log('المجموع الفرعي: $', subtotal);
+  console.log('هامش الربح (22%): $', subtotal * profitMargin);
+  console.log('الإجمالي بالدولار: $', totalCostUSD);
+  console.log('الإجمالي بالعملة المحلية:', totalCostLocal, selectedCurrency.code);
 
   useEffect(() => {
     updateData({ totalCost: totalCostUSD });
@@ -392,7 +376,10 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
       {/* Cost Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>ملخص التكلفة</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="w-5 h-5" />
+            ملخص التكلفة
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -489,7 +476,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardContent>
       </Card>
 
-      {/* Detailed Tour Breakdown */}
+      {/* Detailed Tour and Transport Breakdown */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -500,17 +487,23 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         <CardContent>
           <div className="space-y-4">
             {/* Reception */}
-            <div className="py-3 border-b">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium flex items-center gap-2">
-                  <Plane className="w-4 h-4" />
-                  الاستقبال من المطار ({airportCityMapping[data.arrivalAirport]})
-                </span>
-                <span className="font-medium">
-                  ${Math.round(tourCostData.reception)} USD
-                </span>
+            {tourCostData.reception > 0 && (
+              <div className="py-3 border-b">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium flex items-center gap-2">
+                    <Plane className="w-4 h-4" />
+                    الاستقبال من المطار ({airportCityMapping[data.arrivalAirport]})
+                  </span>
+                  <span className="font-medium">
+                    ${Math.round(tourCostData.reception)} USD
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600">
+                  • نوع السيارة: {data.carType}
+                  • {data.arrivalAirport === data.departureAirport ? 'نفس المطار' : 'مطار مختلف'}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* City Tours */}
             {tourCostData.breakdown.length > 0 ? (
@@ -523,9 +516,8 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
                     </span>
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
-                    {city.hasAirportTransfer && (
-                      <div>• نقل من أو إلى المطار: 1</div>
-                    )}
+                    {city.isFirstCity && <div>• مدينة الوصول</div>}
+                    {city.isLastCity && <div>• مدينة المغادرة</div>}
                     {city.mandatoryTours > 0 && (
                       <div>• جولات إجبارية: {city.mandatoryTours}</div>
                     )}
@@ -546,17 +538,23 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
             )}
 
             {/* Farewell */}
-            <div className="py-3 border-b">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium flex items-center gap-2">
-                  <Plane className="w-4 h-4" />
-                  التوديع إلى المطار ({airportCityMapping[data.departureAirport]})
-                </span>
-                <span className="font-medium">
-                  ${Math.round(tourCostData.farewell)} USD
-                </span>
+            {tourCostData.farewell > 0 && (
+              <div className="py-3 border-b">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium flex items-center gap-2">
+                    <Plane className="w-4 h-4" />
+                    التوديع إلى المطار ({airportCityMapping[data.departureAirport]})
+                  </span>
+                  <span className="font-medium">
+                    ${Math.round(tourCostData.farewell)} USD
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600">
+                  • نوع السيارة: {data.carType}
+                  • {data.arrivalAirport === data.departureAirport ? 'نفس المطار' : 'مطار مختلف'}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex justify-between items-center py-2 font-bold text-lg border-t-2">
               <span>إجمالي الجولات والنقل</span>
@@ -566,23 +564,36 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardContent>
       </Card>
 
-      {/* Transport Rules Info */}
+      {/* Transport Rules Info - محدث وفقاً للقواعد الجديدة */}
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="text-blue-800">قواعد الاستقبال والتوديع</CardTitle>
+          <CardTitle className="text-blue-800">قواعد التسعير المطبقة</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-blue-700 text-sm space-y-2">
-            <p><strong>قواعد الاستقبال:</strong></p>
-            <ul className="list-disc list-inside ml-4">
-              <li>نفس المدينة (مطار الوصول = مطار المغادرة): {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.reception.sameCity || 0}` : '$0'}</li>
-              <li>مدن مختلفة (مطار الوصول ≠ مطار المغادرة): {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.reception.differentCity || 0}` : '$0'}</li>
-            </ul>
-            <p><strong>قواعد التوديع:</strong></p>
-            <ul className="list-disc list-inside ml-4">
-              <li>نفس المدينة: {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.farewell.sameCity || 0}` : '$0'}</li>
-              <li>مدن مختلفة: {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.farewell.differentCity || 0}` : '$0'}</li>
-            </ul>
+          <div className="text-blue-700 text-sm space-y-4">
+            <div>
+              <p><strong>قواعد الاستقبال من المطار:</strong></p>
+              <ul className="list-disc list-inside ml-4">
+                <li>نفس المطار (الوصول = المغادرة): {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.reception.sameCity || 0}` : '$0'}</li>
+                <li>مطارات مختلفة (الوصول ≠ المغادرة): {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.reception.differentCity || 0}` : '$0'}</li>
+              </ul>
+            </div>
+            <div>
+              <p><strong>قواعد التوديع إلى المطار:</strong></p>
+              <ul className="list-disc list-inside ml-4">
+                <li>نفس المطار: {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.farewell.sameCity || 0}` : '$0'}</li>
+                <li>مطارات مختلفة: {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.farewell.differentCity || 0}` : '$0'}</li>
+              </ul>
+            </div>
+            <div>
+              <p><strong>قواعد الجولات الإجبارية:</strong></p>
+              <ul className="list-disc list-inside ml-4">
+                <li>باتومي: 2 جولة إجبارية دائماً</li>
+                <li>باقي المدن: 1 جولة إجبارية</li>
+                <li>مطار الوصول/المغادرة تبليسي: 0 جولة إجبارية</li>
+                <li>مطار الوصول/المغادرة باتومي أو كوتايسي: 2 جولة إجبارية</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>
