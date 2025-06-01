@@ -2,7 +2,7 @@
 // قواعد احتساب أسعار الاستقبال والتوديع والسيارات
 
 export const transportPricing = {
-  sedan: {
+  'سيدان': {
     dailyPrice: 90, // 1-3 أشخاص
     reception: {
       sameCity: 25,
@@ -13,7 +13,7 @@ export const transportPricing = {
       differentCity: 90
     }
   },
-  minivan: {
+  'ميني فان': {
     dailyPrice: 100, // 4-6 أشخاص
     reception: {
       sameCity: 45,
@@ -24,7 +24,7 @@ export const transportPricing = {
       differentCity: 100
     }
   },
-  van: {
+  'فان': {
     dailyPrice: 120, // 7-8 أشخاص
     reception: {
       sameCity: 55,
@@ -35,7 +35,7 @@ export const transportPricing = {
       differentCity: 120
     }
   },
-  sprinter: {
+  'سبرنتر': {
     dailyPrice: 250, // 9-14 شخص
     reception: {
       sameCity: 160,
@@ -56,14 +56,14 @@ export const mandatoryToursRules = {
   
   // قواعد خاصة حسب مطار الوصول والمغادرة
   arrivalRules: {
-    tbilisi: 0, // إذا كان الوصول تبليسي
-    batumi: 2,  // إذا كان الوصول باتومي
-    kutaisi: 2  // إذا كان الوصول كوتايسي
+    'TBS': 0, // إذا كان الوصول تبليسي
+    'BUS': 2,  // إذا كان الوصول باتومي
+    'KUT': 2  // إذا كان الوصول كوتايسي
   },
   
   departureRules: {
-    tbilisi: 0, // إذا كانت المغادرة من تبليسي
-    batumi: 2,  // إذا كانت المغادرة من باتومي
-    kutaisi: 2  // إذا كانت المغادرة من كوتايسي
+    'TBS': 0, // إذا كانت المغادرة من تبليسي
+    'BUS': 2,  // إذا كانت المغادرة من باتومي
+    'KUT': 2  // إذا كانت المغادرة من كوتايسي
   }
 };

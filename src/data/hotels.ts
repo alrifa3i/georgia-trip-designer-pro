@@ -3,16 +3,16 @@ import { Hotel, Transport, Currency, Airport, AdditionalServiceData } from '@/ty
 
 // المطارات
 export const airports: Airport[] = [
-  { code: 'tbilisi', name: 'Tbilisi International Airport', nameAr: 'مطار تبليسي الدولي', city: 'تبليسي' },
-  { code: 'batumi', name: 'Batumi International Airport', nameAr: 'مطار باتومي الدولي', city: 'باتومي' },
-  { code: 'kutaisi', name: 'Kutaisi International Airport', nameAr: 'مطار كوتايسي الدولي', city: 'كوتايسي' }
+  { code: 'TBS', name: 'Tbilisi International Airport', nameAr: 'مطار تبليسي الدولي', city: 'تبليسي' },
+  { code: 'BUS', name: 'Batumi International Airport', nameAr: 'مطار باتومي الدولي', city: 'باتومي' },
+  { code: 'KUT', name: 'Kutaisi International Airport', nameAr: 'مطار كوتايسي الدولي', city: 'كوتايسي' }
 ];
 
 // ربط المطارات بالمدن
 export const airportCityMapping: Record<string, string> = {
-  'tbilisi': 'تبليسي',
-  'batumi': 'باتومي',
-  'kutaisi': 'كوتايسي'
+  'TBS': 'تبليسي',
+  'BUS': 'باتومي',
+  'KUT': 'كوتايسي'
 };
 
 // الجولات المتاحة
@@ -170,7 +170,7 @@ export const additionalServicesData: AdditionalServiceData = {
   }
 };
 
-// بيانات الفنادق المحدثة مع كافة الأسعار
+// بيانات الفنادق المحدثة بالأسعار الجديدة
 export const hotelData: Record<string, Hotel[]> = {
   "تبليسي": [
     {

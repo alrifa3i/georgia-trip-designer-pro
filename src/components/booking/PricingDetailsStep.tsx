@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
-import { hotelData, transportData } from '@/data/hotels';
+import { hotelData } from '@/data/hotels';
+import { transportPricing, mandatoryToursRules } from '@/data/transportRules';
 import { DollarSign, Eye, EyeOff, Calculator, Hotel, Car, MapPin, Users, Calendar } from 'lucide-react';
 
 interface PricingDetailsStepProps {
@@ -27,11 +28,17 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     let totalHotelCost = 0;
     const hotelDetails: any[] = [];
 
+    console.log('=== HOTEL COST CALCULATION ===');
+    console.log('Selected cities:', data.selectedCities);
+
     data.selectedCities.forEach((cityStay, cityIndex) => {
       if (!cityStay.city || !cityStay.hotel) return;
 
       const cityHotels = hotelData[cityStay.city] || [];
       const selectedHotel = cityHotels.find(h => h.name === cityStay.hotel);
+      
+      console.log(`Processing ${cityStay.city} - ${cityStay.hotel}`);
+      console.log('Selected hotel:', selectedHotel);
       
       if (!selectedHotel || !cityStay.roomSelections) return;
 
@@ -44,10 +51,10 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         let roomPrice = 0;
         switch (room.roomType) {
           case 'single':
-            roomPrice = selectedHotel.single_price || 0;
+            roomPrice = selectedHotel.single_price || selectedHotel.double_without_view_price || 0;
             break;
           case 'single_v':
-            roomPrice = selectedHotel.single_view_price || 0;
+            roomPrice = selectedHotel.single_view_price || selectedHotel.double_view_price || 0;
             break;
           case 'dbl_wv':
             roomPrice = selectedHotel.double_without_view_price || 0;
@@ -66,6 +73,8 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         const roomTotal = roomPrice * cityStay.nights;
         cityTotal += roomTotal;
 
+        console.log(`Room ${roomIndex + 1}: ${room.roomType} = $${roomPrice}/night × ${cityStay.nights} nights = $${roomTotal}`);
+
         roomDetails.push({
           roomNumber: room.roomNumber,
           roomType: room.roomType,
@@ -83,37 +92,78 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         rooms: roomDetails,
         cityTotal
       });
+
+      console.log(`${cityStay.city} total: $${cityTotal}`);
     });
 
+    console.log('Total hotel cost:', totalHotelCost);
     return { totalHotelCost, hotelDetails };
   };
 
   // Calculate tour costs
   const calculateTourCosts = () => {
-    const selectedTransport = transportData.find(t => t.type === data.carType) || transportData[0];
-    let totalTourCost = 0;
+    const transport = transportPricing[data.carType as keyof typeof transportPricing];
+    console.log('=== TOUR COST CALCULATION ===');
+    console.log('Selected car type:', data.carType);
+    console.log('Transport pricing:', transport);
+    
+    if (!transport) {
+      console.log('No transport pricing found');
+      return { totalTourCost: 0, tourDetails: [] };
+    }
+
     const tourDetails: any[] = [];
+    let totalTourCost = 0;
 
-    data.selectedCities.forEach((cityStay) => {
-      if (!cityStay.city) return;
-
-      const totalTours = (cityStay.tours || 0) + (cityStay.mandatoryTours || 0);
-      if (totalTours === 0) return;
-
-      const tourCostPerDay = selectedTransport.pricePerTour || 0;
-      const cityTourCost = totalTours * tourCostPerDay;
+    data.selectedCities.forEach((cityStay, index) => {
+      const regularTours = cityStay.tours || 0;
+      
+      // حساب الجولات الإجبارية حسب القواعد الجديدة
+      let mandatoryTours = 0;
+      
+      if (cityStay.city === 'باتومي') {
+        mandatoryTours = mandatoryToursRules.batumi;
+      } else {
+        mandatoryTours = mandatoryToursRules.default;
+      }
+      
+      // تطبيق قواعد المطارات
+      const isFirstCity = index === 0;
+      const isLastCity = index === data.selectedCities.length - 1;
+      
+      if (isFirstCity) {
+        const arrivalAirport = data.arrivalAirport;
+        if (mandatoryToursRules.arrivalRules[arrivalAirport as keyof typeof mandatoryToursRules.arrivalRules] !== undefined) {
+          mandatoryTours = mandatoryToursRules.arrivalRules[arrivalAirport as keyof typeof mandatoryToursRules.arrivalRules];
+        }
+      }
+      
+      if (isLastCity) {
+        const departureAirport = data.departureAirport;
+        if (mandatoryToursRules.departureRules[departureAirport as keyof typeof mandatoryToursRules.departureRules] !== undefined) {
+          mandatoryTours = mandatoryToursRules.departureRules[departureAirport as keyof typeof mandatoryToursRules.departureRules];
+        }
+      }
+      
+      const totalTours = regularTours + mandatoryTours;
+      const cityTourCost = totalTours * transport.dailyPrice;
+      
+      console.log(`${cityStay.city}: ${totalTours} tours (${regularTours} regular + ${mandatoryTours} mandatory) × $${transport.dailyPrice} = $${cityTourCost}`);
+      
       totalTourCost += cityTourCost;
 
-      tourDetails.push({
-        city: cityStay.city,
-        mandatoryTours: cityStay.mandatoryTours || 0,
-        optionalTours: cityStay.tours || 0,
-        totalTours,
-        pricePerTour: tourCostPerDay,
-        total: cityTourCost
-      });
+      if (totalTours > 0) {
+        tourDetails.push({
+          city: cityStay.city,
+          regularTours,
+          mandatoryTours,
+          totalTours,
+          totalCost: cityTourCost
+        });
+      }
     });
 
+    console.log('Total tour cost:', totalTourCost);
     return { totalTourCost, tourDetails };
   };
 
@@ -188,16 +238,35 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     return { totalServicesCost, serviceDetails };
   };
 
+  // Calculate transport costs (reception and farewell)
+  const calculateTransportCosts = () => {
+    const transport = transportPricing[data.carType as keyof typeof transportPricing];
+    if (!transport) return 0;
+
+    console.log('=== TRANSPORT COST CALCULATION ===');
+    const isSameCity = data.arrivalAirport === data.departureAirport;
+    const receptionCost = transport.reception[isSameCity ? 'sameCity' : 'differentCity'];
+    const farewellCost = transport.farewell[isSameCity ? 'sameCity' : 'differentCity'];
+    
+    const totalTransportCost = receptionCost + farewellCost;
+    console.log(`Airport reception: $${receptionCost}`);
+    console.log(`Airport farewell: $${farewellCost}`);
+    console.log(`Total transport: $${totalTransportCost}`);
+    
+    return totalTransportCost;
+  };
+
   const { totalHotelCost, hotelDetails } = calculateHotelCosts();
   const { totalTourCost, tourDetails } = calculateTourCosts();
+  const transportCosts = calculateTransportCosts();
   const { totalServicesCost, serviceDetails } = calculateAdditionalServices();
 
-  const grandTotal = totalHotelCost + totalTourCost + totalServicesCost;
+  const grandTotal = totalHotelCost + totalTourCost + transportCosts + totalServicesCost;
 
   // Update total cost in booking data
   useEffect(() => {
     updateData({ totalCost: grandTotal });
-  }, [grandTotal, updateData]);
+  }, [grandTotal]);
 
   const getRoomTypeLabel = (roomType: string) => {
     const labels: { [key: string]: string } = {
@@ -232,7 +301,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-4 gap-4 text-center">
             <div className="bg-white p-3 rounded-lg">
               <div className="text-lg font-semibold text-blue-600">${totalHotelCost.toLocaleString()}</div>
               <div className="text-sm text-gray-600">الفنادق</div>
@@ -240,6 +309,10 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
             <div className="bg-white p-3 rounded-lg">
               <div className="text-lg font-semibold text-purple-600">${totalTourCost.toLocaleString()}</div>
               <div className="text-sm text-gray-600">الجولات</div>
+            </div>
+            <div className="bg-white p-3 rounded-lg">
+              <div className="text-lg font-semibold text-green-600">${transportCosts.toLocaleString()}</div>
+              <div className="text-sm text-gray-600">النقل</div>
             </div>
             <div className="bg-white p-3 rounded-lg">
               <div className="text-lg font-semibold text-orange-600">${totalServicesCost.toLocaleString()}</div>
@@ -316,25 +389,57 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
                       </div>
                       <div className="flex justify-between">
                         <span>جولات اختيارية</span>
-                        <span>{tour.optionalTours}</span>
+                        <span>{tour.regularTours}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>إجمالي الجولات</span>
                         <span>{tour.totalTours}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>سعر الجولة الواحدة</span>
-                        <span>${tour.pricePerTour}</span>
+                        <span>سعر الجولة الواحدة ({data.carType})</span>
+                        <span>${transportPricing[data.carType as keyof typeof transportPricing]?.dailyPrice || 0}</span>
                       </div>
                       <div className="border-t pt-2 font-medium text-purple-700">
                         <div className="flex justify-between">
                           <span>المجموع</span>
-                          <span>${tour.total}</span>
+                          <span>${tour.totalCost}</span>
                         </div>
                       </div>
                     </div>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Transport Details */}
+          {transportCosts > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car className="w-5 h-5 text-green-600" />
+                  تفاصيل تكاليف النقل
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>استقبال من المطار ({data.carType})</span>
+                      <span>${transportPricing[data.carType as keyof typeof transportPricing]?.reception[data.arrivalAirport === data.departureAirport ? 'sameCity' : 'differentCity'] || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>توديع إلى المطار ({data.carType})</span>
+                      <span>${transportPricing[data.carType as keyof typeof transportPricing]?.farewell[data.arrivalAirport === data.departureAirport ? 'sameCity' : 'differentCity'] || 0}</span>
+                    </div>
+                    <div className="border-t pt-2 font-medium text-green-700">
+                      <div className="flex justify-between">
+                        <span>إجمالي النقل</span>
+                        <span>${transportCosts}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}

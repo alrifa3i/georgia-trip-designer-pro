@@ -108,7 +108,7 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
     return (
       <WhatsAppVerification
         phoneNumber={phoneNumber}
-        onSuccess={handleVerificationSuccess}
+        onVerificationSuccess={handleVerificationSuccess}
         onCancel={() => setShowVerification(false)}
       />
     );
@@ -150,6 +150,7 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
               <div className="flex gap-2">
                 <Input
                   id="phoneNumber"
+                  type="tel"
                   value={phoneNumber}
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   placeholder="+995551234567"
