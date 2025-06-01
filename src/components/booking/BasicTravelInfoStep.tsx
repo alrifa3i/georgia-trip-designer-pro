@@ -9,6 +9,7 @@ import { Plus, Minus } from 'lucide-react';
 import { BookingData, Child } from '@/types/booking';
 import { currencies } from '@/data/currencies';
 import { DateInput } from '@/components/ui/date-input';
+import { PhoneInput, countries } from '@/components/ui/phone-input';
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
@@ -17,6 +18,8 @@ interface BasicTravelInfoStepProps {
 }
 
 export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: BasicTravelInfoStepProps) => {
+  const [selectedCountry, setSelectedCountry] = useState('SA');
+
   // التحقق من صحة البيانات
   useEffect(() => {
     const isValid = Boolean(
@@ -27,7 +30,8 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
       data.departureAirport &&
       data.adults > 0 &&
       data.rooms > 0 &&
-      data.budget > 0
+      data.budget > 0 &&
+      data.phoneNumber?.trim()
     );
     
     console.log('Basic info validation:', {
@@ -39,6 +43,7 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
       adults: data.adults,
       rooms: data.rooms,
       budget: data.budget,
+      phoneNumber: data.phoneNumber,
       isValid
     });
     
@@ -76,8 +81,28 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
     updateData({ departureDate: date });
   };
 
+  const handlePhoneChange = (phone: string) => {
+    const currentCountry = countries.find(c => c.code === selectedCountry);
+    const fullPhone = currentCountry ? `${currentCountry.dialCode}${phone}` : phone;
+    updateData({ phoneNumber: fullPhone });
+  };
+
   // الحصول على العملة المختارة
   const selectedCurrency = currencies.find(c => c.code === data.currency) || currencies[0];
+
+  // حساب عدد الليالي
+  const calculateNights = () => {
+    if (data.arrivalDate && data.departureDate) {
+      const arrival = new Date(data.arrivalDate);
+      const departure = new Date(data.departureDate);
+      const diffTime = Math.abs(departure.getTime() - arrival.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    }
+    return 0;
+  };
+
+  const nights = calculateNights();
 
   return (
     <div className="space-y-8">
@@ -104,15 +129,14 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
             </div>
             
             <div>
-              <Label htmlFor="phoneNumber">رقم الهاتف</Label>
-              <Input
-                id="phoneNumber"
-                type="tel"
-                value={data.phoneNumber || ''}
-                onChange={(e) => updateData({ phoneNumber: e.target.value })}
-                placeholder="مثال: +966501234567"
+              <Label htmlFor="phoneNumber">رقم الهاتف *</Label>
+              <PhoneInput
+                value={data.phoneNumber?.replace(/^\+\d{1,4}/, '') || ''}
+                onChange={handlePhoneChange}
+                selectedCountry={selectedCountry}
+                onCountryChange={setSelectedCountry}
+                placeholder="رقم الهاتف"
                 className="mt-1"
-                dir="ltr"
               />
             </div>
           </div>
@@ -222,6 +246,14 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
               required
               disabled={(date) => data.arrivalDate ? date <= new Date(data.arrivalDate) : date < new Date()}
             />
+
+            {nights > 0 && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>عدد الليالي:</strong> {nights} ليلة
+                </p>
+              </div>
+            )}
           </div>
         </Card>
 

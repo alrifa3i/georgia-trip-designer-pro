@@ -1,13 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QRCodeSVG } from 'qrcode.react';
-import { Phone, MessageCircle, CheckCircle, Clock } from 'lucide-react';
-import { generateVerificationCode, createWhatsAppURL, validateVerificationCode } from '@/utils/phoneVerification';
+import { Phone, MessageCircle, CheckCircle, Clock, Copy, Send } from 'lucide-react';
+import { generateVerificationCode, createWhatsAppURL, validateVerificationCode, generateBookingReference } from '@/utils/phoneVerification';
+import { toast } from '@/hooks/use-toast';
 
 interface WhatsAppVerificationProps {
   phoneNumber: string;
@@ -24,24 +25,35 @@ export const WhatsAppVerification = ({
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showCode, setShowCode] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState('');
+  const [bookingReference, setBookingReference] = useState('');
 
-  // إنشاء رابط الواتساب مع رمز التحقق
-  const whatsappUrl = createWhatsAppURL(phoneNumber);
+  // إنشاء رمز التحقق ورقم الحجز
+  useEffect(() => {
+    const code = generateVerificationCode(phoneNumber);
+    const reference = generateBookingReference(bookingData.totalCost || 0);
+    setGeneratedCode(code);
+    setBookingReference(reference);
+  }, [phoneNumber, bookingData.totalCost]);
+
+  // إنشاء رابط الواتساب
+  const whatsappUrl = createWhatsAppURL(phoneNumber, bookingData.totalCost || 0);
   
-  // إنشاء QR Code للواتساب
-  const qrCodeValue = whatsappUrl;
-
-  // الحصول على رمز التحقق المتوقع (للعرض فقط)
-  const expectedCode = generateVerificationCode(phoneNumber);
-
   const sendVerificationCode = async () => {
     setLoading(true);
     try {
-      // محاكاة إرسال رمز التحقق
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsCodeSent(true);
-      // فتح الواتساب تلقائياً
+      
+      // فتح الواتساب
       window.open(whatsappUrl, '_blank');
+      
+      // عرض رسالة تأكيد الإرسال بعد 3 ثوان
+      setTimeout(() => {
+        setShowCode(true);
+      }, 3000);
+      
     } catch (error) {
       console.error('Error sending verification code:', error);
     } finally {
@@ -49,17 +61,32 @@ export const WhatsAppVerification = ({
     }
   };
 
+  const copyCode = () => {
+    navigator.clipboard.writeText(generatedCode);
+    toast({
+      title: "تم النسخ",
+      description: "تم نسخ الكود بنجاح"
+    });
+  };
+
   const verifyCode = async () => {
     setLoading(true);
     try {
-      // محاكاة التحقق من الرمز
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       if (validateVerificationCode(phoneNumber, verificationCode)) {
         setIsVerified(true);
         onVerificationComplete(true);
+        toast({
+          title: "تم التحقق بنجاح",
+          description: "تم تأكيد رقم الواتساب الخاص بك"
+        });
       } else {
-        alert('رمز التحقق غير صحيح. تأكد من إدخال آخر 4 أرقام من رقم هاتفك معكوسة.');
+        toast({
+          title: "خطأ في الكود",
+          description: "الكود غير صحيح، يرجى المحاولة مرة أخرى",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Error verifying code:', error);
@@ -76,11 +103,16 @@ export const WhatsAppVerification = ({
             <CheckCircle className="w-12 h-12" />
           </div>
           <h3 className="text-lg font-semibold text-center text-green-800 mb-2">
-            تم التحقق بنجاح!
+            تم التحقق بنجاح! ✅
           </h3>
           <p className="text-center text-green-700">
-            تم تأكيد رقم الهاتف عبر الواتساب بنجاح. يمكنك الآن إتمام عملية الحجز.
+            تم تأكيد رقم الواتساب بنجاح. يمكنك الآن إتمام عملية الحجز.
           </p>
+          <div className="mt-4 p-3 bg-green-100 rounded-lg text-center">
+            <p className="text-sm text-green-800">
+              <strong>رقم الحجز:</strong> {bookingReference}
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -99,7 +131,7 @@ export const WhatsAppVerification = ({
           <Alert>
             <Phone className="h-4 w-4" />
             <AlertDescription>
-              سيتم إرسال رمز التحقق إلى رقم الواتساب: <strong>{phoneNumber}</strong>
+              سيتم إرسال رسالة التحقق إلى رقم الواتساب: <strong>{phoneNumber}</strong>
             </AlertDescription>
           </Alert>
 
@@ -111,7 +143,7 @@ export const WhatsAppVerification = ({
                   <h4 className="font-medium">امسح QR Code للواتساب</h4>
                   <div className="p-4 bg-white rounded-lg border-2 border-gray-200">
                     <QRCodeSVG 
-                      value={qrCodeValue}
+                      value={whatsappUrl}
                       size={150}
                       level="M"
                       includeMargin={true}
@@ -134,68 +166,98 @@ export const WhatsAppVerification = ({
                     {loading ? (
                       <Clock className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
-                      <MessageCircle className="w-4 h-4 mr-2" />
+                      <Send className="w-4 h-4 mr-2" />
                     )}
-                    إرسال رمز التحقق عبر الواتساب
+                    إرسال رسالة التحقق
                   </Button>
                   <p className="text-xs text-gray-600 text-center">
                     سيتم فتح تطبيق الواتساب مع الرسالة جاهزة للإرسال
                   </p>
                 </div>
               </div>
-              
-              {/* شرح آلية التحقق */}
-              <Alert className="bg-yellow-50 border-yellow-200">
-                <MessageCircle className="h-4 w-4 text-yellow-600" />
-                <AlertDescription className="text-yellow-800">
-                  <strong>كيفية التحقق:</strong> رمز التحقق هو آخر 4 أرقام من رقم هاتفك معكوسة.<br/>
-                  مثال: إذا كان رقمك ينتهي بـ 1234، فالرمز سيكون 4321
-                </AlertDescription>
-              </Alert>
             </div>
           ) : (
             <div className="space-y-4">
-              <Alert className="bg-blue-50 border-blue-200">
-                <MessageCircle className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-800">
-                  تم إرسال رسالة التحقق عبر الواتساب. أدخل الرمز المكون من 4 أرقام أدناه.
-                </AlertDescription>
-              </Alert>
+              {!showCode ? (
+                <Alert className="bg-blue-50 border-blue-200">
+                  <MessageCircle className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-800">
+                    <strong>تأكد من إرسال الرسالة إلى مركز التحقق</strong><br/>
+                    يرجى التأكد من إرسال الرسالة إلى رقم الشركة عبر الواتساب...
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="space-y-4">
+                  <Alert className="bg-green-50 border-green-200">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      <strong>تم إرسال الرسالة بنجاح!</strong><br/>
+                      يمكنك الآن إدخال كود التحقق أدناه
+                    </AlertDescription>
+                  </Alert>
 
-              <div className="space-y-3">
-                <Label htmlFor="verificationCode">رمز التحقق (آخر 4 أرقام من هاتفك معكوسة)</Label>
-                <Input
-                  id="verificationCode"
-                  type="text"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="أدخل الرمز المكون من 4 أرقام"
-                  maxLength={4}
-                  className="text-center text-lg"
-                />
-                <Button
-                  onClick={verifyCode}
-                  disabled={loading || verificationCode.length !== 4}
-                  className="w-full"
-                >
-                  {loading ? (
-                    <Clock className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                  )}
-                  تحقق من الرمز
-                </Button>
-              </div>
+                  {/* عرض الكود */}
+                  <Card className="bg-yellow-50 border-yellow-200">
+                    <CardContent className="pt-4">
+                      <div className="text-center space-y-3">
+                        <h4 className="font-medium text-yellow-800">كود التحقق الخاص بك:</h4>
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="bg-white border-2 border-yellow-300 rounded-lg px-4 py-2 text-2xl font-bold text-yellow-800">
+                            {generatedCode}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={copyCode}
+                            className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-yellow-700">اضغط على أيقونة النسخ لنسخ الكود</p>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              <div className="text-center">
-                <Button
-                  variant="link"
-                  onClick={() => setIsCodeSent(false)}
-                  className="text-sm"
-                >
-                  إعادة إرسال الرسالة
-                </Button>
-              </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="verificationCode">أدخل رقم الكود الظاهر في الأعلى</Label>
+                    <Input
+                      id="verificationCode"
+                      type="text"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="أدخل الكود المكون من 4 أرقام"
+                      maxLength={4}
+                      className="text-center text-lg"
+                    />
+                    <Button
+                      onClick={verifyCode}
+                      disabled={loading || verificationCode.length !== 4}
+                      className="w-full"
+                    >
+                      {loading ? (
+                        <Clock className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                      )}
+                      تحقق من الكود
+                    </Button>
+                  </div>
+
+                  <div className="text-center">
+                    <Button
+                      variant="link"
+                      onClick={() => {
+                        setIsCodeSent(false);
+                        setShowCode(false);
+                      }}
+                      className="text-sm"
+                    >
+                      إعادة إرسال الرسالة
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
