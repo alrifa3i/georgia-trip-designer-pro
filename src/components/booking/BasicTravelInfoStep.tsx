@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData, Child } from '@/types/booking';
 import { currencies, additionalCurrencies } from '@/data/currencies';
-import { Plus, Minus, Users, Calendar, DollarSign, MapPin, Phone, Info } from 'lucide-react';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { Plus, Minus, Users, Calendar, DollarSign, MapPin, Info } from 'lucide-react';
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
@@ -19,6 +20,8 @@ interface BasicTravelInfoStepProps {
 export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: BasicTravelInfoStepProps) => {
   const [showCustomBudget, setShowCustomBudget] = useState(false);
   const [customBudgetAmount, setCustomBudgetAmount] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('SA'); // افتراضي السعودية
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   const allCurrencies = [...currencies, ...additionalCurrencies];
 
@@ -26,7 +29,7 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
   useEffect(() => {
     const isValid = !!(
       data.customerName?.trim() &&
-      data.phoneNumber?.trim() &&
+      phoneNumber?.trim() &&
       data.adults > 0 &&
       data.arrivalDate &&
       data.departureDate &&
@@ -40,7 +43,14 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
     if (onValidationChange) {
       onValidationChange(isValid);
     }
-  }, [data, onValidationChange]);
+  }, [data, phoneNumber, onValidationChange]);
+
+  // حفظ رقم الهاتف في البيانات عند تغييره
+  useEffect(() => {
+    if (phoneNumber) {
+      updateData({ phoneNumber });
+    }
+  }, [phoneNumber, updateData]);
 
   const airports = [
     { code: 'TBS', name: 'مطار تبليسي الدولي', city: 'تبليسي' },
@@ -121,17 +131,14 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">رقم الهاتف (واتساب) *</Label>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-gray-500" />
-                <Input
-                  id="phoneNumber"
-                  value={data.phoneNumber || ''}
-                  onChange={(e) => updateData({ phoneNumber: e.target.value })}
-                  placeholder="+995 XXX XXX XXX"
-                  required
-                />
-              </div>
+              <Label>رقم الهاتف (واتساب) *</Label>
+              <PhoneInput
+                value={phoneNumber}
+                onChange={setPhoneNumber}
+                selectedCountry={selectedCountry}
+                onCountryChange={setSelectedCountry}
+                placeholder="رقم الهاتف"
+              />
             </div>
           </div>
         </CardContent>
@@ -294,7 +301,7 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={addChild}
+                onClick={() => updateData({ children: [...data.children, { age: 5 }] })}
               >
                 <Plus className="w-4 h-4 ml-2" />
                 إضافة طفل
@@ -306,7 +313,12 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                 <span className="text-sm font-medium">طفل {index + 1}:</span>
                 <Select
                   value={child.age.toString()}
-                  onValueChange={(value) => updateChild(index, parseInt(value))}
+                  onValueChange={(value) => {
+                    const updatedChildren = data.children.map((c, i) => 
+                      i === index ? { ...c, age: parseInt(value) } : c
+                    );
+                    updateData({ children: updatedChildren });
+                  }}
                 >
                   <SelectTrigger className="w-20">
                     <SelectValue />
@@ -324,7 +336,10 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                   type="button"
                   variant="destructive"
                   size="sm"
-                  onClick={() => removeChild(index)}
+                  onClick={() => {
+                    const updatedChildren = data.children.filter((_, i) => i !== index);
+                    updateData({ children: updatedChildren });
+                  }}
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
@@ -373,9 +388,9 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
             </AlertDescription>
           </Alert>
 
-          {/* Budget Selection */}
+          {/* Budget Selection - اجبارية */}
           <div className="space-y-3">
-            <Label>اختر نطاق الميزانية *</Label>
+            <Label>اختر نطاق الميزانية * (إجباري)</Label>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {predefinedBudgets.map((budget, index) => {
                 const selectedCurrency = allCurrencies.find(c => c.code === data.currency) || allCurrencies[0];

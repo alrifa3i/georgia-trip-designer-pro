@@ -17,9 +17,9 @@ export const formatCurrency = (amount: number, currencyCode: string): string => 
   return `${amount.toFixed(2)} ${currency.symbol}`;
 };
 
-// إضافة العملات الخليجية الجديدة
+// إضافة العملات الخليجية الجديدة مع الأعلام
 export const additionalCurrencies = [
-  { code: 'BHD', name: 'Bahraini Dinar', nameAr: 'دينار بحريني', symbol: 'د.ب', exchangeRate: 0.376 },
-  { code: 'QAR', name: 'Qatari Riyal', nameAr: 'ريال قطري', symbol: 'ر.ق', exchangeRate: 3.64 },
-  { code: 'OMR', name: 'Omani Rial', nameAr: 'ريال عماني', symbol: 'ر.ع', exchangeRate: 0.385 }
+  { code: 'BHD', name: 'Bahraini Dinar', nameAr: 'دينار بحريني', symbol: 'د.ب', exchangeRate: 0.376, flag: '🇧🇭' },
+  { code: 'QAR', name: 'Qatari Riyal', nameAr: 'ريال قطري', symbol: 'ر.ق', exchangeRate: 3.64, flag: '🇶🇦' },
+  { code: 'OMR', name: 'Omani Rial', nameAr: 'ريال عماني', symbol: 'ر.ع', exchangeRate: 0.385, flag: '🇴🇲' }
 ];

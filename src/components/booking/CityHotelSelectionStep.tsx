@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -17,22 +16,27 @@ interface CityHotelSelectionStepProps {
 }
 
 export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }: CityHotelSelectionStepProps) => {
+  const [selectedCityIndex, setSelectedCityIndex] = useState(0);
+  const [showRoomSelection, setShowRoomSelection] = useState(false);
+  const [currentHotelForRoomSelection, setCurrentHotelForRoomSelection] = useState<any>(null);
+  const [currentCityForRoomSelection, setCurrentCityForRoomSelection] = useState<string>('');
+  const [tempRoomSelections, setTempRoomSelections] = useState<RoomSelection[]>([]);
+
   useEffect(() => {
     const isValid = data.selectedCities.length > 0 && 
-                   data.selectedCities.every(city => 
-                     city.city && 
-                     city.hotel && 
-                     city.nights > 0 && 
-                     city.roomSelections && 
-                     city.roomSelections.length === data.rooms &&
-                     city.roomSelections.every(room => room.roomType)
-                   ) &&
-                   data.carType;
+      data.selectedCities.every(city => 
+        city.city && 
+        city.nights > 0 && 
+        city.hotel && 
+        city.tours >= city.mandatoryTours &&
+        city.roomSelections && 
+        city.roomSelections.length === data.rooms
+      );
     
     if (onValidationChange) {
-      onValidationChange(isValid);
+      onValidationChange(isValid); // تمرير boolean بدلاً من string
     }
-  }, [data.selectedCities, data.carType, data.rooms, onValidationChange]);
+  }, [data.selectedCities, data.rooms, onValidationChange]);
 
   // Airport to city mapping
   const airportCityMapping: Record<string, string> = {
