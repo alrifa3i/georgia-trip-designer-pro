@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -48,33 +47,36 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
     return 1; // All other cities have 1 mandatory tour
   };
 
-  // Sort hotels by average price (cheapest first)
+  // Sort hotels by average price (cheapest first) using correct price fields
   const sortHotelsByPrice = (hotels: any[]) => {
     return hotels.sort((a, b) => {
-      const avgPriceA = (a.dbl_wv + a.dbl_v) / 2;
-      const avgPriceB = (b.dbl_wv + b.dbl_v) / 2;
+      const avgPriceA = ((a.double_without_view_price || 0) + (a.double_view_price || 0)) / 2;
+      const avgPriceB = ((b.double_without_view_price || 0) + (b.double_view_price || 0)) / 2;
       return avgPriceA - avgPriceB;
     });
   };
 
   // Sort room types by price (cheapest first), ensuring view rooms are more expensive
   const sortRoomsByPrice = (hotel: any) => {
-    const roomEntries = Object.entries(hotel)
-      .filter(([key, value]) => typeof value === 'number' && roomTypes.some(rt => rt.id === key))
-      .map(([roomType, price]) => {
-        const roomInfo = roomTypes.find(rt => rt.id === roomType);
-        return { roomType, price: price as number, roomInfo };
-      })
-      .sort((a, b) => {
-        // First sort by capacity, then by view (no view cheaper than with view)
-        if (a.roomInfo!.capacity !== b.roomInfo!.capacity) {
-          return a.roomInfo!.capacity - b.roomInfo!.capacity;
-        }
-        if (a.roomInfo!.hasView !== b.roomInfo!.hasView) {
-          return a.roomInfo!.hasView ? 1 : -1; // No view comes first (cheaper)
-        }
-        return a.price - b.price;
-      });
+    const roomEntries = [
+      { roomType: 'single', price: hotel.single_price || hotel.double_without_view_price || 0, roomInfo: roomTypes.find(rt => rt.id === 'single') },
+      { roomType: 'single_v', price: hotel.single_view_price || hotel.double_view_price || 0, roomInfo: roomTypes.find(rt => rt.id === 'single_v') },
+      { roomType: 'dbl_wv', price: hotel.double_without_view_price || 0, roomInfo: roomTypes.find(rt => rt.id === 'dbl_wv') },
+      { roomType: 'dbl_v', price: hotel.double_view_price || 0, roomInfo: roomTypes.find(rt => rt.id === 'dbl_v') },
+      { roomType: 'trbl_wv', price: hotel.triple_without_view_price || 0, roomInfo: roomTypes.find(rt => rt.id === 'trbl_wv') },
+      { roomType: 'trbl_v', price: hotel.triple_view_price || 0, roomInfo: roomTypes.find(rt => rt.id === 'trbl_v') }
+    ]
+    .filter(entry => entry.price > 0 && entry.roomInfo) // Only include rooms with valid prices
+    .sort((a, b) => {
+      // First sort by capacity, then by view (no view cheaper than with view)
+      if (a.roomInfo!.capacity !== b.roomInfo!.capacity) {
+        return a.roomInfo!.capacity - b.roomInfo!.capacity;
+      }
+      if (a.roomInfo!.hasView !== b.roomInfo!.hasView) {
+        return a.roomInfo!.hasView ? 1 : -1; // No view comes first (cheaper)
+      }
+      return a.price - b.price;
+    });
     
     return roomEntries;
   };
@@ -496,7 +498,7 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
                                     <div className="flex justify-between items-center w-full">
                                       <span>{roomInfo!.label}</span>
                                       <div className="flex items-center gap-2">
-                                        <span className="text-xs text-gray-500">({roomInfo!.capacity} أشخاص)</span>
+                                        <span className="text-xs text-gray-500">({roomInfo!.capacity} أشخاص - ${price})</span>
                                         {roomTypeIndex === 0 && <span className="text-green-600 text-xs">(الأرخص)</span>}
                                         {roomTypeIndex === sortedRooms.length - 1 && sortedRooms.length > 1 && 
                                           <span className="text-blue-600 text-xs">(الأغلى)</span>}
@@ -510,6 +512,9 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
                             {room.roomType && (
                               <div className="mt-2 text-sm text-green-600 font-medium">
                                 ✅ تم اختيار: {roomTypes.find(rt => rt.id === room.roomType)?.label}
+                                <div className="text-xs text-gray-500">
+                                  السعر: ${sortedRooms.find(sr => sr.roomType === room.roomType)?.price || 0}/ليلة
+                                </div>
                               </div>
                             )}
                           </div>

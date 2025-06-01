@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -28,7 +29,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
 
     let totalHotelCost = 0;
     
-    console.log('Starting hotel cost calculation...');
+    console.log('=== HOTEL COST CALCULATION ===');
     console.log('Selected cities:', data.selectedCities);
     
     data.selectedCities.forEach((cityStay, cityIndex) => {
@@ -36,7 +37,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
       
       if (cityStay.city && cityStay.hotel && cityStay.roomSelections && cityStay.roomSelections.length > 0) {
         const hotel = hotelData[cityStay.city]?.find(h => h.name === cityStay.hotel);
-        console.log('Found hotel:', hotel);
+        console.log('Found hotel:', hotel?.name);
         
         if (hotel) {
           let roomCostPerNight = 0;
@@ -49,29 +50,30 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             let roomPrice = 0;
             let roomTypeName = '';
             
+            // استخدام الأسعار من البيانات الحقيقية للفندق
             switch (room.roomType) {
               case 'single':
-                roomPrice = hotel.single || hotel.dbl_wv || 0;
+                roomPrice = hotel.single_price || hotel.double_without_view_price || 0;
                 roomTypeName = 'غرفة مفردة (بدون إطلالة)';
                 break;
               case 'single_v':
-                roomPrice = hotel.single_v || hotel.dbl_v || 0;
+                roomPrice = hotel.single_view_price || hotel.double_view_price || 0;
                 roomTypeName = 'غرفة مفردة (مع إطلالة)';
                 break;
               case 'dbl_wv':
-                roomPrice = hotel.dbl_wv || 0;
+                roomPrice = hotel.double_without_view_price || 0;
                 roomTypeName = 'غرفة مزدوجة (بدون إطلالة)';
                 break;
               case 'dbl_v':
-                roomPrice = hotel.dbl_v || 0;
+                roomPrice = hotel.double_view_price || 0;
                 roomTypeName = 'غرفة مزدوجة (مع إطلالة)';
                 break;
               case 'trbl_wv':
-                roomPrice = hotel.trbl_wv || 0;
+                roomPrice = hotel.triple_without_view_price || 0;
                 roomTypeName = 'غرفة ثلاثية (بدون إطلالة)';
                 break;
               case 'trbl_v':
-                roomPrice = hotel.trbl_v || 0;
+                roomPrice = hotel.triple_view_price || 0;
                 roomTypeName = 'غرفة ثلاثية (مع إطلالة)';
                 break;
               default:
@@ -79,15 +81,15 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                 roomTypeName = 'غير محدد';
             }
             
-            console.log(`Room ${roomIndex + 1} price: ${roomPrice}`);
+            console.log(`Room ${roomIndex + 1} price per night: $${roomPrice}`);
             roomCostPerNight += roomPrice;
-            roomDetails.push(`الغرفة ${roomIndex + 1}: ${roomTypeName} ($${roomPrice})`);
+            roomDetails.push(`الغرفة ${roomIndex + 1}: ${roomTypeName} ($${roomPrice}/ليلة)`);
           });
 
           const cityTotal = roomCostPerNight * cityStay.nights;
           totalHotelCost += cityTotal;
           
-          console.log(`City ${cityStay.city}: ${roomCostPerNight} × ${cityStay.nights} nights = ${cityTotal}`);
+          console.log(`City ${cityStay.city}: $${roomCostPerNight}/night × ${cityStay.nights} nights = $${cityTotal}`);
 
           cityBreakdown.push({
             city: cityStay.city,
@@ -105,12 +107,16 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
   };
 
   const calculateTourCosts = () => {
-    // استخدام القواعد الجديدة للسيارات
+    // استخدام نظام النقل الجديد
     const transport = transportPricing[data.carType as keyof typeof transportPricing];
+    console.log('=== TOUR COST CALCULATION ===');
     console.log('Selected car type:', data.carType);
     console.log('Transport pricing:', transport);
     
-    if (!transport) return { total: 0, breakdown: [] };
+    if (!transport) {
+      console.log('No transport pricing found');
+      return { total: 0, breakdown: [] };
+    }
 
     const cityBreakdown: Array<{
       city: string;
@@ -140,22 +146,22 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
       
       if (isFirstCity) {
         const arrivalAirport = data.arrivalAirport.toLowerCase();
-        if (arrivalAirport.includes('tbilisi')) {
+        if (arrivalAirport.includes('tbilisi') || arrivalAirport.includes('تبليسي')) {
           mandatoryTours = mandatoryToursRules.arrivalRules.tbilisi;
-        } else if (arrivalAirport.includes('batumi')) {
+        } else if (arrivalAirport.includes('batumi') || arrivalAirport.includes('باتومي')) {
           mandatoryTours = mandatoryToursRules.arrivalRules.batumi;
-        } else if (arrivalAirport.includes('kutaisi')) {
+        } else if (arrivalAirport.includes('kutaisi') || arrivalAirport.includes('كوتايسي')) {
           mandatoryTours = mandatoryToursRules.arrivalRules.kutaisi;
         }
       }
       
       if (isLastCity) {
         const departureAirport = data.departureAirport.toLowerCase();
-        if (departureAirport.includes('tbilisi')) {
+        if (departureAirport.includes('tbilisi') || departureAirport.includes('تبليسي')) {
           mandatoryTours = mandatoryToursRules.departureRules.tbilisi;
-        } else if (departureAirport.includes('batumi')) {
+        } else if (departureAirport.includes('batumi') || departureAirport.includes('باتومي')) {
           mandatoryTours = mandatoryToursRules.departureRules.batumi;
-        } else if (departureAirport.includes('kutaisi')) {
+        } else if (departureAirport.includes('kutaisi') || departureAirport.includes('كوتايسي')) {
           mandatoryTours = mandatoryToursRules.departureRules.kutaisi;
         }
       }
@@ -163,7 +169,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
       const totalTours = regularTours + mandatoryTours;
       const cityTourCost = totalTours * transport.dailyPrice;
       
-      console.log(`${cityStay.city}: ${totalTours} tours × $${transport.dailyPrice} = $${cityTourCost}`);
+      console.log(`${cityStay.city}: ${totalTours} tours (${regularTours} regular + ${mandatoryTours} mandatory) × $${transport.dailyPrice} = $${cityTourCost}`);
       
       totalTourCost += cityTourCost;
 
@@ -186,12 +192,15 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     const transport = transportPricing[data.carType as keyof typeof transportPricing];
     if (!transport) return 0;
 
+    console.log('=== TRANSPORT COST CALCULATION ===');
     const isSameCity = data.arrivalAirport === data.departureAirport;
     const receptionCost = transport.reception[isSameCity ? 'sameCity' : 'differentCity'];
     const farewellCost = transport.farewell[isSameCity ? 'sameCity' : 'differentCity'];
     
     const totalTransportCost = receptionCost + farewellCost;
-    console.log(`Transport costs: Reception $${receptionCost} + Farewell $${farewellCost} = $${totalTransportCost}`);
+    console.log(`Airport reception: $${receptionCost}`);
+    console.log(`Airport farewell: $${farewellCost}`);
+    console.log(`Total transport: $${totalTransportCost}`);
     
     return totalTransportCost;
   };
@@ -200,8 +209,8 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     let totalCost = 0;
     const duration = getDuration();
 
-    console.log('Calculating additional services...');
-    console.log('Duration:', duration);
+    console.log('=== ADDITIONAL SERVICES CALCULATION ===');
+    console.log('Trip duration (days):', duration);
     console.log('Additional services:', data.additionalServices);
 
     if (data.additionalServices.travelInsurance.enabled) {
@@ -209,26 +218,36 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                            additionalServicesData.travelInsurance.pricePerPersonPerDay * 
                            duration;
       totalCost += insuranceCost;
-      console.log(`Insurance: ${data.additionalServices.travelInsurance.persons} persons × $5 × ${duration} days = $${insuranceCost}`);
+      console.log(`Travel Insurance: ${data.additionalServices.travelInsurance.persons} persons × $${additionalServicesData.travelInsurance.pricePerPersonPerDay}/day × ${duration} days = $${insuranceCost}`);
     }
 
     if (data.additionalServices.phoneLines.enabled) {
       const phoneLinesCost = data.additionalServices.phoneLines.quantity * 
                             additionalServicesData.phoneLines.pricePerLine;
       totalCost += phoneLinesCost;
-      console.log(`Phone lines: ${data.additionalServices.phoneLines.quantity} × $15 = $${phoneLinesCost}`);
+      console.log(`Phone Lines: ${data.additionalServices.phoneLines.quantity} lines × $${additionalServicesData.phoneLines.pricePerLine} = $${phoneLinesCost}`);
     }
 
     if (data.additionalServices.roomDecoration.enabled) {
       totalCost += additionalServicesData.roomDecoration.price;
-      console.log(`Room decoration: $${additionalServicesData.roomDecoration.price}`);
+      console.log(`Room Decoration: $${additionalServicesData.roomDecoration.price}`);
     }
 
     if (data.additionalServices.airportReception.enabled) {
       const receptionCost = data.additionalServices.airportReception.persons * 
                            additionalServicesData.airportReception.pricePerPerson;
       totalCost += receptionCost;
-      console.log(`VIP Reception: ${data.additionalServices.airportReception.persons} persons × $240 = $${receptionCost}`);
+      console.log(`VIP Airport Reception: ${data.additionalServices.airportReception.persons} persons × $${additionalServicesData.airportReception.pricePerPerson} = $${receptionCost}`);
+    }
+
+    if (data.additionalServices.photoSession.enabled) {
+      totalCost += additionalServicesData.photoSession.price;
+      console.log(`Photo Session: $${additionalServicesData.photoSession.price}`);
+    }
+
+    if (data.additionalServices.flowerReception.enabled) {
+      totalCost += additionalServicesData.flowerReception.price;
+      console.log(`Flower Reception: $${additionalServicesData.flowerReception.price}`);
     }
 
     console.log('Total additional services cost:', totalCost);
@@ -239,29 +258,35 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     if (data.arrivalDate && data.departureDate) {
       const arrival = new Date(data.arrivalDate);
       const departure = new Date(data.departureDate);
-      return Math.ceil((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const diffInMs = departure.getTime() - arrival.getTime();
+      const diffInDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+      return Math.max(1, diffInDays); // ضمان الحد الأدنى يوم واحد
     }
-    return 0;
+    return 1;
   };
 
   const hotelCostData = calculateHotelCosts();
   const tourCostData = calculateTourCosts();
   const transportCosts = calculateTransportCosts();
   const additionalServicesCosts = calculateAdditionalServicesCosts();
+  
+  // حساب المجموع قبل هامش الربح
   const subtotal = hotelCostData.total + tourCostData.total + transportCosts + additionalServicesCosts;
   
+  // تطبيق هامش الربح 22%
   const profitMargin = 0.22;
   const totalCostUSD = subtotal * (1 + profitMargin);
   const totalCostLocal = convertFromUSD(totalCostUSD, selectedCurrency.code);
 
-  console.log('=== COST BREAKDOWN ===');
-  console.log('Hotel costs:', hotelCostData.total);
-  console.log('Tour costs:', tourCostData.total);
-  console.log('Transport costs:', transportCosts);
-  console.log('Additional services:', additionalServicesCosts);
-  console.log('Subtotal:', subtotal);
-  console.log('Total USD:', totalCostUSD);
-  console.log('Total Local Currency:', totalCostLocal);
+  console.log('=== FINAL COST BREAKDOWN ===');
+  console.log('Hotel costs: $', hotelCostData.total);
+  console.log('Tour costs: $', tourCostData.total);
+  console.log('Transport costs: $', transportCosts);
+  console.log('Additional services: $', additionalServicesCosts);
+  console.log('Subtotal: $', subtotal);
+  console.log('Profit margin (22%): $', subtotal * profitMargin);
+  console.log('Total USD: $', totalCostUSD);
+  console.log('Total Local Currency:', totalCostLocal, selectedCurrency.code);
 
   useEffect(() => {
     updateData({ totalCost: totalCostUSD });
@@ -404,6 +429,15 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                 </div>
               </div>
             )}
+            <div className="flex justify-between items-center py-2 border-b">
+              <span>هامش الربح (22%)</span>
+              <div className="text-left">
+                <span className="font-medium">{formatCurrency(convertFromUSD(subtotal * profitMargin, selectedCurrency.code), selectedCurrency.code)}</span>
+                {selectedCurrency.code !== 'USD' && (
+                  <div className="text-xs text-gray-500">${Math.round(subtotal * profitMargin)} USD</div>
+                )}
+              </div>
+            </div>
             <div className="flex justify-between items-center py-2 text-lg font-bold border-t-2">
               <span>الإجمالي النهائي</span>
               <div className="text-left">
@@ -441,7 +475,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                       <div key={detailIndex}>• {detail}</div>
                     ))}
                     <div className="font-medium">
-                      إجمالي الليلة: ${city.roomCost} USD × {city.nights} ليلة
+                      إجمالي الليلة: ${city.roomCost} USD × {city.nights} ليلة = ${city.totalCost} USD
                     </div>
                   </div>
                 </div>
@@ -486,6 +520,9 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                       <div>• جولات إجبارية: {city.mandatoryTours}</div>
                     )}
                     <div>• إجمالي الجولات: {city.totalTours}</div>
+                    <div className="font-medium">
+                      ${city.totalTours} جولات × ${transportPricing[data.carType as keyof typeof transportPricing]?.dailyPrice || 0}/جولة
+                    </div>
                   </div>
                 </div>
               ))
