@@ -12,9 +12,10 @@ import {
   airportCityMapping, 
   validateCityAirportMatch,
   calculateRequiredNights,
-  validateNightsDistribution
+  validateNightsDistribution,
+  transportPricing
 } from '@/data/transportRules';
-import { MapPin, Building, Plus, Minus, Trash2, Info, Car, AlertTriangle, CheckCircle } from 'lucide-react';
+import { MapPin, Building, Plus, Minus, Trash2, Info, Car, AlertTriangle, CheckCircle, Plane } from 'lucide-react';
 
 interface CityHotelSelectionStepProps {
   data: BookingData;
@@ -29,6 +30,32 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   // حساب الليالي المطلوبة
   const requiredNights = calculateRequiredNights(data.arrivalDate, data.departureDate);
   
+  // الحصول على مدينة الوصول والمغادرة من المطارات
+  const arrivalCity = data.arrivalAirport ? airportCityMapping[data.arrivalAirport] : '';
+  const departureCity = data.departureAirport ? airportCityMapping[data.departureAirport] : '';
+
+  // تهيئة المدينة الأولى تلقائياً عند اختيار مطار الوصول
+  useEffect(() => {
+    if (arrivalCity && data.selectedCities.length === 0) {
+      const newCity: CityStay = {
+        city: arrivalCity,
+        nights: 1,
+        hotel: '',
+        tours: 0,
+        mandatoryTours: calculateMandatoryTours(arrivalCity, data.arrivalAirport, data.departureAirport, true, false),
+        roomSelections: Array.from({ length: data.rooms }, (_, index) => ({
+          roomNumber: index + 1,
+          roomType: ''
+        }))
+      };
+      newCity.tours = newCity.mandatoryTours;
+      
+      updateData({
+        selectedCities: [newCity]
+      });
+    }
+  }, [arrivalCity, data.arrivalAirport, data.departureAirport, data.rooms, data.selectedCities.length]);
+
   // التحقق من صحة البيانات
   useEffect(() => {
     const errors: string[] = [];
@@ -71,18 +98,16 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     // التحقق من تطابق المدينة الأولى مع مطار الوصول
     if (data.selectedCities.length > 0 && data.arrivalAirport) {
       const firstCity = data.selectedCities[0];
-      const arrivalValidation = validateCityAirportMatch(firstCity.city, data.arrivalAirport, true);
-      if (!arrivalValidation.isValid) {
-        errors.push(arrivalValidation.message);
+      if (firstCity.city !== arrivalCity) {
+        errors.push(`يجب أن تكون المدينة الأولى مطابقة لمطار الوصول: ${arrivalCity}`);
       }
     }
 
     // التحقق من تطابق المدينة الأخيرة مع مطار المغادرة
-    if (data.selectedCities.length > 0 && data.departureAirport) {
+    if (data.selectedCities.length > 0 && data.departureAirport && departureCity) {
       const lastCity = data.selectedCities[data.selectedCities.length - 1];
-      const departureValidation = validateCityAirportMatch(lastCity.city, data.departureAirport, false);
-      if (!departureValidation.isValid) {
-        errors.push(departureValidation.message);
+      if (lastCity.city !== departureCity) {
+        errors.push(`يجب أن تكون المدينة الأخيرة مطابقة لمطار المغادرة: ${departureCity}`);
       }
     }
 
@@ -99,11 +124,15 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     if (onValidationChange) {
       onValidationChange(errors.length === 0);
     }
-  }, [data.selectedCities, data.rooms, data.carType, data.arrivalAirport, data.departureAirport, requiredNights, onValidationChange]);
+  }, [data.selectedCities, data.rooms, data.carType, data.arrivalAirport, data.departureAirport, requiredNights, arrivalCity, departureCity, onValidationChange]);
 
   const addCity = () => {
+    // تحديد ما إذا كانت هذه المدينة الأخيرة (مدينة المغادرة)
+    const isLastCity = departureCity && data.selectedCities.length > 0;
+    const cityToAdd = isLastCity ? departureCity : '';
+    
     const newCity: CityStay = {
-      city: '',
+      city: cityToAdd,
       nights: 1,
       hotel: '',
       tours: 0,
@@ -113,12 +142,30 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         roomType: ''
       }))
     };
+
+    // حساب الجولات الإجبارية للمدينة الجديدة
+    if (cityToAdd) {
+      const isFirst = false;
+      const isLast = true; // المدينة المضافة ستكون الأخيرة
+      newCity.mandatoryTours = calculateMandatoryTours(
+        cityToAdd, 
+        data.arrivalAirport, 
+        data.departureAirport,
+        isFirst,
+        isLast
+      );
+      newCity.tours = newCity.mandatoryTours;
+    }
+
     updateData({
       selectedCities: [...data.selectedCities, newCity]
     });
   };
 
   const removeCity = (index: number) => {
+    // لا يمكن حذف المدينة الأولى (مدينة الوصول)
+    if (index === 0) return;
+    
     const updatedCities = data.selectedCities.filter((_, i) => i !== index);
     updateData({ selectedCities: updatedCities });
   };
@@ -238,20 +285,46 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     const isFirstCity = cityIndex === 0;
     const isLastCity = cityIndex === data.selectedCities.length - 1;
     
-    if (isFirstCity && data.arrivalAirport) {
-      const requiredCity = airportCityMapping[data.arrivalAirport];
-      return requiredCity ? [requiredCity] : Object.keys(hotelData);
+    if (isFirstCity && arrivalCity) {
+      return [arrivalCity]; // المدينة الأولى محددة بمطار الوصول
     }
     
-    if (isLastCity && data.departureAirport) {
-      const requiredCity = airportCityMapping[data.departureAirport];
-      return requiredCity ? [requiredCity] : Object.keys(hotelData);
+    if (isLastCity && departureCity && data.selectedCities.length > 1) {
+      return [departureCity]; // المدينة الأخيرة محددة بمطار المغادرة
     }
     
     return Object.keys(hotelData);
   };
 
+  // حساب أسعار الاستقبال والتوديع
+  const calculateTransportCosts = () => {
+    if (!data.carType) return { reception: 0, farewell: 0 };
+    
+    const carPricing = transportPricing[data.carType as keyof typeof transportPricing];
+    if (!carPricing) return { reception: 0, farewell: 0 };
+
+    let receptionCost = 0;
+    let farewellCost = 0;
+
+    // حساب تكلفة الاستقبال (المدينة الأولى)
+    if (data.selectedCities.length > 0) {
+      const firstCity = data.selectedCities[0];
+      const isSameCity = firstCity.city === arrivalCity;
+      receptionCost = isSameCity ? carPricing.reception.sameCity : carPricing.reception.differentCity;
+    }
+
+    // حساب تكلفة التوديع (المدينة الأخيرة)
+    if (data.selectedCities.length > 0 && departureCity) {
+      const lastCity = data.selectedCities[data.selectedCities.length - 1];
+      const isSameCity = lastCity.city === departureCity;
+      farewellCost = isSameCity ? carPricing.farewell.sameCity : carPricing.farewell.differentCity;
+    }
+
+    return { reception: receptionCost, farewell: farewellCost };
+  };
+
   const totalNights = data.selectedCities.reduce((sum, city) => sum + city.nights, 0);
+  const transportCosts = calculateTransportCosts();
 
   return (
     <div className="space-y-6">
@@ -276,6 +349,28 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           </AlertDescription>
         </Alert>
       )}
+
+      {/* معلومات مطارات الوصول والمغادرة */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="pt-6">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="flex items-center gap-3">
+              <Plane className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-sm text-blue-600">مطار الوصول</p>
+                <p className="font-bold text-blue-800">{arrivalCity || 'غير محدد'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Plane className="w-5 h-5 text-blue-600 rotate-180" />
+              <div>
+                <p className="text-sm text-blue-600">مطار المغادرة</p>
+                <p className="font-bold text-blue-800">{departureCity || 'غير محدد'}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* معلومات الليالي المطلوبة */}
       {requiredNights > 0 && (
@@ -342,6 +437,23 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
               </p>
             </div>
           </div>
+          
+          {/* عرض أسعار الاستقبال والتوديع */}
+          {data.carType && (
+            <div className="mt-4 p-3 bg-white rounded-lg border">
+              <h4 className="font-semibold text-blue-800 mb-2">أسعار النقل:</h4>
+              <div className="grid md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-green-600">• الاستقبال: </span>
+                  <span className="font-bold">${transportCosts.reception}</span>
+                </div>
+                <div>
+                  <span className="text-orange-600">• التوديع: </span>
+                  <span className="font-bold">${transportCosts.farewell}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -351,9 +463,10 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           <div className="space-y-2">
             <p><strong>ملاحظات مهمة:</strong></p>
             <ul className="list-disc list-inside space-y-1">
-              <li>المدينة الأولى يجب أن تطابق مطار الوصول</li>
-              <li>المدينة الأخيرة يجب أن تطابق مطار المغادرة</li>
+              <li>المدينة الأولى تُحدد تلقائياً حسب مطار الوصول</li>
+              <li>المدينة الأخيرة تُحدد تلقائياً حسب مطار المغادرة</li>
               <li>إجمالي الليالي يجب أن يساوي مدة الرحلة</li>
+              <li>أسعار الاستقبال والتوديع تُحسب تلقائياً</li>
               <li>الجولات الإجبارية تحسب تلقائياً حسب المدينة والمطارات</li>
             </ul>
           </div>
@@ -367,6 +480,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           const isFirstCity = index === 0;
           const isLastCity = index === data.selectedCities.length - 1;
           const allowedCities = getAllowedCities(index);
+          const isCityFixed = allowedCities.length === 1;
           
           return (
             <Card key={index} className="relative">
@@ -374,9 +488,25 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <MapPin className="w-5 h-5 text-emerald-600" />
-                    {isFirstCity ? 'مدينة الوصول' : isLastCity ? 'مدينة المغادرة' : `المدينة ${index + 1}`}
+                    {isFirstCity ? (
+                      <span className="flex items-center gap-2">
+                        مدينة الوصول 
+                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                          تلقائي
+                        </span>
+                      </span>
+                    ) : isLastCity ? (
+                      <span className="flex items-center gap-2">
+                        مدينة المغادرة
+                        <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
+                          تلقائي
+                        </span>
+                      </span>
+                    ) : (
+                      `المدينة ${index + 1}`
+                    )}
                   </CardTitle>
-                  {data.selectedCities.length > 1 && (
+                  {data.selectedCities.length > 1 && !isFirstCity && (
                     <Button
                       onClick={() => removeCity(index)}
                       variant="destructive"
@@ -394,17 +524,17 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     <Select
                       value={cityStay.city}
                       onValueChange={(value) => updateCity(index, { city: value, hotel: '', roomSelections: Array.from({ length: data.rooms }, (_, i) => ({ roomNumber: i + 1, roomType: '' })) })}
-                      disabled={allowedCities.length === 1}
+                      disabled={isCityFixed}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={isCityFixed ? 'bg-gray-100' : ''}>
                         <SelectValue placeholder="اختر المدينة" />
                       </SelectTrigger>
                       <SelectContent>
                         {allowedCities.map((city) => (
                           <SelectItem key={city} value={city}>
                             {city}
-                            {(isFirstCity || isLastCity) && allowedCities.length === 1 && 
-                              <span className="text-xs text-blue-600 mr-2">(إجباري)</span>
+                            {isCityFixed && 
+                              <span className="text-xs text-blue-600 mr-2">(محدد تلقائياً)</span>
                             }
                           </SelectItem>
                         ))}
@@ -552,21 +682,42 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                     <p className="font-medium">• إجمالي الجولات: {totalTours}</p>
                   </div>
                 </div>
+
+                {/* عرض تكاليف النقل للمدينة */}
+                {(isFirstCity || isLastCity) && data.carType && (
+                  <div className="p-3 bg-blue-50 rounded-lg border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-2">
+                      {isFirstCity ? 'تكلفة الاستقبال:' : 'تكلفة التوديع:'}
+                    </h4>
+                    <p className="text-lg font-bold text-blue-600">
+                      ${isFirstCity ? transportCosts.reception : transportCosts.farewell}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      {isFirstCity ? 'تُضاف تلقائياً لمدينة الوصول' : 'تُضاف تلقائياً لمدينة المغادرة'}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      <Button
-        onClick={addCity}
-        variant="outline"
-        className="w-full border-dashed border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-        disabled={data.selectedCities.length >= 5} // حد أقصى 5 مدن
-      >
-        <Plus className="w-4 h-4 ml-2" />
-        إضافة مدينة أخرى
-      </Button>
+      {/* إضافة مدينة جديدة */}
+      {departureCity && data.selectedCities.length > 0 && (
+        <Button
+          onClick={addCity}
+          variant="outline"
+          className="w-full border-dashed border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+          disabled={data.selectedCities.length >= 5 || (data.selectedCities.length > 0 && data.selectedCities[data.selectedCities.length - 1].city === departureCity)}
+        >
+          <Plus className="w-4 h-4 ml-2" />
+          {data.selectedCities.length === 1 && arrivalCity === departureCity ? 
+            'مدينة واحدة كافية (الوصول والمغادرة من نفس المدينة)' : 
+            'إضافة مدينة أخرى'
+          }
+        </Button>
+      )}
 
       {data.selectedCities.length > 0 && (
         <Card className="bg-emerald-50 border-emerald-200">
@@ -609,10 +760,18 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
               })}
             </div>
             <div className="mt-4 pt-4 border-t border-emerald-200">
-              <p className="font-semibold text-emerald-800">
-                إجمالي الليالي: {totalNights} من {requiredNights} مطلوبة
-                {totalNights === requiredNights && <CheckCircle className="inline w-4 h-4 ml-2 text-green-600" />}
-              </p>
+              <div className="flex justify-between items-center">
+                <p className="font-semibold text-emerald-800">
+                  إجمالي الليالي: {totalNights} من {requiredNights} مطلوبة
+                  {totalNights === requiredNights && <CheckCircle className="inline w-4 h-4 ml-2 text-green-600" />}
+                </p>
+                <div className="text-right">
+                  <p className="text-sm text-emerald-700">تكاليف النقل:</p>
+                  <p className="text-sm font-bold text-emerald-800">
+                    الاستقبال: ${transportCosts.reception} | التوديع: ${transportCosts.farewell}
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
