@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,7 +12,8 @@ import {
   validateCityAirportMatch,
   calculateRequiredNights,
   validateNightsDistribution,
-  transportPricing
+  transportPricing,
+  calculateTransportServicesCosts
 } from '@/data/transportRules';
 import { MapPin, Building, Plus, Minus, Trash2, Info, Car, AlertTriangle, CheckCircle, Plane } from 'lucide-react';
 
@@ -298,29 +298,15 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
 
   // حساب أسعار الاستقبال والتوديع
   const calculateTransportCosts = () => {
-    if (!data.carType) return { reception: 0, farewell: 0 };
+    if (!data.carType || !data.arrivalAirport || !data.departureAirport) {
+      return { reception: 0, farewell: 0, total: 0 };
+    }
     
-    const carPricing = transportPricing[data.carType as keyof typeof transportPricing];
-    if (!carPricing) return { reception: 0, farewell: 0 };
-
-    let receptionCost = 0;
-    let farewellCost = 0;
-
-    // حساب تكلفة الاستقبال (المدينة الأولى)
-    if (data.selectedCities.length > 0) {
-      const firstCity = data.selectedCities[0];
-      const isSameCity = firstCity.city === arrivalCity;
-      receptionCost = isSameCity ? carPricing.reception.sameCity : carPricing.reception.differentCity;
-    }
-
-    // حساب تكلفة التوديع (المدينة الأخيرة)
-    if (data.selectedCities.length > 0 && departureCity) {
-      const lastCity = data.selectedCities[data.selectedCities.length - 1];
-      const isSameCity = lastCity.city === departureCity;
-      farewellCost = isSameCity ? carPricing.farewell.sameCity : carPricing.farewell.differentCity;
-    }
-
-    return { reception: receptionCost, farewell: farewellCost };
+    return calculateTransportServicesCosts(
+      data.arrivalAirport,
+      data.departureAirport,
+      data.carType
+    );
   };
 
   const totalNights = data.selectedCities.reduce((sum, city) => sum + city.nights, 0);

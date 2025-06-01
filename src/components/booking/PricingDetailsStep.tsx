@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { BookingData } from '@/types/booking';
 import { hotelData, transportData, additionalServicesData, currencies } from '@/data/hotels';
-import { transportPricing } from '@/data/transportRules';
+import { transportPricing, calculateTransportServicesCosts } from '@/data/transportRules';
 import { Calculator, DollarSign, Users, Building, MapPin, Car, Plane } from 'lucide-react';
 
 interface PricingDetailsStepProps {
@@ -68,28 +67,13 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     }
 
     // حساب تكلفة خدمات النقل (الاستقبال والتوديع)
-    if (data.carType && transportPricing[data.carType as keyof typeof transportPricing]) {
-      const carPricing = transportPricing[data.carType as keyof typeof transportPricing];
-      
-      // تكلفة الاستقبال
-      if (data.selectedCities.length > 0) {
-        const firstCity = data.selectedCities[0];
-        const arrivalAirportCity = data.arrivalAirport === 'TBS' ? 'تبليسي' : 
-                                   data.arrivalAirport === 'BUS' ? 'باتومي' : 
-                                   data.arrivalAirport === 'KUT' ? 'كوتايسي' : '';
-        const isSameCity = firstCity.city === arrivalAirportCity;
-        transportServicesCost += isSameCity ? carPricing.reception.sameCity : carPricing.reception.differentCity;
-      }
-
-      // تكلفة التوديع
-      if (data.selectedCities.length > 0) {
-        const lastCity = data.selectedCities[data.selectedCities.length - 1];
-        const departureAirportCity = data.departureAirport === 'TBS' ? 'تبليسي' : 
-                                     data.departureAirport === 'BUS' ? 'باتومي' : 
-                                     data.departureAirport === 'KUT' ? 'كوتايسي' : '';
-        const isSameCity = lastCity.city === departureAirportCity;
-        transportServicesCost += isSameCity ? carPricing.farewell.sameCity : carPricing.farewell.differentCity;
-      }
+    if (data.carType && data.arrivalAirport && data.departureAirport) {
+      const transportCosts = calculateTransportServicesCosts(
+        data.arrivalAirport,
+        data.departureAirport,
+        data.carType
+      );
+      transportServicesCost = transportCosts.total;
     }
 
     // حساب تكلفة الخدمات الإضافية
@@ -322,7 +306,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
       </Card>
 
       {/* تفاصيل خدمات النقل */}
-      {data.carType && (
+      {data.carType && data.arrivalAirport && data.departureAirport && (
         <Card className="bg-orange-50 border-orange-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-orange-800">
@@ -332,53 +316,59 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {data.selectedCities.length > 0 && (
-                <>
-                  <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                    <div>
-                      <p className="font-semibold">خدمة الاستقبال</p>
-                      <p className="text-sm text-gray-600">من مطار {data.arrivalAirport} إلى {data.selectedCities[0]?.city}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-green-600">
-                        {formatPrice(
-                          data.carType && transportPricing[data.carType as keyof typeof transportPricing] ? 
-                          (data.selectedCities[0]?.city === (
-                            data.arrivalAirport === 'TBS' ? 'تبليسي' : 
-                            data.arrivalAirport === 'BUS' ? 'باتومي' : 
-                            data.arrivalAirport === 'KUT' ? 'كوتايسي' : ''
-                          ) ? 
-                          transportPricing[data.carType as keyof typeof transportPricing].reception.sameCity :
-                          transportPricing[data.carType as keyof typeof transportPricing].reception.differentCity) : 0
+              {(() => {
+                const transportCosts = calculateTransportServicesCosts(
+                  data.arrivalAirport,
+                  data.departureAirport,
+                  data.carType
+                );
+                const isSameAirport = data.arrivalAirport === data.departureAirport;
+                
+                return (
+                  <>
+                    <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
+                      <div>
+                        <p className="font-semibold">خدمة الاستقبال</p>
+                        <p className="text-sm text-gray-600">من مطار {data.arrivalAirport}</p>
+                        {isSameAirport && (
+                          <p className="text-xs text-blue-600">مطار الوصول = مطار المغادرة</p>
                         )}
-                      </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-600">
+                          {formatPrice(transportCosts.reception)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                    <div>
-                      <p className="font-semibold">خدمة التوديع</p>
-                      <p className="text-sm text-gray-600">
-                        من {data.selectedCities[data.selectedCities.length - 1]?.city} إلى مطار {data.departureAirport}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-orange-600">
-                        {formatPrice(
-                          data.carType && transportPricing[data.carType as keyof typeof transportPricing] ? 
-                          (data.selectedCities[data.selectedCities.length - 1]?.city === (
-                            data.departureAirport === 'TBS' ? 'تبليسي' : 
-                            data.departureAirport === 'BUS' ? 'باتومي' : 
-                            data.departureAirport === 'KUT' ? 'كوتايسي' : ''
-                          ) ? 
-                          transportPricing[data.carType as keyof typeof transportPricing].farewell.sameCity :
-                          transportPricing[data.carType as keyof typeof transportPricing].farewell.differentCity) : 0
+                    
+                    <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
+                      <div>
+                        <p className="font-semibold">خدمة التوديع</p>
+                        <p className="text-sm text-gray-600">إلى مطار {data.departureAirport}</p>
+                        {!isSameAirport && (
+                          <p className="text-xs text-orange-600">مطارات مختلفة - سعر إضافي</p>
                         )}
-                      </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-orange-600">
+                          {formatPrice(transportCosts.farewell)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
+                    
+                    <div className="flex justify-between items-center p-3 bg-gray-100 rounded-lg border-2">
+                      <div>
+                        <p className="font-bold">إجمالي خدمات النقل</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-blue-800">
+                          {formatPrice(transportCosts.total)}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>

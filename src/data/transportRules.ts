@@ -180,3 +180,28 @@ export const validateNightsDistribution = (
     totalNights
   };
 };
+
+// دالة محسّنة لحساب تكاليف النقل
+export const calculateTransportServicesCosts = (
+  arrivalAirport: string,
+  departureAirport: string,
+  carType: string
+): { reception: number; farewell: number; total: number } => {
+  const carPricing = transportPricing[carType as keyof typeof transportPricing];
+  
+  if (!carPricing) {
+    return { reception: 0, farewell: 0, total: 0 };
+  }
+
+  // تحديد ما إذا كانت المطارات متطابقة
+  const isSameAirport = arrivalAirport === departureAirport;
+  
+  const receptionCost = carPricing.reception[isSameAirport ? 'sameCity' : 'differentCity'];
+  const farewellCost = carPricing.farewell[isSameAirport ? 'sameCity' : 'differentCity'];
+  
+  return {
+    reception: receptionCost,
+    farewell: farewellCost,
+    total: receptionCost + farewellCost
+  };
+};
