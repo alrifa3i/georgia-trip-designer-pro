@@ -1,4 +1,3 @@
-
 import { Hotel, Transport, Currency, Airport, AdditionalServiceData } from '@/types/booking';
 
 // المطارات
@@ -53,7 +52,8 @@ export const currencies: Currency[] = [
     nameAr: 'الدولار الأمريكي',
     symbol: '$',
     rate: 1,
-    exchangeRate: 1
+    exchangeRate: 1,
+    flag: '🇺🇸'
   },
   {
     code: 'SAR',
@@ -61,7 +61,8 @@ export const currencies: Currency[] = [
     nameAr: 'الريال السعودي',
     symbol: 'ر.س',
     rate: 3.75,
-    exchangeRate: 3.75
+    exchangeRate: 3.75,
+    flag: '🇸🇦'
   },
   {
     code: 'AED',
@@ -69,7 +70,8 @@ export const currencies: Currency[] = [
     nameAr: 'الدرهم الإماراتي',
     symbol: 'د.إ',
     rate: 3.67,
-    exchangeRate: 3.67
+    exchangeRate: 3.67,
+    flag: '🇦🇪'
   },
   {
     code: 'KWD',
@@ -77,7 +79,8 @@ export const currencies: Currency[] = [
     nameAr: 'الدينار الكويتي',
     symbol: 'د.ك',
     rate: 0.31,
-    exchangeRate: 0.31
+    exchangeRate: 0.31,
+    flag: '🇰🇼'
   }
 ];
 
