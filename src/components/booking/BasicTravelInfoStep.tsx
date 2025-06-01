@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { WhatsAppVerification } from './WhatsAppVerification';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { BookingData } from '@/types/booking';
 import { Plus, Minus, Users, Calendar, Phone, User, Baby, Info, Hotel } from 'lucide-react';
 
@@ -18,6 +18,7 @@ interface BasicTravelInfoStepProps {
 
 export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: BasicTravelInfoStepProps) => {
   const [phoneNumber, setPhoneNumber] = useState(data.phoneNumber || '');
+  const [selectedCountry, setSelectedCountry] = useState('SA'); // افتراضي للسعودية
   const [showVerification, setShowVerification] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
 
@@ -61,10 +62,15 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
   }, [minimumRooms, data.rooms, updateData]);
 
   const handlePhoneChange = (value: string) => {
-    // Remove any non-digit characters except +
-    const cleanedValue = value.replace(/[^\d+]/g, '');
-    setPhoneNumber(cleanedValue);
-    updateData({ phoneNumber: cleanedValue });
+    setPhoneNumber(value);
+    updateData({ phoneNumber: value });
+  };
+
+  const handleCountryChange = (countryCode: string) => {
+    setSelectedCountry(countryCode);
+    // إعادة تعيين رقم الهاتف عند تغيير الدولة
+    setPhoneNumber('');
+    updateData({ phoneNumber: '' });
   };
 
   const handleVerifyPhone = () => {
@@ -107,7 +113,7 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
   if (showVerification) {
     return (
       <WhatsAppVerification
-        phoneNumber={phoneNumber}
+        phoneNumber={`+${selectedCountry === 'SA' ? '966' : '995'}${phoneNumber}`}
         onVerificationSuccess={handleVerificationSuccess}
         onCancel={() => setShowVerification(false)}
       />
@@ -147,28 +153,27 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                 <Phone className="w-4 h-4" />
                 رقم الهاتف *
               </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="phoneNumber"
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  placeholder="+995551234567"
-                  className="text-left"
-                  dir="ltr"
-                />
+              <PhoneInput
+                value={phoneNumber}
+                onChange={handlePhoneChange}
+                selectedCountry={selectedCountry}
+                onCountryChange={handleCountryChange}
+                placeholder="رقم الهاتف"
+                disabled={false}
+              />
+              <div className="flex justify-between items-center">
                 <Button 
                   onClick={handleVerifyPhone}
                   variant="outline"
                   size="sm"
                   disabled={!phoneNumber.trim()}
                 >
-                  تحقق
+                  تحقق من الرقم
                 </Button>
+                {isPhoneVerified && (
+                  <p className="text-green-600 text-sm">✅ تم التحقق من رقم الهاتف</p>
+                )}
               </div>
-              {isPhoneVerified && (
-                <p className="text-green-600 text-sm">✅ تم التحقق من رقم الهاتف</p>
-              )}
             </div>
           </CardContent>
         </Card>
