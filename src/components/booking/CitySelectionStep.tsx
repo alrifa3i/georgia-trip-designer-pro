@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -172,7 +173,7 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       }));
     }
     
-    // Reset room selections when hotel changes
+    // Reset room selections when hotel changes and initialize with correct number of rooms
     if (field === 'hotel') {
       newCities[index].roomSelections = Array.from({ length: data.rooms }, (_, i) => ({
         roomNumber: i + 1,
@@ -474,7 +475,7 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
                 </div>
               )}
 
-              {/* Room Selection */}
+              {/* Room Selection - تظهر فقط بعد اختيار الفندق */}
               {selectedHotel && cityStay.roomSelections && (
                 <div className="mt-6 space-y-4">
                   <h5 className="font-medium text-gray-800">
