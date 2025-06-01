@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,10 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { WhatsAppVerification } from './WhatsAppVerification';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { BookingData } from '@/types/booking';
-import { Plus, Minus, Users, Calendar, Phone, User, Baby, Info, Hotel } from 'lucide-react';
+import { Plus, Minus, Users, Calendar, Phone, User, Baby, Info, Hotel, DollarSign } from 'lucide-react';
+import { currencies, formatCurrency, additionalCurrencies } from '@/data/currencies';
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
@@ -18,21 +19,24 @@ interface BasicTravelInfoStepProps {
 
 export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: BasicTravelInfoStepProps) => {
   const [phoneNumber, setPhoneNumber] = useState(data.phoneNumber || '');
-  const [selectedCountry, setSelectedCountry] = useState('SA'); // افتراضي للسعودية
-  const [showVerification, setShowVerification] = useState(false);
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState('SA');
+  const [showCustomBudget, setShowCustomBudget] = useState(false);
+  const [customBudget, setCustomBudget] = useState(data.budget || 0);
+  const [selectedCurrency, setSelectedCurrency] = useState(data.currency || 'USD');
 
   // Calculate total people
   const totalPeople = data.adults + data.children.length;
   
   // Calculate minimum rooms needed
   const getMinimumRoomsNeeded = () => {
-    // Adults + children over 6 need bed space
     const peopleNeedingBeds = data.adults + data.children.filter(child => child.age > 6).length;
-    return Math.ceil(peopleNeedingBeds / 3); // Maximum 3 people per room (triple)
+    return Math.ceil(peopleNeedingBeds / 3);
   };
 
   const minimumRooms = getMinimumRoomsNeeded();
+
+  // دمج العملات الأساسية مع الإضافية
+  const allCurrencies = [...currencies, ...additionalCurrencies];
 
   const validateForm = () => {
     const isValid = 
@@ -55,7 +59,6 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
   }, [data, phoneNumber, onValidationChange]);
 
   useEffect(() => {
-    // Ensure minimum rooms when people count changes
     if (data.rooms < minimumRooms) {
       updateData({ rooms: minimumRooms });
     }
@@ -68,20 +71,16 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
 
   const handleCountryChange = (countryCode: string) => {
     setSelectedCountry(countryCode);
-    // إعادة تعيين رقم الهاتف عند تغيير الدولة
     setPhoneNumber('');
     updateData({ phoneNumber: '' });
   };
 
-  const handleVerifyPhone = () => {
-    if (phoneNumber.trim()) {
-      setShowVerification(true);
-    }
-  };
-
-  const handleVerificationSuccess = () => {
-    setIsPhoneVerified(true);
-    setShowVerification(false);
+  const handleCustomBudgetSubmit = () => {
+    updateData({ 
+      budget: customBudget,
+      currency: selectedCurrency 
+    });
+    setShowCustomBudget(false);
   };
 
   const addChild = () => {
@@ -103,22 +102,11 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
     updateData({ children: newChildren });
   };
 
-  // Available airports
   const airports = [
     { code: 'TBS', name: 'مطار تبليسي الدولي', city: 'تبليسي' },
     { code: 'BUS', name: 'مطار باتومي الدولي', city: 'باتومي' },
     { code: 'KUT', name: 'مطار كوتايسي الدولي', city: 'كوتايسي' }
   ];
-
-  if (showVerification) {
-    return (
-      <WhatsAppVerification
-        phoneNumber={`+${selectedCountry === 'SA' ? '966' : '995'}${phoneNumber}`}
-        onVerificationSuccess={handleVerificationSuccess}
-        onCancel={() => setShowVerification(false)}
-      />
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -161,19 +149,9 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                 placeholder="رقم الهاتف"
                 disabled={false}
               />
-              <div className="flex justify-between items-center">
-                <Button 
-                  onClick={handleVerifyPhone}
-                  variant="outline"
-                  size="sm"
-                  disabled={!phoneNumber.trim()}
-                >
-                  تحقق من الرقم
-                </Button>
-                {isPhoneVerified && (
-                  <p className="text-green-600 text-sm">✅ تم التحقق من رقم الهاتف</p>
-                )}
-              </div>
+              <p className="text-xs text-gray-500">
+                سيتم حفظ رقم الهاتف تلقائياً عند الانتقال للمرحلة التالية
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -265,7 +243,6 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Adults */}
           <div className="flex items-center justify-between">
             <Label>البالغين (12 سنة فأكثر) *</Label>
             <div className="flex items-center gap-3">
@@ -290,7 +267,6 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
             </div>
           </div>
 
-          {/* Children */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-2">
@@ -393,6 +369,85 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                   تحتاج إلى {minimumRooms} غرف على الأقل لعدد {totalPeople} أشخاص.
                 </AlertDescription>
               </Alert>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Budget Selection */}
+      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-green-600" />
+            الميزانية المتوقعة
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="bg-green-100 p-4 rounded-lg">
+              <p className="text-green-800 text-sm font-medium mb-2">
+                💡 الميزانية التي ستدخلها ستساعدنا في تصميم رحلة مثالية تناسب احتياجاتك وتطلعاتك
+              </p>
+              <p className="text-green-700 text-xs">
+                هذه المعلومة ستمكننا من اقتراح أفضل الخيارات المناسبة لك وضمان تجربة سفر استثنائية
+              </p>
+            </div>
+
+            {!showCustomBudget ? (
+              <div className="text-center">
+                <Button
+                  onClick={() => setShowCustomBudget(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  اكتب ميزانيتك المخصصة
+                </Button>
+                {data.budget > 0 && (
+                  <div className="mt-3 p-3 bg-white rounded-lg border">
+                    <p className="text-green-700 font-medium">
+                      الميزانية الحالية: {formatCurrency(data.budget, data.currency)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>المبلغ</Label>
+                    <Input
+                      type="number"
+                      value={customBudget}
+                      onChange={(e) => setCustomBudget(Number(e.target.value))}
+                      placeholder="أدخل ميزانيتك"
+                      min="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>العملة</Label>
+                    <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border shadow-lg z-50">
+                        {allCurrencies.map((currency) => (
+                          <SelectItem key={currency.code} value={currency.code}>
+                            {currency.flag} {currency.nameAr} ({currency.code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleCustomBudgetSubmit} className="flex-1">
+                    حفظ الميزانية
+                  </Button>
+                  <Button onClick={() => setShowCustomBudget(false)} variant="outline">
+                    إلغاء
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </CardContent>

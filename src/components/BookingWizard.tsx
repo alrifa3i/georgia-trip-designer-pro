@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +33,7 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
     carType: '',
     selectedCities: [],
     totalCost: 0,
+    phoneNumber: '', // إضافة رقم الهاتف
     additionalServices: {
       travelInsurance: { enabled: false, persons: 0 },
       phoneLines: { enabled: false, quantity: 0 },
@@ -64,7 +64,16 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
     
     if (currentStep < totalSteps && isCurrentStepValid) {
       console.log(`Moving from step ${currentStep} to ${currentStep + 1}`);
+      
+      // حفظ رقم الهاتف عند الانتقال من المرحلة الأولى
+      if (currentStep === 1 && bookingData.phoneNumber) {
+        console.log('Phone number saved:', bookingData.phoneNumber);
+      }
+      
       setCurrentStep(currentStep + 1);
+      
+      // التمرير إلى أعلى الصفحة عند الانتقال للمرحلة التالية
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       console.log(`Cannot move to next step. Current step: ${currentStep}, Valid: ${isCurrentStepValid}`);
     }
@@ -73,6 +82,8 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      // التمرير إلى أعلى الصفحة عند العودة للمرحلة السابقة
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 

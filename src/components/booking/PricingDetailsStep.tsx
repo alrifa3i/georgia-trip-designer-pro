@@ -1,12 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingData } from '@/types/booking';
-import { hotelData } from '@/data/hotels';
-import { transportPricing, mandatoryToursRules } from '@/data/transportRules';
-import { DollarSign, Eye, EyeOff, Calculator, Hotel, Car, MapPin, Users, Calendar } from 'lucide-react';
+import { additionalServicesData } from '@/data/hotels';
+import { currencies, convertFromUSD, formatCurrency, additionalCurrencies } from '@/data/currencies';
+import { transportPricing } from '@/data/transportRules';
+import { useHotelData } from '@/hooks/useHotelData';
+import { DollarSign, AlertTriangle, CheckCircle, MapPin, Building2, Car, Plane } from 'lucide-react';
 
 interface PricingDetailsStepProps {
   data: BookingData;
@@ -15,134 +16,136 @@ interface PricingDetailsStepProps {
 }
 
 export const PricingDetailsStep = ({ data, updateData, onValidationChange }: PricingDetailsStepProps) => {
-  const [showDetails, setShowDetails] = useState(true);
+  const { hotels: databaseHotels, loading: hotelsLoading } = useHotelData();
+  
+  const allCurrencies = [...currencies, ...additionalCurrencies];
+  const selectedCurrency = allCurrencies.find(c => c.code === data.currency) || allCurrencies[0];
 
-  useEffect(() => {
-    if (onValidationChange) {
-      onValidationChange(true);
-    }
-  }, [onValidationChange]);
-
-  // Calculate hotel costs
-  const calculateHotelCosts = () => {
-    let totalHotelCost = 0;
-    const hotelDetails: any[] = [];
-
-    console.log('=== HOTEL COST CALCULATION ===');
-    console.log('Selected cities:', data.selectedCities);
-
-    data.selectedCities.forEach((cityStay, cityIndex) => {
-      if (!cityStay.city || !cityStay.hotel) return;
-
-      const cityHotels = hotelData[cityStay.city] || [];
-      const selectedHotel = cityHotels.find(h => h.name === cityStay.hotel);
-      
-      console.log(`Processing ${cityStay.city} - ${cityStay.hotel}`);
-      console.log('Selected hotel:', selectedHotel);
-      
-      if (!selectedHotel || !cityStay.roomSelections) return;
-
-      let cityTotal = 0;
-      const roomDetails: any[] = [];
-
-      cityStay.roomSelections.forEach((room, roomIndex) => {
-        if (!room.roomType) return;
-
-        let roomPrice = 0;
-        switch (room.roomType) {
-          case 'single':
-            roomPrice = selectedHotel.single_price || selectedHotel.double_without_view_price || 0;
-            break;
-          case 'single_v':
-            roomPrice = selectedHotel.single_view_price || selectedHotel.double_view_price || 0;
-            break;
-          case 'dbl_wv':
-            roomPrice = selectedHotel.double_without_view_price || 0;
-            break;
-          case 'dbl_v':
-            roomPrice = selectedHotel.double_view_price || 0;
-            break;
-          case 'trbl_wv':
-            roomPrice = selectedHotel.triple_without_view_price || 0;
-            break;
-          case 'trbl_v':
-            roomPrice = selectedHotel.triple_view_price || 0;
-            break;
-        }
-
-        const roomTotal = roomPrice * cityStay.nights;
-        cityTotal += roomTotal;
-
-        console.log(`Room ${roomIndex + 1}: ${room.roomType} = $${roomPrice}/night × ${cityStay.nights} nights = $${roomTotal}`);
-
-        roomDetails.push({
-          roomNumber: room.roomNumber,
-          roomType: room.roomType,
-          pricePerNight: roomPrice,
-          nights: cityStay.nights,
-          total: roomTotal
-        });
-      });
-
-      totalHotelCost += cityTotal;
-      hotelDetails.push({
-        city: cityStay.city,
-        hotel: cityStay.hotel,
-        nights: cityStay.nights,
-        rooms: roomDetails,
-        cityTotal
-      });
-
-      console.log(`${cityStay.city} total: $${cityTotal}`);
-    });
-
-    console.log('Total hotel cost:', totalHotelCost);
-    return { totalHotelCost, hotelDetails };
+  // Airport to city mapping
+  const airportCityMapping: Record<string, string> = {
+    'TBS': 'تبليسي',
+    'BUS': 'باتومي', 
+    'KUT': 'كوتايسي'
   };
 
-  // Calculate tour costs
+  const calculateHotelCosts = () => {
+    const cityBreakdown: Array<{
+      city: string;
+      nights: number;
+      roomCost: number;
+      totalCost: number;
+      roomDetails: string[];
+    }> = [];
+
+    let totalHotelCost = 0;
+    
+    console.log('=== HOTEL COST CALCULATION (NEW METHOD) ===');
+    
+    data.selectedCities.forEach((cityStay, cityIndex) => {
+      console.log(`Processing city ${cityIndex + 1}: ${cityStay.city}`);
+      
+      if (cityStay.city && cityStay.hotel && cityStay.roomSelections && cityStay.roomSelections.length > 0) {
+        const hotel = databaseHotels[cityStay.city]?.find(h => h.name === cityStay.hotel);
+        console.log('Found hotel from database:', hotel?.name);
+        
+        if (hotel) {
+          let totalRoomCostPerNight = 0;
+          const roomDetails: string[] = [];
+          
+          // حساب تكلفة كل غرفة حسب النوع المختار
+          cityStay.roomSelections.forEach((room, roomIndex) => {
+            console.log(`Room ${roomIndex + 1} type: ${room.roomType}`);
+            
+            let roomPrice = 0;
+            let roomTypeName = '';
+            
+            switch (room.roomType) {
+              case 'single':
+                roomPrice = hotel.single_price || hotel.double_without_view_price || 0;
+                roomTypeName = 'غرفة مفردة (بدون إطلالة)';
+                break;
+              case 'single_v':
+                roomPrice = hotel.single_view_price || hotel.double_view_price || 0;
+                roomTypeName = 'غرفة مفردة (مع إطلالة)';
+                break;
+              case 'dbl_wv':
+                roomPrice = hotel.double_without_view_price || 0;
+                roomTypeName = 'غرفة مزدوجة (بدون إطلالة)';
+                break;
+              case 'dbl_v':
+                roomPrice = hotel.double_view_price || 0;
+                roomTypeName = 'غرفة مزدوجة (مع إطلالة)';
+                break;
+              case 'trbl_wv':
+                roomPrice = hotel.triple_without_view_price || 0;
+                roomTypeName = 'غرفة ثلاثية (بدون إطلالة)';
+                break;
+              case 'trbl_v':
+                roomPrice = hotel.triple_view_price || 0;
+                roomTypeName = 'غرفة ثلاثية (مع إطلالة)';
+                break;
+              default:
+                roomPrice = 0;
+                roomTypeName = 'غير محدد';
+            }
+            
+            console.log(`Room ${roomIndex + 1} price per night: $${roomPrice}`);
+            totalRoomCostPerNight += roomPrice;
+            roomDetails.push(`الغرفة ${roomIndex + 1}: ${roomTypeName} ($${roomPrice}/ليلة)`);
+          });
+
+          // المدينة = (عدد الليالي * (الغرفة الأولى + الغرفة الثانية + الغرفة الثالثة))
+          const cityTotal = cityStay.nights * totalRoomCostPerNight;
+          totalHotelCost += cityTotal;
+          
+          console.log(`${cityStay.city}: ${cityStay.nights} nights × $${totalRoomCostPerNight} (total rooms) = $${cityTotal}`);
+
+          cityBreakdown.push({
+            city: cityStay.city,
+            nights: cityStay.nights,
+            roomCost: totalRoomCostPerNight,
+            totalCost: cityTotal,
+            roomDetails
+          });
+        }
+      }
+    });
+    
+    console.log('Total hotel cost:', totalHotelCost);
+    return { total: totalHotelCost, breakdown: cityBreakdown };
+  };
+
   const calculateTourCosts = () => {
     const transport = transportPricing[data.carType as keyof typeof transportPricing];
-    console.log('=== TOUR COST CALCULATION ===');
+    console.log('=== TOUR COST CALCULATION (NEW METHOD) ===');
     console.log('Selected car type:', data.carType);
     console.log('Transport pricing:', transport);
     
     if (!transport) {
       console.log('No transport pricing found');
-      return { totalTourCost: 0, tourDetails: [] };
+      return { total: 0, breakdown: [], reception: 0, farewell: 0 };
     }
 
-    const tourDetails: any[] = [];
+    const cityBreakdown: Array<{
+      city: string;
+      regularTours: number;
+      mandatoryTours: number;
+      totalTours: number;
+      totalCost: number;
+    }> = [];
+
     let totalTourCost = 0;
 
+    // حساب تكلفة الجولات لكل مدينة
     data.selectedCities.forEach((cityStay, index) => {
       const regularTours = cityStay.tours || 0;
-      
-      // حساب الجولات الإجبارية حسب القواعد الجديدة
       let mandatoryTours = 0;
       
+      // قواعد الجولات الإجبارية
       if (cityStay.city === 'باتومي') {
-        mandatoryTours = mandatoryToursRules.batumi;
+        mandatoryTours = 2;
       } else {
-        mandatoryTours = mandatoryToursRules.default;
-      }
-      
-      // تطبيق قواعد المطارات
-      const isFirstCity = index === 0;
-      const isLastCity = index === data.selectedCities.length - 1;
-      
-      if (isFirstCity) {
-        const arrivalAirport = data.arrivalAirport;
-        if (mandatoryToursRules.arrivalRules[arrivalAirport as keyof typeof mandatoryToursRules.arrivalRules] !== undefined) {
-          mandatoryTours = mandatoryToursRules.arrivalRules[arrivalAirport as keyof typeof mandatoryToursRules.arrivalRules];
-        }
-      }
-      
-      if (isLastCity) {
-        const departureAirport = data.departureAirport;
-        if (mandatoryToursRules.departureRules[departureAirport as keyof typeof mandatoryToursRules.departureRules] !== undefined) {
-          mandatoryTours = mandatoryToursRules.departureRules[departureAirport as keyof typeof mandatoryToursRules.departureRules];
-        }
+        mandatoryTours = 1;
       }
       
       const totalTours = regularTours + mandatoryTours;
@@ -153,7 +156,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
       totalTourCost += cityTourCost;
 
       if (totalTours > 0) {
-        tourDetails.push({
+        cityBreakdown.push({
           city: cityStay.city,
           regularTours,
           mandatoryTours,
@@ -163,350 +166,427 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
       }
     });
 
-    console.log('Total tour cost:', totalTourCost);
-    return { totalTourCost, tourDetails };
-  };
-
-  // Calculate additional services
-  const calculateAdditionalServices = () => {
-    let totalServicesCost = 0;
-    const serviceDetails: any[] = [];
-
-    if (data.additionalServices?.travelInsurance?.enabled) {
-      const cost = (data.additionalServices.travelInsurance.persons || 0) * 50;
-      totalServicesCost += cost;
-      serviceDetails.push({
-        name: 'تأمين السفر',
-        quantity: data.additionalServices.travelInsurance.persons,
-        unitPrice: 50,
-        total: cost
-      });
-    }
-
-    if (data.additionalServices?.phoneLines?.enabled) {
-      const cost = (data.additionalServices.phoneLines.quantity || 0) * 25;
-      totalServicesCost += cost;
-      serviceDetails.push({
-        name: 'خطوط هاتف',
-        quantity: data.additionalServices.phoneLines.quantity,
-        unitPrice: 25,
-        total: cost
-      });
-    }
-
-    if (data.additionalServices?.roomDecoration?.enabled) {
-      totalServicesCost += 75;
-      serviceDetails.push({
-        name: 'تزيين الغرفة',
-        quantity: 1,
-        unitPrice: 75,
-        total: 75
-      });
-    }
-
-    if (data.additionalServices?.airportReception?.enabled) {
-      const cost = (data.additionalServices.airportReception.persons || 0) * 30;
-      totalServicesCost += cost;
-      serviceDetails.push({
-        name: 'استقبال المطار',
-        quantity: data.additionalServices.airportReception.persons,
-        unitPrice: 30,
-        total: cost
-      });
-    }
-
-    if (data.additionalServices?.photoSession?.enabled) {
-      totalServicesCost += 150;
-      serviceDetails.push({
-        name: 'جلسة تصوير',
-        quantity: 1,
-        unitPrice: 150,
-        total: 150
-      });
-    }
-
-    if (data.additionalServices?.flowerReception?.enabled) {
-      totalServicesCost += 40;
-      serviceDetails.push({
-        name: 'استقبال بالورود',
-        quantity: 1,
-        unitPrice: 40,
-        total: 40
-      });
-    }
-
-    return { totalServicesCost, serviceDetails };
-  };
-
-  // Calculate transport costs (reception and farewell)
-  const calculateTransportCosts = () => {
-    const transport = transportPricing[data.carType as keyof typeof transportPricing];
-    if (!transport) return 0;
-
-    console.log('=== TRANSPORT COST CALCULATION ===');
-    const isSameCity = data.arrivalAirport === data.departureAirport;
-    const receptionCost = transport.reception[isSameCity ? 'sameCity' : 'differentCity'];
-    const farewellCost = transport.farewell[isSameCity ? 'sameCity' : 'differentCity'];
+    // حساب تكلفة الاستقبال والتوديع
+    const isSameAirport = data.arrivalAirport === data.departureAirport;
+    const receptionCost = isSameAirport ? transport.reception.sameCity : transport.reception.differentCity;
+    const farewellCost = isSameAirport ? transport.farewell.sameCity : transport.farewell.differentCity;
     
-    const totalTransportCost = receptionCost + farewellCost;
-    console.log(`Airport reception: $${receptionCost}`);
-    console.log(`Airport farewell: $${farewellCost}`);
-    console.log(`Total transport: $${totalTransportCost}`);
+    console.log(`Reception cost: $${receptionCost}`);
+    console.log(`Farewell cost: $${farewellCost}`);
+    console.log('Total tour cost (cities only):', totalTourCost);
     
-    return totalTransportCost;
-  };
-
-  const { totalHotelCost, hotelDetails } = calculateHotelCosts();
-  const { totalTourCost, tourDetails } = calculateTourCosts();
-  const transportCosts = calculateTransportCosts();
-  const { totalServicesCost, serviceDetails } = calculateAdditionalServices();
-
-  const grandTotal = totalHotelCost + totalTourCost + transportCosts + totalServicesCost;
-
-  // Update total cost in booking data
-  useEffect(() => {
-    updateData({ totalCost: grandTotal });
-  }, [grandTotal]);
-
-  const getRoomTypeLabel = (roomType: string) => {
-    const labels: { [key: string]: string } = {
-      'single': 'غرفة مفردة',
-      'single_v': 'غرفة مفردة مع إطلالة',
-      'dbl_wv': 'غرفة مزدوجة بدون إطلالة',
-      'dbl_v': 'غرفة مزدوجة مع إطلالة',
-      'trbl_wv': 'غرفة ثلاثية بدون إطلالة',
-      'trbl_v': 'غرفة ثلاثية مع إطلالة'
+    return { 
+      total: totalTourCost, 
+      breakdown: cityBreakdown, 
+      reception: receptionCost, 
+      farewell: farewellCost 
     };
-    return labels[roomType] || roomType;
   };
+
+  const calculateAdditionalServicesCosts = () => {
+    let totalCost = 0;
+    const duration = getDuration();
+
+    console.log('=== ADDITIONAL SERVICES CALCULATION ===');
+    console.log('Trip duration (days):', duration);
+    console.log('Additional services:', data.additionalServices);
+
+    if (data.additionalServices.travelInsurance.enabled) {
+      const insuranceCost = data.additionalServices.travelInsurance.persons * 
+                           additionalServicesData.travelInsurance.pricePerPersonPerDay * 
+                           duration;
+      totalCost += insuranceCost;
+      console.log(`Travel Insurance: ${data.additionalServices.travelInsurance.persons} persons × $${additionalServicesData.travelInsurance.pricePerPersonPerDay}/day × ${duration} days = $${insuranceCost}`);
+    }
+
+    if (data.additionalServices.phoneLines.enabled) {
+      const phoneLinesCost = data.additionalServices.phoneLines.quantity * 
+                            additionalServicesData.phoneLines.pricePerLine;
+      totalCost += phoneLinesCost;
+      console.log(`Phone Lines: ${data.additionalServices.phoneLines.quantity} lines × $${additionalServicesData.phoneLines.pricePerLine} = $${phoneLinesCost}`);
+    }
+
+    if (data.additionalServices.roomDecoration.enabled) {
+      totalCost += additionalServicesData.roomDecoration.price;
+      console.log(`Room Decoration: $${additionalServicesData.roomDecoration.price}`);
+    }
+
+    if (data.additionalServices.airportReception.enabled) {
+      const receptionCost = data.additionalServices.airportReception.persons * 
+                           additionalServicesData.airportReception.pricePerPerson;
+      totalCost += receptionCost;
+      console.log(`VIP Airport Reception: ${data.additionalServices.airportReception.persons} persons × $${additionalServicesData.airportReception.pricePerPerson} = $${receptionCost}`);
+    }
+
+    if (data.additionalServices.photoSession.enabled) {
+      totalCost += additionalServicesData.photoSession.price;
+      console.log(`Photo Session: $${additionalServicesData.photoSession.price}`);
+    }
+
+    if (data.additionalServices.flowerReception.enabled) {
+      totalCost += additionalServicesData.flowerReception.price;
+      console.log(`Flower Reception: $${additionalServicesData.flowerReception.price}`);
+    }
+
+    console.log('Total additional services cost:', totalCost);
+    return totalCost;
+  };
+
+  const getDuration = () => {
+    if (data.arrivalDate && data.departureDate) {
+      const arrival = new Date(data.arrivalDate);
+      const departure = new Date(data.departureDate);
+      const diffInMs = departure.getTime() - arrival.getTime();
+      const diffInDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+      return Math.max(1, diffInDays);
+    }
+    return 1;
+  };
+
+  if (hotelsLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري تحميل بيانات الفنادق...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const hotelCostData = calculateHotelCosts();
+  const tourCostData = calculateTourCosts();
+  const additionalServicesCosts = calculateAdditionalServicesCosts();
+  
+  // إجمالي الجولات = الاستقبال + جولات المدن + التوديع
+  const totalToursAndTransport = tourCostData.reception + tourCostData.total + tourCostData.farewell;
+  
+  // حساب المجموع قبل هامش الربح
+  const subtotal = hotelCostData.total + totalToursAndTransport + additionalServicesCosts;
+  
+  // تطبيق هامش الربح 22%
+  const profitMargin = 0.22;
+  const totalCostUSD = subtotal * (1 + profitMargin);
+  const totalCostLocal = convertFromUSD(totalCostUSD, selectedCurrency.code);
+
+  console.log('=== FINAL COST BREAKDOWN (NEW METHOD) ===');
+  console.log('Hotel costs: $', hotelCostData.total);
+  console.log('Tour costs (cities): $', tourCostData.total);
+  console.log('Reception cost: $', tourCostData.reception);
+  console.log('Farewell cost: $', tourCostData.farewell);
+  console.log('Total tours + transport: $', totalToursAndTransport);
+  console.log('Additional services: $', additionalServicesCosts);
+  console.log('Subtotal: $', subtotal);
+  console.log('Profit margin (22%): $', subtotal * profitMargin);
+  console.log('Total USD: $', totalCostUSD);
+  console.log('Total Local Currency:', totalCostLocal, selectedCurrency.code);
+
+  useEffect(() => {
+    updateData({ totalCost: totalCostUSD });
+  }, [totalCostUSD]);
+
+  const budgetInUSD = data.budget / selectedCurrency.exchangeRate;
+  const isOverBudget = totalCostUSD > budgetInUSD;
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">تفاصيل الأسعار</h2>
-        <p className="text-gray-600">مراجعة التكاليف والأسعار النهائية</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">حساب الأسعار والميزانية</h2>
+        <p className="text-gray-600">مراجعة تكلفة رحلتك والمقارنة مع الميزانية</p>
       </div>
 
-      {/* Total Cost Summary */}
-      <Card className="bg-gradient-to-r from-emerald-50 to-blue-50 border-2 border-emerald-200">
+      {/* USD Payment Notice */}
+      <Card className="border-2 border-green-200 bg-green-50">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calculator className="w-6 h-6 text-emerald-600" />
-              <span>إجمالي التكلفة</span>
-            </div>
-            <div className="text-2xl font-bold text-emerald-700">
-              ${grandTotal.toLocaleString()}
-            </div>
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <DollarSign className="w-5 h-5" />
+            معلومات الدفع المهمة
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4 text-center">
-            <div className="bg-white p-3 rounded-lg">
-              <div className="text-lg font-semibold text-blue-600">${totalHotelCost.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">الفنادق</div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-green-700 font-medium">الأسعار محسوبة بـ {selectedCurrency.nameAr} للوضوح</span>
             </div>
-            <div className="bg-white p-3 rounded-lg">
-              <div className="text-lg font-semibold text-purple-600">${totalTourCost.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">الجولات</div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-green-700 font-medium">الدفع سيتم بالدولار الأمريكي عند الوصول إلى جورجيا</span>
             </div>
-            <div className="bg-white p-3 rounded-lg">
-              <div className="text-lg font-semibold text-green-600">${transportCosts.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">النقل</div>
-            </div>
-            <div className="bg-white p-3 rounded-lg">
-              <div className="text-lg font-semibold text-orange-600">${totalServicesCost.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">الخدمات الإضافية</div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-green-700 font-medium">لا يوجد دفع مسبق أو دفع عبر الإنترنت</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Show/Hide Details Button */}
-      <div className="flex justify-center">
-        <Button
-          onClick={() => setShowDetails(!showDetails)}
-          variant="outline"
-          className="gap-2"
-        >
-          {showDetails ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          {showDetails ? 'إخفاء التفاصيل' : 'إظهار التفاصيل'}
-        </Button>
-      </div>
-
-      {/* Detailed Breakdown */}
-      {showDetails && (
-        <div className="space-y-6">
-          {/* Hotel Details */}
-          {hotelDetails.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Hotel className="w-5 h-5 text-blue-600" />
-                  تفاصيل تكاليف الفنادق
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {hotelDetails.map((hotel, index) => (
-                  <div key={index} className="p-4 bg-blue-50 rounded-lg">
-                    <div className="font-medium text-blue-800 mb-3">
-                      {hotel.city} - {hotel.hotel} ({hotel.nights} ليالي)
-                    </div>
-                    <div className="space-y-2">
-                      {hotel.rooms.map((room: any, roomIndex: number) => (
-                        <div key={roomIndex} className="flex justify-between text-sm">
-                          <span>الغرفة {room.roomNumber}: {getRoomTypeLabel(room.roomType)}</span>
-                          <span>${room.pricePerNight} × {room.nights} ليالي = ${room.total}</span>
-                        </div>
-                      ))}
-                      <div className="border-t pt-2 font-medium text-blue-700">
-                        إجمالي {hotel.city}: ${hotel.cityTotal.toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Tour Details */}
-          {tourDetails.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Car className="w-5 h-5 text-purple-600" />
-                  تفاصيل تكاليف الجولات
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {tourDetails.map((tour, index) => (
-                  <div key={index} className="p-4 bg-purple-50 rounded-lg">
-                    <div className="font-medium text-purple-800 mb-3">{tour.city}</div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>جولات إجبارية</span>
-                        <span>{tour.mandatoryTours}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>جولات اختيارية</span>
-                        <span>{tour.regularTours}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>إجمالي الجولات</span>
-                        <span>{tour.totalTours}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>سعر الجولة الواحدة ({data.carType})</span>
-                        <span>${transportPricing[data.carType as keyof typeof transportPricing]?.dailyPrice || 0}</span>
-                      </div>
-                      <div className="border-t pt-2 font-medium text-purple-700">
-                        <div className="flex justify-between">
-                          <span>المجموع</span>
-                          <span>${tour.totalCost}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Transport Details */}
-          {transportCosts > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Car className="w-5 h-5 text-green-600" />
-                  تفاصيل تكاليف النقل
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="p-3 bg-green-50 rounded-lg">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>استقبال من المطار ({data.carType})</span>
-                      <span>${transportPricing[data.carType as keyof typeof transportPricing]?.reception[data.arrivalAirport === data.departureAirport ? 'sameCity' : 'differentCity'] || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>توديع إلى المطار ({data.carType})</span>
-                      <span>${transportPricing[data.carType as keyof typeof transportPricing]?.farewell[data.arrivalAirport === data.departureAirport ? 'sameCity' : 'differentCity'] || 0}</span>
-                    </div>
-                    <div className="border-t pt-2 font-medium text-green-700">
-                      <div className="flex justify-between">
-                        <span>إجمالي النقل</span>
-                        <span>${transportCosts}</span>
-                      </div>
-                    </div>
-                  </div>
+      {/* Budget vs Cost Comparison */}
+      {data.budget > 0 && (
+        <Card className={`border-2 ${isOverBudget ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              مقارنة الميزانية
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">الميزانية المحددة</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(data.budget, selectedCurrency.code)}
+                </p>
+                {selectedCurrency.code !== 'USD' && (
+                  <p className="text-sm text-gray-500">≈ ${Math.round(budgetInUSD)} USD</p>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">التكلفة الإجمالية</p>
+                <p className={`text-2xl font-bold ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
+                  {formatCurrency(totalCostLocal, selectedCurrency.code)}
+                </p>
+                {selectedCurrency.code !== 'USD' && (
+                  <p className="text-sm text-gray-500">≈ ${Math.round(totalCostUSD)} USD</p>
+                )}
+              </div>
+            </div>
+            
+            {isOverBudget ? (
+              <div className="mt-4 p-4 bg-red-100 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <span className="font-medium text-red-800">تجاوزت التكلفة الميزانية المحددة</span>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                <p className="text-red-700 text-sm">
+                  الفرق: {formatCurrency(totalCostLocal - data.budget, selectedCurrency.code)}
+                  {selectedCurrency.code !== 'USD' && ` (≈ $${Math.round(totalCostUSD - budgetInUSD)} USD)`}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 p-4 bg-green-100 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="font-medium text-green-800">التكلفة تناسب ميزانيتك</span>
+                </div>
+                <p className="text-green-700 text-sm">
+                  المتبقي: {formatCurrency(data.budget - totalCostLocal, selectedCurrency.code)}
+                  {selectedCurrency.code !== 'USD' && ` (≈ $${Math.round(budgetInUSD - totalCostUSD)} USD)`}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Additional Services Details */}
-          {serviceDetails.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-orange-600" />
-                  تفاصيل الخدمات الإضافية
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {serviceDetails.map((service, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                    <span className="font-medium text-orange-800">{service.name}</span>
-                    <span className="text-orange-700">
-                      {service.quantity > 1 ? `${service.quantity} × $${service.unitPrice} = ` : ''}
-                      ${service.total}
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Trip Summary */}
-          <Card className="bg-gray-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-gray-600" />
-                ملخص الرحلة
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex justify-between">
-                  <span>المسافرين:</span>
-                  <span>{data.adults + data.children.length} شخص</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>الغرف:</span>
-                  <span>{data.rooms} غرفة</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>المدن:</span>
-                  <span>{data.selectedCities.length} مدينة</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>الليالي:</span>
-                  <span>{data.selectedCities.reduce((total, city) => total + city.nights, 0)} ليلة</span>
+      {/* Cost Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle>ملخص التكلفة</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-2 border-b">
+              <span>إجمالي الفنادق</span>
+              <div className="text-left">
+                <span className="font-medium">{formatCurrency(convertFromUSD(hotelCostData.total, selectedCurrency.code), selectedCurrency.code)}</span>
+                {selectedCurrency.code !== 'USD' && (
+                  <div className="text-xs text-gray-500">${Math.round(hotelCostData.total)} USD</div>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span>إجمالي الجولات والنقل</span>
+              <div className="text-left">
+                <span className="font-medium">{formatCurrency(convertFromUSD(totalToursAndTransport, selectedCurrency.code), selectedCurrency.code)}</span>
+                {selectedCurrency.code !== 'USD' && (
+                  <div className="text-xs text-gray-500">${Math.round(totalToursAndTransport)} USD</div>
+                )}
+              </div>
+            </div>
+            {additionalServicesCosts > 0 && (
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>الخدمات الإضافية</span>
+                <div className="text-left">
+                  <span className="font-medium">{formatCurrency(convertFromUSD(additionalServicesCosts, selectedCurrency.code), selectedCurrency.code)}</span>
+                  {selectedCurrency.code !== 'USD' && (
+                    <div className="text-xs text-gray-500">${Math.round(additionalServicesCosts)} USD</div>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            )}
+            <div className="flex justify-between items-center py-2 border-b">
+              <span>هامش الربح (22%)</span>
+              <div className="text-left">
+                <span className="font-medium">{formatCurrency(convertFromUSD(subtotal * profitMargin, selectedCurrency.code), selectedCurrency.code)}</span>
+                {selectedCurrency.code !== 'USD' && (
+                  <div className="text-xs text-gray-500">${Math.round(subtotal * profitMargin)} USD</div>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-between items-center py-2 text-lg font-bold border-t-2">
+              <span>الإجمالي النهائي</span>
+              <div className="text-left">
+                <span>{formatCurrency(totalCostLocal, selectedCurrency.code)}</span>
+                <div className="text-sm text-green-600 font-medium">
+                  الدفع: ${Math.round(totalCostUSD)} USD
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Warning if no data */}
-      {grandTotal === 0 && (
-        <Alert>
-          <AlertDescription>
-            لم يتم اختيار أي مدن أو فنادق بعد. الرجاء العودة إلى الخطوات السابقة لإكمال اختياراتك.
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Detailed Hotel Breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            تفاصيل تكلفة الفنادق
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {hotelCostData.breakdown.length > 0 ? (
+              hotelCostData.breakdown.map((city, index) => (
+                <div key={index} className="py-3 border-b">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium">{city.city}</span>
+                    <span className="font-medium">
+                      ${Math.round(city.totalCost)} USD
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    {city.roomDetails.map((detail, detailIndex) => (
+                      <div key={detailIndex}>• {detail}</div>
+                    ))}
+                    <div className="font-medium">
+                      {city.nights} ليلة × ${city.roomCost} (إجمالي الغرف) = ${city.totalCost} USD
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                لم يتم اختيار فنادق أو غرف بعد
+              </div>
+            )}
+            <div className="flex justify-between items-center py-2 font-bold text-lg border-t-2">
+              <span>إجمالي الفنادق</span>
+              <span>${Math.round(hotelCostData.total)} USD</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Detailed Tour Breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Car className="w-5 h-5" />
+            تفاصيل تكلفة الجولات والنقل
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Reception */}
+            <div className="py-3 border-b">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium flex items-center gap-2">
+                  <Plane className="w-4 h-4" />
+                  الاستقبال من المطار ({airportCityMapping[data.arrivalAirport]})
+                </span>
+                <span className="font-medium">
+                  ${Math.round(tourCostData.reception)} USD
+                </span>
+              </div>
+            </div>
+
+            {/* City Tours */}
+            {tourCostData.breakdown.length > 0 ? (
+              tourCostData.breakdown.map((city, index) => (
+                <div key={index} className="py-3 border-b">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium">{city.city}</span>
+                    <span className="font-medium">
+                      ${Math.round(city.totalCost)} USD
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    {city.regularTours > 0 && (
+                      <div>• جولات اختيارية: {city.regularTours}</div>
+                    )}
+                    {city.mandatoryTours > 0 && (
+                      <div>• جولات إجبارية: {city.mandatoryTours}</div>
+                    )}
+                    <div>• إجمالي الجولات: {city.totalTours}</div>
+                    <div className="font-medium">
+                      {city.totalTours} جولات × ${transportPricing[data.carType as keyof typeof transportPricing]?.dailyPrice || 0}/جولة
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                لم يتم اختيار جولات أو نوع سيارة بعد
+              </div>
+            )}
+
+            {/* Farewell */}
+            <div className="py-3 border-b">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium flex items-center gap-2">
+                  <Plane className="w-4 h-4" />
+                  التوديع إلى المطار ({airportCityMapping[data.departureAirport]})
+                </span>
+                <span className="font-medium">
+                  ${Math.round(tourCostData.farewell)} USD
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center py-2 font-bold text-lg border-t-2">
+              <span>إجمالي الجولات والنقل</span>
+              <span>${Math.round(totalToursAndTransport)} USD</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transport Rules Info */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="text-blue-800">قواعد الاستقبال والتوديع</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-blue-700 text-sm space-y-2">
+            <p><strong>قواعد الاستقبال:</strong></p>
+            <ul className="list-disc list-inside ml-4">
+              <li>نفس المدينة (مطار الوصول = مطار المغادرة): {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.reception.sameCity || 0}` : '$0'}</li>
+              <li>مدن مختلفة (مطار الوصول ≠ مطار المغادرة): {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.reception.differentCity || 0}` : '$0'}</li>
+            </ul>
+            <p><strong>قواعد التوديع:</strong></p>
+            <ul className="list-disc list-inside ml-4">
+              <li>نفس المدينة: {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.farewell.sameCity || 0}` : '$0'}</li>
+              <li>مدن مختلفة: {data.carType ? `$${transportPricing[data.carType as keyof typeof transportPricing]?.farewell.differentCity || 0}` : '$0'}</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Privacy Notice */}
+      <Card className="border-green-200 bg-green-50">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <span className="font-medium text-green-800">خصوصية معلوماتك مضمونة</span>
+          </div>
+          <p className="text-green-700 text-sm">
+            لا يتم مشاركة معلوماتك مع أي جهة خارجية. فقط الفنادق المختارة ستحصل على بياناتك لتأكيد الحجز.
+            الدفع سيتم بالدولار الأمريكي عند الوصول إلى جورجيا مباشرة.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };

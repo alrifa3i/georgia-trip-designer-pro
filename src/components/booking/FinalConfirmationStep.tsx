@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
 import { WhatsAppVerification } from './WhatsAppVerification';
+import { generateBookingReference } from '@/utils/phoneVerification';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   CheckCircle, 
   MapPin, 
@@ -13,7 +15,9 @@ import {
   Car, 
   DollarSign,
   Phone,
-  MessageCircle
+  MessageCircle,
+  Copy,
+  Save
 } from 'lucide-react';
 
 interface FinalConfirmationStepProps {
@@ -24,32 +28,115 @@ interface FinalConfirmationStepProps {
 export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationStepProps) => {
   const [showWhatsAppVerification, setShowWhatsAppVerification] = useState(false);
   const [isVerificationComplete, setIsVerificationComplete] = useState(false);
+  const [bookingReference, setBookingReference] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmitBooking = () => {
     if (data.phoneNumber) {
+      // إنشاء رقم مرجعي
+      const reference = generateBookingReference(data.totalCost || 0);
+      setBookingReference(reference);
+      updateData({ reference_number: reference });
       setShowWhatsAppVerification(true);
     } else {
       alert('الرجاء إدخال رقم الهاتف أولاً');
     }
   };
 
-  const handleVerificationSuccess = () => {
-    setShowWhatsAppVerification(false);
-    setIsVerificationComplete(true);
-    
-    // Here you would submit the booking to the database
-    console.log('Booking verified and submitted:', data);
-    
-    alert('تم تأكيد الحجز بنجاح! سيتم التواصل معك قريباً.');
+  const saveBookingToDatabase = async () => {
+    setIsSaving(true);
+    try {
+      const bookingToSave = {
+        reference_number: bookingReference,
+        customer_name: data.customerName,
+        phone_number: data.phoneNumber,
+        adults: data.adults,
+        children: data.children,
+        arrival_date: data.arrivalDate,
+        departure_date: data.departureDate,
+        arrival_airport: data.arrivalAirport,
+        departure_airport: data.departureAirport,
+        rooms: data.rooms,
+        budget: data.budget || 0,
+        currency: data.currency,
+        car_type: data.carType,
+        room_types: data.roomTypes,
+        selected_cities: data.selectedCities,
+        total_cost: data.totalCost || 0,
+        additional_services: data.additionalServices,
+        status: 'confirmed'
+      };
+
+      const { data: savedBooking, error } = await supabase
+        .from('bookings')
+        .insert([bookingToSave])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving booking:', error);
+        throw error;
+      }
+
+      console.log('Booking saved successfully:', savedBooking);
+      return savedBooking;
+    } catch (error) {
+      console.error('Failed to save booking:', error);
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleVerificationSuccess = async () => {
+    try {
+      // حفظ الحجز في قاعدة البيانات
+      await saveBookingToDatabase();
+      
+      setShowWhatsAppVerification(false);
+      setIsVerificationComplete(true);
+      
+      console.log('Booking verified and saved:', data);
+    } catch (error) {
+      alert('حدث خطأ أثناء حفظ الحجز. الرجاء المحاولة مرة أخرى.');
+    }
+  };
+
+  const copyReferenceNumber = () => {
+    navigator.clipboard.writeText(bookingReference);
   };
 
   if (showWhatsAppVerification) {
     return (
-      <WhatsAppVerification
-        phoneNumber={data.phoneNumber || ''}
-        onVerificationSuccess={handleVerificationSuccess}
-        onCancel={() => setShowWhatsAppVerification(false)}
-      />
+      <div className="space-y-4">
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-blue-800">رقم الحجز المرجعي</h3>
+                <p className="text-2xl font-bold text-blue-600">{bookingReference}</p>
+              </div>
+              <Button
+                onClick={copyReferenceNumber}
+                variant="outline"
+                size="sm"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                نسخ
+              </Button>
+            </div>
+            <p className="text-blue-700 text-sm">
+              احتفظ برقم الحجز هذا للمراجع المستقبلية
+            </p>
+          </CardContent>
+        </Card>
+
+        <WhatsAppVerification
+          phoneNumber={data.phoneNumber || ''}
+          onVerificationSuccess={handleVerificationSuccess}
+          onCancel={() => setShowWhatsAppVerification(false)}
+        />
+      </div>
     );
   }
 
@@ -60,16 +147,36 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
           <CheckCircle className="w-16 h-16 text-green-600" />
         </div>
         <h2 className="text-2xl font-bold text-green-800">تم تأكيد الحجز بنجاح!</h2>
+        
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-green-800">رقم الحجز:</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-green-600">{bookingReference}</span>
+                  <Button
+                    onClick={copyReferenceNumber}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Save className="w-4 h-4 text-green-600" />
+                <span className="text-green-700 text-sm">تم حفظ الحجز في النظام بنجاح</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <p className="text-gray-600">
           تم إرسال تفاصيل الحجز إلى رقم الواتساب الخاص بك.
           <br />
           سيتم التواصل معك من قبل فريق خدمة العملاء خلال 24 ساعة.
         </p>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <p className="text-green-800 font-medium">
-            رقم الحجز: GEO{Date.now().toString().slice(-8)}
-          </p>
-        </div>
       </div>
     );
   }
@@ -160,6 +267,7 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
                 <div className="text-sm text-gray-600">
                   <div>الفندق: {city.hotel || 'غير محدد'}</div>
                   <div>الجولات: {city.tours + (city.mandatoryTours || 0)} جولة</div>
+                  <div>عدد الغرف: {city.roomSelections?.length || 0}</div>
                 </div>
               </div>
             ))}
@@ -209,10 +317,10 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
         <Button
           onClick={handleSubmitBooking}
           className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
-          disabled={!data.phoneNumber}
+          disabled={!data.phoneNumber || isSaving}
         >
           <MessageCircle className="w-5 h-5 mr-2" />
-          تأكيد الحجز عبر الواتساب
+          {isSaving ? 'جاري الحفظ...' : 'تأكيد الحجز عبر الواتساب'}
         </Button>
         
         {!data.phoneNumber && (
