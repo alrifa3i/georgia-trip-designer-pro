@@ -6,7 +6,7 @@ import { BookingData } from '@/types/booking';
 import { WhatsAppVerification } from './WhatsAppVerification';
 import { generateBookingReference } from '@/utils/phoneVerification';
 import { supabase } from '@/integrations/supabase/client';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import { 
   CheckCircle, 
   MapPin, 
@@ -234,7 +234,7 @@ ${data.selectedCities.map((city, index) =>
                 </div>
               </div>
               <div className="flex flex-col items-center gap-2">
-                <QRCode value={generateBookingDetails()} size={100} />
+                <QRCodeSVG value={generateBookingDetails()} size={100} />
                 <span className="text-xs text-gray-600">QR كود الحجز</span>
               </div>
             </div>
@@ -330,20 +330,22 @@ ${data.selectedCities.map((city, index) =>
           </CardContent>
         </Card>
 
-        <style jsx>{`
-          @media print {
-            .print-hidden {
-              display: none !important;
+        <style>
+          {`
+            @media print {
+              .print-hidden {
+                display: none !important;
+              }
+              .print-visible {
+                display: block !important;
+              }
+              .print-section {
+                margin: 0;
+                padding: 20px;
+              }
             }
-            .print-visible {
-              display: block !important;
-            }
-            .print-section {
-              margin: 0;
-              padding: 20px;
-            }
-          }
-        `}</style>
+          `}
+        </style>
       </div>
     );
   }

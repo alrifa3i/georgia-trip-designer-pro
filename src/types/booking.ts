@@ -151,6 +151,7 @@ export interface Currency {
   symbol: string;
   rate: number;
   exchangeRate: number;
+  flag: string; // Added flag property
 }
 
 export interface Airport {
