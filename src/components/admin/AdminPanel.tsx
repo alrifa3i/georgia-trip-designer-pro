@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -309,17 +310,17 @@ export const AdminPanel = () => {
                       <div className="text-sm">
                         <strong>الوصول:</strong>
                         <ul className="mt-1 space-y-1">
-                          <li>تبليسي: {mandatoryToursRules.arrivalRules.tbilisi} جولة</li>
-                          <li>باتومي: {mandatoryToursRules.arrivalRules.batumi} جولة</li>
-                          <li>كوتايسي: {mandatoryToursRules.arrivalRules.kutaisi} جولة</li>
+                          <li>تبليسي: {mandatoryToursRules.arrivalRules.TBS} جولة</li>
+                          <li>باتومي: {mandatoryToursRules.arrivalRules.BUS} جولة</li>
+                          <li>كوتايسي: {mandatoryToursRules.arrivalRules.KUT} جولة</li>
                         </ul>
                       </div>
                       <div className="text-sm">
                         <strong>المغادرة:</strong>
                         <ul className="mt-1 space-y-1">
-                          <li>تبليسي: {mandatoryToursRules.departureRules.tbilisi} جولة</li>
-                          <li>باتومي: {mandatoryToursRules.departureRules.batumi} جولة</li>
-                          <li>كوتايسي: {mandatoryToursRules.departureRules.kutaisi} جولة</li>
+                          <li>تبليسي: {mandatoryToursRules.departureRules.TBS} جولة</li>
+                          <li>باتومي: {mandatoryToursRules.departureRules.BUS} جولة</li>
+                          <li>كوتايسي: {mandatoryToursRules.departureRules.KUT} جولة</li>
                         </ul>
                       </div>
                     </div>
