@@ -11,6 +11,8 @@ export type Database = {
     Tables: {
       advertisements: {
         Row: {
+          adults: number | null
+          children: number | null
           created_at: string | null
           description: string | null
           display_order: number | null
@@ -18,10 +20,16 @@ export type Database = {
           image_url: string | null
           people_range: string | null
           price: string | null
+          priority: number | null
+          services: Json | null
           status: string | null
           title: string
+          type: string | null
+          whatsapp_message: string | null
         }
         Insert: {
+          adults?: number | null
+          children?: number | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
@@ -29,10 +37,16 @@ export type Database = {
           image_url?: string | null
           people_range?: string | null
           price?: string | null
+          priority?: number | null
+          services?: Json | null
           status?: string | null
           title: string
+          type?: string | null
+          whatsapp_message?: string | null
         }
         Update: {
+          adults?: number | null
+          children?: number | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
@@ -40,10 +54,58 @@ export type Database = {
           image_url?: string | null
           people_range?: string | null
           price?: string | null
+          priority?: number | null
+          services?: Json | null
           status?: string | null
           title?: string
+          type?: string | null
+          whatsapp_message?: string | null
         }
         Relationships: []
+      }
+      booking_files: {
+        Row: {
+          booking_id: string
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string | null
+          uploaded_at: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          uploaded_at?: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_files_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bookings: {
         Row: {

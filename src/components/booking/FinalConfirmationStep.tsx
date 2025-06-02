@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
 import { WhatsAppVerification } from './WhatsAppVerification';
 import { generateBookingReference } from '@/utils/phoneVerification';
-import { supabase } from '@/integrations/supabase/client';
+import { useBookings } from '@/hooks/useBookings';
+import { useBookingManagement } from '@/hooks/useBookingManagement';
 import { QRCodeSVG } from 'qrcode.react';
+import { useToast } from '@/hooks/use-toast';
 import { 
   CheckCircle, 
   MapPin, 
@@ -20,7 +22,10 @@ import {
   Copy,
   Save,
   Download,
-  Printer
+  Printer,
+  Upload,
+  FileText,
+  RefreshCw
 } from 'lucide-react';
 
 interface FinalConfirmationStepProps {
@@ -32,7 +37,16 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
   const [showWhatsAppVerification, setShowWhatsAppVerification] = useState(false);
   const [isVerificationComplete, setIsVerificationComplete] = useState(false);
   const [bookingReference, setBookingReference] = useState('');
+  const [bookingId, setBookingId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<{ passport: boolean; ticket: boolean }>({
+    passport: false,
+    ticket: false
+  });
+  
+  const { toast } = useToast();
+  const { saveBooking } = useBookings();
+  const { uploadFile } = useBookingManagement();
 
   const handleSubmitBooking = () => {
     if (data.phoneNumber) {
@@ -42,47 +56,26 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
       updateData({ referenceNumber: reference });
       setShowWhatsAppVerification(true);
     } else {
-      alert('الرجاء إدخال رقم الهاتف أولاً في المرحلة الأولى');
+      toast({
+        title: "خطأ",
+        description: "الرجاء إدخال رقم الهاتف أولاً في المرحلة الأولى",
+        variant: "destructive",
+      });
     }
   };
 
   const saveBookingToDatabase = async () => {
     setIsSaving(true);
     try {
-      const bookingToSave = {
-        reference_number: bookingReference,
-        customer_name: data.customerName,
-        phone_number: data.phoneNumber,
-        adults: data.adults,
-        children: JSON.stringify(data.children),
-        arrival_date: data.arrivalDate,
-        departure_date: data.departureDate,
-        arrival_airport: data.arrivalAirport,
-        departure_airport: data.departureAirport,
-        rooms: data.rooms,
-        budget: data.budget || 0,
-        currency: data.currency,
-        car_type: data.carType,
-        room_types: JSON.stringify(data.roomTypes || []),
-        selected_cities: JSON.stringify(data.selectedCities),
-        total_cost: data.totalCost || 0,
-        additional_services: JSON.stringify(data.additionalServices),
-        status: 'confirmed'
-      };
-
-      const { data: savedBooking, error } = await supabase
-        .from('bookings')
-        .insert(bookingToSave)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error saving booking:', error);
-        throw error;
+      const result = await saveBooking(data);
+      
+      if (result.success && result.data) {
+        console.log('Booking saved successfully:', result.data);
+        setBookingId(result.data.id);
+        return result.data;
+      } else {
+        throw new Error(result.error || 'Failed to save booking');
       }
-
-      console.log('Booking saved successfully:', savedBooking);
-      return savedBooking;
     } catch (error) {
       console.error('Failed to save booking:', error);
       throw error;
@@ -99,14 +92,75 @@ export const FinalConfirmationStep = ({ data, updateData }: FinalConfirmationSte
       setShowWhatsAppVerification(false);
       setIsVerificationComplete(true);
       
+      toast({
+        title: "تم تأكيد الحجز",
+        description: "تم حفظ الحجز بنجاح في النظام",
+      });
+      
       console.log('Booking verified and saved:', data);
     } catch (error) {
-      alert('حدث خطأ أثناء حفظ الحجز. الرجاء المحاولة مرة أخرى.');
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حفظ الحجز. الرجاء المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
     }
+  };
+
+  const handleFileUpload = async (fileType: 'passport' | 'ticket', event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !bookingId) return;
+
+    // التحقق من نوع الملف
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "نوع ملف غير مدعوم",
+        description: "يرجى رفع ملف PDF أو صورة (JPG, PNG)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // التحقق من حجم الملف (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "حجم الملف كبير",
+        description: "يرجى رفع ملف أصغر من 5 ميجابايت",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingFiles(prev => ({ ...prev, [fileType]: true }));
+
+    const fileUrl = await uploadFile(bookingId, file, fileType);
+    
+    if (fileUrl) {
+      toast({
+        title: "تم رفع الملف بنجاح",
+        description: `تم رفع ${fileType === 'passport' ? 'جواز السفر' : 'التذكرة'} بنجاح`,
+      });
+    } else {
+      toast({
+        title: "خطأ في رفع الملف",
+        description: "حدث خطأ أثناء رفع الملف",
+        variant: "destructive",
+      });
+    }
+
+    setUploadingFiles(prev => ({ ...prev, [fileType]: false }));
+    
+    // إعادة تعيين قيمة input
+    event.target.value = '';
   };
 
   const copyReferenceNumber = () => {
     navigator.clipboard.writeText(bookingReference);
+    toast({
+      title: "تم النسخ",
+      description: "تم نسخ رقم الحجز إلى الحافظة",
+    });
   };
 
   const handlePrint = () => {
@@ -240,6 +294,72 @@ ${data.selectedCities.map((city, index) =>
             </div>
           </CardContent>
         </Card>
+
+        {/* رفع الملفات */}
+        {bookingId && (
+          <Card className="print-hidden">
+            <CardHeader>
+              <CardTitle className="text-lg">رفع المستندات المطلوبة</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">رفع جواز سفر (مطلوب):</h4>
+                  <input
+                    type="file"
+                    id="passport-upload"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleFileUpload('passport', e)}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('passport-upload')?.click()}
+                    disabled={uploadingFiles.passport}
+                    className="w-full"
+                  >
+                    {uploadingFiles.passport ? (
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    رفع جواز السفر (PDF, JPG, PNG)
+                  </Button>
+                  <p className="text-sm text-gray-600 mt-1">
+                    يرجى رفع جواز سفر واحد على الأقل (حد أقصى 5 ميجابايت)
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">رفع تذكرة الطيران (مطلوب):</h4>
+                  <input
+                    type="file"
+                    id="ticket-upload"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleFileUpload('ticket', e)}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('ticket-upload')?.click()}
+                    disabled={uploadingFiles.ticket}
+                    className="w-full"
+                  >
+                    {uploadingFiles.ticket ? (
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    رفع تذكرة الطيران (PDF, JPG, PNG)
+                  </Button>
+                  <p className="text-sm text-gray-600 mt-1">
+                    يرجى رفع تذكرة واحدة على الأقل (حد أقصى 5 ميجابايت)
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Booking Details Summary for Print */}
         <Card className="print-visible">
