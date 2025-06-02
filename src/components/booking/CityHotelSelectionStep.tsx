@@ -15,7 +15,7 @@ import {
   transportPricing,
   calculateTransportServicesCosts
 } from '@/data/transportRules';
-import { MapPin, Building, Plus, Minus, Trash2, Info, Car, AlertTriangle, CheckCircle, Plane } from 'lucide-react';
+import { MapPin, Building, Plus, Minus, Trash2, Info, Car, AlertTriangle, CheckCircle, Plane, ArrowDown } from 'lucide-react';
 
 interface CityHotelSelectionStepProps {
   data: BookingData;
@@ -39,7 +39,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     if (arrivalCity && data.selectedCities.length === 0) {
       const newCity: CityStay = {
         city: arrivalCity,
-        nights: 1,
+        nights: requiredNights > 0 ? Math.min(requiredNights, 1) : 1,
         hotel: '',
         tours: 0,
         mandatoryTours: calculateMandatoryTours(arrivalCity, data.arrivalAirport, data.departureAirport, true, false),
@@ -54,7 +54,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         selectedCities: [newCity]
       });
     }
-  }, [arrivalCity, data.arrivalAirport, data.departureAirport, data.rooms, data.selectedCities.length]);
+  }, [arrivalCity, data.arrivalAirport, data.departureAirport, data.rooms, data.selectedCities.length, requiredNights]);
 
   // التحقق من صحة البيانات
   useEffect(() => {
@@ -103,19 +103,19 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
       }
     }
 
-    // التحقق من تطابق المدينة الأخيرة مع مطار المغادرة
-    if (data.selectedCities.length > 0 && data.departureAirport && departureCity) {
-      const lastCity = data.selectedCities[data.selectedCities.length - 1];
-      if (lastCity.city !== departureCity) {
-        errors.push(`يجب أن تكون المدينة الأخيرة مطابقة لمطار المغادرة: ${departureCity}`);
-      }
-    }
-
     // التحقق من توزيع الليالي
     if (requiredNights > 0) {
       const nightsValidation = validateNightsDistribution(data.selectedCities, requiredNights);
       if (!nightsValidation.isValid) {
         errors.push(nightsValidation.message);
+      } else {
+        // التحقق من تطابق المدينة الأخيرة مع مطار المغادرة عند اكتمال الليالي
+        if (data.selectedCities.length > 0 && data.departureAirport && departureCity) {
+          const lastCity = data.selectedCities[data.selectedCities.length - 1];
+          if (lastCity.city !== departureCity) {
+            errors.push(`يجب أن تكون المدينة الأخيرة هي ${departureCity} (مطار المغادرة). الرجاء تعديل الليلة الأخيرة لتكون في مدينة ${departureCity}`);
+          }
+        }
       }
     }
 
@@ -127,35 +127,19 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   }, [data.selectedCities, data.rooms, data.carType, data.arrivalAirport, data.departureAirport, requiredNights, arrivalCity, departureCity, onValidationChange]);
 
   const addCity = () => {
-    // تحديد ما إذا كانت هذه المدينة الأخيرة (مدينة المغادرة)
-    const isLastCity = departureCity && data.selectedCities.length > 0;
-    const cityToAdd = isLastCity ? departureCity : '';
-    
     const newCity: CityStay = {
-      city: cityToAdd,
+      city: '',
       nights: 1,
       hotel: '',
       tours: 0,
-      mandatoryTours: 0,
+      mandatoryTours: 1, // القيمة الافتراضية
       roomSelections: Array.from({ length: data.rooms }, (_, index) => ({
         roomNumber: index + 1,
         roomType: ''
       }))
     };
 
-    // حساب الجولات الإجبارية للمدينة الجديدة
-    if (cityToAdd) {
-      const isFirst = false;
-      const isLast = true; // المدينة المضافة ستكون الأخيرة
-      newCity.mandatoryTours = calculateMandatoryTours(
-        cityToAdd, 
-        data.arrivalAirport, 
-        data.departureAirport,
-        isFirst,
-        isLast
-      );
-      newCity.tours = newCity.mandatoryTours;
-    }
+    newCity.tours = newCity.mandatoryTours;
 
     updateData({
       selectedCities: [...data.selectedCities, newCity]
@@ -283,17 +267,12 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   // الحصول على المدن المسموحة حسب الموقع
   const getAllowedCities = (cityIndex: number): string[] => {
     const isFirstCity = cityIndex === 0;
-    const isLastCity = cityIndex === data.selectedCities.length - 1;
     
     if (isFirstCity && arrivalCity) {
       return [arrivalCity]; // المدينة الأولى محددة بمطار الوصول
     }
     
-    if (isLastCity && departureCity && data.selectedCities.length > 1) {
-      return [departureCity]; // المدينة الأخيرة محددة بمطار المغادرة
-    }
-    
-    return Object.keys(hotelData);
+    return Object.keys(hotelData); // باقي المدن مفتوحة للاختيار
   };
 
   // حساب أسعار الاستقبال والتوديع
@@ -309,8 +288,49 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     );
   };
 
+  // دالة لتصحيح المسار تلقائياً
+  const autoCorrectRoute = () => {
+    if (!departureCity || data.selectedCities.length === 0) return;
+    
+    const totalNights = data.selectedCities.reduce((sum, city) => sum + city.nights, 0);
+    
+    if (totalNights === requiredNights) {
+      // إذا كان إجمالي الليالي مكتمل، غير المدينة الأخيرة
+      const updatedCities = [...data.selectedCities];
+      const lastCityIndex = updatedCities.length - 1;
+      
+      updatedCities[lastCityIndex] = {
+        ...updatedCities[lastCityIndex],
+        city: departureCity,
+        hotel: '',
+        roomSelections: Array.from({ length: data.rooms }, (_, index) => ({
+          roomNumber: index + 1,
+          roomType: ''
+        })),
+        mandatoryTours: calculateMandatoryTours(
+          departureCity, 
+          data.arrivalAirport, 
+          data.departureAirport,
+          false,
+          true
+        )
+      };
+      
+      updatedCities[lastCityIndex].tours = updatedCities[lastCityIndex].mandatoryTours;
+      
+      updateData({ selectedCities: updatedCities });
+    }
+  };
+
   const totalNights = data.selectedCities.reduce((sum, city) => sum + city.nights, 0);
   const transportCosts = calculateTransportCosts();
+
+  // التحقق من حاجة المسار للتصحيح
+  const needsRouteCorrection = () => {
+    if (!departureCity || data.selectedCities.length === 0) return false;
+    const lastCity = data.selectedCities[data.selectedCities.length - 1];
+    return totalNights === requiredNights && lastCity.city !== departureCity;
+  };
 
   return (
     <div className="space-y-6">
@@ -331,6 +351,17 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                   <li key={index}>{error}</li>
                 ))}
               </ul>
+              {needsRouteCorrection() && (
+                <div className="mt-3">
+                  <Button
+                    onClick={autoCorrectRoute}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    تصحيح المسار تلقائياً
+                  </Button>
+                </div>
+              )}
             </div>
           </AlertDescription>
         </Alert>
@@ -450,10 +481,10 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
             <p><strong>ملاحظات مهمة:</strong></p>
             <ul className="list-disc list-inside space-y-1">
               <li>المدينة الأولى تُحدد تلقائياً حسب مطار الوصول</li>
-              <li>المدينة الأخيرة تُحدد تلقائياً حسب مطار المغادرة</li>
+              <li>يمكن إضافة أي عدد من المدن الإضافية</li>
+              <li>المدينة الأخيرة يجب أن تطابق مطار المغادرة عند اكتمال الليالي</li>
               <li>إجمالي الليالي يجب أن يساوي مدة الرحلة</li>
               <li>أسعار الاستقبال والتوديع تُحسب تلقائياً</li>
-              <li>الجولات الإجبارية تحسب تلقائياً حسب المدينة والمطارات</li>
             </ul>
           </div>
         </AlertDescription>
@@ -481,15 +512,13 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                           تلقائي
                         </span>
                       </span>
-                    ) : isLastCity ? (
-                      <span className="flex items-center gap-2">
-                        مدينة المغادرة
-                        <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
-                          تلقائي
-                        </span>
-                      </span>
                     ) : (
                       `المدينة ${index + 1}`
+                    )}
+                    {isLastCity && totalNights === requiredNights && cityStay.city === departureCity && (
+                      <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
+                        مدينة المغادرة
+                      </span>
                     )}
                   </CardTitle>
                   {data.selectedCities.length > 1 && !isFirstCity && (
@@ -670,7 +699,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                 </div>
 
                 {/* عرض تكاليف النقل للمدينة */}
-                {(isFirstCity || isLastCity) && data.carType && (
+                {(isFirstCity || (isLastCity && totalNights === requiredNights && cityStay.city === departureCity)) && data.carType && (
                   <div className="p-3 bg-blue-50 rounded-lg border-blue-200">
                     <h4 className="font-semibold text-blue-800 mb-2">
                       {isFirstCity ? 'تكلفة الاستقبال:' : 'تكلفة التوديع:'}
@@ -684,50 +713,56 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                   </div>
                 )}
               </CardContent>
+              
+              {/* سهم للانتقال للمدينة التالية */}
+              {!isLastCity && (
+                <div className="flex justify-center py-2">
+                  <ArrowDown className="w-6 h-6 text-gray-400" />
+                </div>
+              )}
             </Card>
           );
         })}
       </div>
 
       {/* إضافة مدينة جديدة */}
-      {departureCity && data.selectedCities.length > 0 && (
-        <Button
-          onClick={addCity}
-          variant="outline"
-          className="w-full border-dashed border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-          disabled={data.selectedCities.length >= 5 || (data.selectedCities.length > 0 && data.selectedCities[data.selectedCities.length - 1].city === departureCity)}
-        >
-          <Plus className="w-4 h-4 ml-2" />
-          {data.selectedCities.length === 1 && arrivalCity === departureCity ? 
-            'مدينة واحدة كافية (الوصول والمغادرة من نفس المدينة)' : 
-            'إضافة مدينة أخرى'
-          }
-        </Button>
-      )}
+      <Button
+        onClick={addCity}
+        variant="outline"
+        className="w-full border-dashed border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+        disabled={data.selectedCities.length >= 10} // حد أقصى 10 مدن
+      >
+        <Plus className="w-4 h-4 ml-2" />
+        إضافة مدينة أخرى
+      </Button>
 
       {data.selectedCities.length > 0 && (
         <Card className="bg-emerald-50 border-emerald-200">
           <CardContent className="pt-6">
-            <h3 className="font-bold text-emerald-800 mb-3">ملخص المدن المختارة:</h3>
+            <h3 className="font-bold text-emerald-800 mb-3">ملخص مسار الرحلة:</h3>
             <div className="space-y-2">
               {data.selectedCities.map((city, index) => {
                 const totalTours = (city.tours || 0) + (city.mandatoryTours || 0);
                 const isFirstCity = index === 0;
                 const isLastCity = index === data.selectedCities.length - 1;
+                const isDepartureCity = isLastCity && totalNights === requiredNights && city.city === departureCity;
                 
                 return (
                   <div key={index} className="text-sm space-y-1">
-                    <div className="font-semibold">
+                    <div className="font-semibold flex items-center gap-2">
+                      <span className="bg-emerald-200 text-emerald-800 text-xs px-2 py-1 rounded">
+                        {index + 1}
+                      </span>
                       <strong>{city.city}</strong> - {city.hotel}
                       {isFirstCity && ' (مدينة الوصول)'}
-                      {isLastCity && ' (مدينة المغادرة)'}
+                      {isDepartureCity && ' (مدينة المغادرة)'}
                     </div>
-                    <div className="text-emerald-700 mr-4">
+                    <div className="text-emerald-700 mr-8">
                       • {city.nights} ليالي، {totalTours} جولات
                       ({city.mandatoryTours} إجبارية + {(city.tours || 0) - (city.mandatoryTours || 0)} إضافية)
                     </div>
                     {city.roomSelections && city.roomSelections.length > 0 && (
-                      <div className="text-emerald-600 mr-4 text-xs">
+                      <div className="text-emerald-600 mr-8 text-xs">
                         الغرف: {city.roomSelections.map((room, roomIndex) => 
                           `الغرفة ${room.roomNumber}: ${
                             room.roomType === 'single' ? 'مفردة' :
