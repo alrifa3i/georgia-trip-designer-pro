@@ -200,18 +200,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     );
   }
 
-  const getRoomTypeLabel = (type: string) => {
-    const labels: { [key: string]: string } = {
-      'single': 'غرفة فردية',
-      'single_view': 'غرفة فردية بإطلالة',
-      'double_without_view': 'غرفة مزدوجة بدون إطلالة',
-      'double_view': 'غرفة مزدوجة بإطلالة',
-      'triple_without_view': 'غرفة ثلاثية بدون إطلالة',
-      'triple_view': 'غرفة ثلاثية بإطلالة'
-    };
-    return labels[type] || type;
-  };
-
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">

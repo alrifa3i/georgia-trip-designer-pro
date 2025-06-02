@@ -10,27 +10,17 @@ export interface RoomSelection {
 
 export interface CityStay {
   city: string;
+  name: string;
   nights: number;
   hotel: string;
   tours: number;
   mandatoryTours: number;
-  roomType?: string;
-  roomSelections?: RoomSelection[];
-  availableTours?: string[];
-  // Add missing properties that the component expects
-  name: string;
-  selectedHotelId: string;
-  pricePerNight: number;
-  totalPrice: number;
-}
-
-// Add the SelectedCity interface that the component is importing
-export interface SelectedCity {
-  name: string;
   selectedHotelId: string;
   roomType: string;
   pricePerNight: number;
   totalPrice: number;
+  roomSelections?: RoomSelection[];
+  availableTours?: string[];
 }
 
 export interface TourLocation {
