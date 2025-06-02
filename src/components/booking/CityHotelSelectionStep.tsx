@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,6 +41,23 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   ];
 
   const cities = ['تبليسي', 'باتومي', 'كوتايسي', 'بورجومي', 'أخالكالاكي', 'أختالا', 'متسخيتا', 'سيغناغي'];
+
+  // حساب عدد الليالي المطلوبة من تواريخ الوصول والمغادرة
+  const getRequiredNights = () => {
+    if (!data.arrivalDate || !data.departureDate) return 0;
+    const arrivalDate = new Date(data.arrivalDate);
+    const departureDate = new Date(data.departureDate);
+    const diffTime = Math.abs(departureDate.getTime() - arrivalDate.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) - 1;
+  };
+
+  // حساب مجموع الليالي المختارة
+  const getTotalSelectedNights = () => {
+    return selectedCities.reduce((total, city) => total + city.nights, 0);
+  };
+
+  const requiredNights = getRequiredNights();
+  const totalSelectedNights = getTotalSelectedNights();
 
   // التحقق من صحة البيانات والتحديث التلقائي
   const validateAndAutoCorrect = () => {
@@ -89,6 +105,12 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
       correctionNeeded = `يجب أن تكون المدينة الأخيرة هي ${departureAirportCity}، الرجاء تعديل الليلة الأخيرة لتكون في مدينة ${departureAirportCity}`;
     }
 
+    // التحقق من تطابق عدد الليالي
+    if (totalSelectedNights !== requiredNights && requiredNights > 0) {
+      needsCorrection = true;
+      correctionNeeded = `مجموع الليالي المختارة (${totalSelectedNights}) يجب أن يساوي عدد الليالي المطلوبة (${requiredNights})`;
+    }
+
     if (needsCorrection) {
       setValidationMessage(correctionNeeded);
       setShowValidationError(true);
@@ -98,7 +120,8 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         arrivalCity: arrivalAirportCity,
         departureCity: departureAirportCity,
         currentFirst: firstCity,
-        currentLast: lastCity
+        currentLast: lastCity,
+        nightsMismatch: totalSelectedNights !== requiredNights
       };
       setSuggestedCorrection(suggestion);
       setShowAutoCorrect(true);
@@ -151,6 +174,29 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           hotel: '', // إعادة تعيين الفندق عند تغيير المدينة
           roomSelections: []
         };
+      }
+    }
+
+    // تصحيح عدد الليالي إذا كان هناك عدم تطابق
+    if (suggestedCorrection.nightsMismatch && requiredNights > 0) {
+      const currentTotal = correctedCities.reduce((total, city) => total + city.nights, 0);
+      const difference = requiredNights - currentTotal;
+      
+      if (difference !== 0 && correctedCities.length > 0) {
+        // توزيع الفرق على المدن الموجودة
+        let remainingDifference = difference;
+        let cityIndex = 0;
+        
+        while (remainingDifference !== 0 && cityIndex < correctedCities.length) {
+          if (remainingDifference > 0) {
+            correctedCities[cityIndex].nights += 1;
+            remainingDifference -= 1;
+          } else if (remainingDifference < 0 && correctedCities[cityIndex].nights > 1) {
+            correctedCities[cityIndex].nights -= 1;
+            remainingDifference += 1;
+          }
+          cityIndex = (cityIndex + 1) % correctedCities.length;
+        }
       }
     }
 
@@ -296,7 +342,8 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                      city.hotel &&
                      city.roomSelections &&
                      city.roomSelections.length > 0
-                   );
+                   ) &&
+                   totalSelectedNights === requiredNights; // إضافة التحقق من تطابق عدد الليالي
 
     if (isValid) {
       const validationResult = validateAndAutoCorrect();
@@ -304,7 +351,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     } else {
       onValidationChange?.(false);
     }
-  }, [selectedCities, carType, arrivalAirport, departureAirport]);
+  }, [selectedCities, carType, arrivalAirport, departureAirport, totalSelectedNights, requiredNights]);
 
   // تحديث البيانات
   useEffect(() => {
@@ -334,6 +381,40 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
         <h2 className="text-2xl font-bold text-gray-800 mb-2">اختيار المدن والفنادق</h2>
         <p className="text-gray-600">حدد مسار رحلتك والفنادق المفضلة</p>
       </div>
+
+      {/* مؤشر عدد الليالي */}
+      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-purple-800">
+            <Calendar className="w-5 h-5" />
+            مدة الرحلة
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-800">{requiredNights}</div>
+              <div className="text-sm text-purple-600">ليلة مطلوبة</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${totalSelectedNights === requiredNights ? 'text-green-600' : 'text-red-600'}`}>
+                {totalSelectedNights}
+              </div>
+              <div className="text-sm text-gray-600">ليلة مختارة</div>
+            </div>
+            <div className="text-center">
+              {totalSelectedNights === requiredNights ? (
+                <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
+              ) : (
+                <AlertTriangle className="w-8 h-8 text-red-600 mx-auto" />
+              )}
+              <div className="text-xs text-gray-500 mt-1">
+                {totalSelectedNights === requiredNights ? 'متطابق' : 'غير متطابق'}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* اختيار نوع السيارة */}
       <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
@@ -630,8 +711,8 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-semibold">إجمالي الليالي:</span>
-                <Badge variant="secondary">
-                  {selectedCities.reduce((total, city) => total + city.nights, 0)} ليلة
+                <Badge variant={totalSelectedNights === requiredNights ? "default" : "destructive"}>
+                  {totalSelectedNights} من {requiredNights} ليلة
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
