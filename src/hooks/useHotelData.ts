@@ -15,7 +15,7 @@ interface DatabaseHotel {
   triple_view_price?: number;
   rating?: number;
   distance_from_center?: number;
-  amenities?: any; // Using any to handle Json type from Supabase
+  amenities?: any;
   is_active?: boolean;
 }
 
@@ -27,10 +27,14 @@ export const useHotelData = () => {
   const fetchHotels = async () => {
     try {
       setLoading(true);
+      console.log('جلب الفنادق من قاعدة البيانات...');
+      
       const { data, error } = await supabase
         .from('hotels')
         .select('*')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .order('city')
+        .order('name');
 
       if (error) throw error;
 
@@ -64,7 +68,7 @@ export const useHotelData = () => {
           distance_from_center: dbHotel.distance_from_center || 0,
           amenities: amenitiesArray,
           is_active: dbHotel.is_active !== false,
-          // إضافة الحقول المختصرة للتوافق
+          // إضافة الحقول المختصرة للتوافق مع النظام الموجود
           single: dbHotel.single_price || 0,
           single_v: dbHotel.single_view_price || 0,
           dbl_wv: dbHotel.double_without_view_price || 0,
@@ -79,6 +83,8 @@ export const useHotelData = () => {
         hotelsByCity[dbHotel.city].push(hotel);
       });
 
+      console.log('تم تجميع الفنادق حسب المدن:', Object.keys(hotelsByCity));
+      console.log('إجمالي عدد الفنادق المحملة:', data?.length || 0);
       setHotels(hotelsByCity);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'خطأ في تحميل الفنادق');

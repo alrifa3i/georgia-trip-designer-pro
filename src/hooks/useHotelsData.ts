@@ -41,7 +41,7 @@ export const useHotelsData = (cityName?: string) => {
         throw error;
       }
 
-      console.log('تم جلب الفنادق بنجاح:', data);
+      console.log(`تم جلب ${data?.length || 0} فندق للمدينة ${cityName}:`, data);
       return data || [];
     },
     enabled: !!cityName
@@ -58,6 +58,7 @@ export const useAllHotelsData = () => {
         .from('hotels')
         .select('*')
         .eq('is_active', true)
+        .order('city')
         .order('name');
 
       if (error) {
@@ -74,7 +75,8 @@ export const useAllHotelsData = () => {
         hotelsByCity[hotel.city].push(hotel);
       });
 
-      console.log('تم جلب جميع الفنادق بنجاح:', hotelsByCity);
+      console.log('تم جلب جميع الفنادق بنجاح. المدن المتاحة:', Object.keys(hotelsByCity));
+      console.log('إجمالي عدد الفنادق:', data?.length || 0);
       return hotelsByCity;
     }
   });
