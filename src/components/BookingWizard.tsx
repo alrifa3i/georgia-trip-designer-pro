@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { PricingDetailsStep } from './booking/PricingDetailsStep';
 import { FinalConfirmationStep } from './booking/FinalConfirmationStep';
 import { AdvertisementSection } from './booking/AdvertisementSection';
 import { BookingData } from '@/types/booking';
+import { toast } from '@/hooks/use-toast';
 
 interface BookingWizardProps {
   onBookingStart?: () => void;
@@ -18,6 +20,7 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [stepValidations, setStepValidations] = useState<{[key: number]: boolean}>({});
   const [hasStartedBooking, setHasStartedBooking] = useState(false);
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [bookingData, setBookingData] = useState<BookingData>({
     customerName: '',
     adults: 2,
@@ -92,6 +95,42 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
     setBookingData(prev => ({ ...prev, ...data }));
   };
 
+  const handleFinalConfirmation = async () => {
+    setIsSubmittingBooking(true);
+    
+    try {
+      // Generate reference number
+      const referenceNumber = `REF-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+      
+      // Update booking data with reference number
+      const finalBookingData = { ...bookingData, referenceNumber };
+      setBookingData(finalBookingData);
+      
+      console.log('Final booking data:', finalBookingData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      toast({
+        title: "تم تأكيد الحجز بنجاح",
+        description: `رقم المرجع: ${referenceNumber}`,
+      });
+      
+      // Here you would typically send the data to your backend
+      // await saveBookingToDatabase(finalBookingData);
+      
+    } catch (error) {
+      console.error('Error confirming booking:', error);
+      toast({
+        title: "خطأ في تأكيد الحجز",
+        description: "يرجى المحاولة مرة أخرى",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingBooking(false);
+    }
+  };
+
   const steps = [
     { number: 1, title: 'معلومات السفر الأساسية' },
     { number: 2, title: 'المدن والفنادق' },
@@ -127,7 +166,11 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
           onValidationChange={(isValid) => updateStepValidation(4, isValid)}
         />;
       case 5:
-        return <FinalConfirmationStep data={bookingData} updateData={updateBookingData} />;
+        return <FinalConfirmationStep 
+          data={bookingData} 
+          onConfirm={handleFinalConfirmation}
+          isSubmitting={isSubmittingBooking}
+        />;
       default:
         return null;
     }
@@ -174,27 +217,29 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
       </Card>
 
       {/* Navigation Buttons - محسن للموبايل */}
-      <div className="flex justify-between mb-6 sm:mb-8 gap-4">
-        <Button
-          onClick={prevStep}
-          disabled={currentStep === 1}
-          variant="outline"
-          className="flex items-center gap-2 bg-white/90 hover:bg-white border-2 border-gray-300 shadow-lg text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
-        >
-          <ChevronRight className="w-4 h-4" />
-          <span className="hidden sm:inline">السابق</span>
-          <span className="sm:hidden">◀</span>
-        </Button>
-        <Button
-          onClick={nextStep}
-          disabled={currentStep === totalSteps || !isNextButtonEnabled()}
-          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg disabled:opacity-50 text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
-        >
-          <span className="hidden sm:inline">التالي</span>
-          <span className="sm:hidden">▶</span>
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-      </div>
+      {currentStep < totalSteps && (
+        <div className="flex justify-between mb-6 sm:mb-8 gap-4">
+          <Button
+            onClick={prevStep}
+            disabled={currentStep === 1}
+            variant="outline"
+            className="flex items-center gap-2 bg-white/90 hover:bg-white border-2 border-gray-300 shadow-lg text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
+          >
+            <ChevronRight className="w-4 h-4" />
+            <span className="hidden sm:inline">السابق</span>
+            <span className="sm:hidden">◀</span>
+          </Button>
+          <Button
+            onClick={nextStep}
+            disabled={currentStep === totalSteps || !isNextButtonEnabled()}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg disabled:opacity-50 text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
+          >
+            <span className="hidden sm:inline">التالي</span>
+            <span className="sm:hidden">▶</span>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Advertisement Section - فقط في المرحلة الأولى ومحسن للموبايل */}
       {currentStep === 1 && (
