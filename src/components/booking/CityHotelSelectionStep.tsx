@@ -8,12 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { BookingData } from '@/types/booking';
-import { hotelData, transportData } from '@/data/hotels';
 import { transportPricing, mandatoryToursRules } from '@/data/transportRules';
+import { useCitiesData } from '@/hooks/useCitiesData';
+import { useAllHotelsData } from '@/hooks/useHotelsData';
+import { useTransportData } from '@/hooks/useTransportData';
 import { 
   MapPin, Building, Car, Plane, Users, Plus, Trash2, 
   AlertTriangle, CheckCircle, Calendar, Bed, Star,
-  Navigation, Clock, User
+  Navigation, Clock, User, Loader
 } from 'lucide-react';
 
 interface CityHotelSelectionStepProps {
@@ -23,8 +25,6 @@ interface CityHotelSelectionStepProps {
 }
 
 export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }: CityHotelSelectionStepProps) => {
-  
-
   const [selectedCities, setSelectedCities] = useState(data.selectedCities || []);
   const [carType, setCarType] = useState(data.carType || '');
   const [arrivalAirport, setArrivalAirport] = useState(data.arrivalAirport || '');
@@ -34,13 +34,56 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   const [showAutoCorrect, setShowAutoCorrect] = useState(false);
   const [suggestedCorrection, setSuggestedCorrection] = useState<any>(null);
 
+  // جلب البيانات من قاعدة البيانات
+  const { data: citiesData, isLoading: citiesLoading, error: citiesError } = useCitiesData();
+  const { data: hotelsData, isLoading: hotelsLoading, error: hotelsError } = useAllHotelsData();
+  const { data: transportData, isLoading: transportLoading, error: transportError } = useTransportData();
+
   const airports = [
     { code: 'TBS', name: 'تبليسي (TBS)', city: 'تبليسي' },
     { code: 'BUS', name: 'باتومي (BUS)', city: 'باتومي' },
     { code: 'KUT', name: 'كوتايسي (KUT)', city: 'كوتايسي' }
   ];
 
-  const cities = ['تبليسي', 'باتومي', 'كوتايسي', 'بورجومي', 'أخالكالاكي', 'أختالا', 'متسخيتا', 'سيغناغي'];
+  // استخدام البيانات من قاعدة البيانات أو القيم الافتراضية
+  const cities = citiesData?.map(city => city.name) || [];
+  const hotels = hotelsData || {};
+  const transports = transportData || [];
+
+  console.log('بيانات المدن:', cities);
+  console.log('بيانات الفنادق:', hotels);
+  console.log('بيانات النقل:', transports);
+
+  // إظهار رسالة التحميل
+  if (citiesLoading || hotelsLoading || transportLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // إظهار رسالة الخطأ
+  if (citiesError || hotelsError || transportError) {
+    return (
+      <Alert className="border-red-200 bg-red-50">
+        <AlertTriangle className="h-4 w-4 text-red-600" />
+        <AlertDescription className="text-red-800">
+          حدث خطأ في تحميل البيانات. الرجاء المحاولة مرة أخرى.
+          {(citiesError || hotelsError || transportError) && (
+            <div className="mt-2 text-sm">
+              {citiesError && <div>خطأ المدن: {citiesError.message}</div>}
+              {hotelsError && <div>خطأ الفنادق: {hotelsError.message}</div>}
+              {transportError && <div>خطأ النقل: {transportError.message}</div>}
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   // حساب عدد الليالي المطلوبة من تواريخ الوصول والمغادرة
   const getRequiredNights = () => {
@@ -205,44 +248,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     setShowValidationError(false);
   };
 
-  // إضافة مدينة جديدة
-  const addCity = () => {
-    const newCity = {
-      city: '',
-      nights: 1,
-      hotel: '',
-      tours: 0,
-      mandatoryTours: 0,
-      roomSelections: []
-    };
-    setSelectedCities([...selectedCities, newCity]);
-  };
-
-  // حذف مدينة
-  const removeCity = (index: number) => {
-    const updatedCities = selectedCities.filter((_, i) => i !== index);
-    setSelectedCities(updatedCities);
-  };
-
-  // تحديث بيانات المدينة
-  const updateCity = (index: number, field: string, value: any) => {
-    const updatedCities = [...selectedCities];
-    updatedCities[index] = { ...updatedCities[index], [field]: value };
-    
-    // إعادة تعيين الفندق والغرف عند تغيير المدينة
-    if (field === 'city') {
-      updatedCities[index].hotel = '';
-      updatedCities[index].roomSelections = [];
-    }
-    
-    // إعادة تعيين الغرف عند تغيير الفندق
-    if (field === 'hotel') {
-      updatedCities[index].roomSelections = [];
-    }
-    
-    setSelectedCities(updatedCities);
-  };
-
   // حساب الجولات الإجبارية
   const calculateMandatoryTours = (cityName: string, cityIndex: number) => {
     if (!carType) return 0;
@@ -279,6 +284,62 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     }
     
     return mandatoryTours;
+  };
+
+  // إضافة مدينة جديدة
+  const addCity = () => {
+    const newCity = {
+      city: '',
+      nights: 1,
+      hotel: '',
+      tours: 0,
+      mandatoryTours: 0,
+      roomSelections: []
+    };
+    
+    // التأكد من أن مجموع الليالي لا يتجاوز المطلوب
+    const currentTotal = getTotalSelectedNights();
+    if (currentTotal < requiredNights) {
+      const remainingNights = requiredNights - currentTotal;
+      newCity.nights = Math.min(remainingNights, 1);
+    }
+    
+    setSelectedCities([...selectedCities, newCity]);
+  };
+
+  // حذف مدينة
+  const removeCity = (index: number) => {
+    const updatedCities = selectedCities.filter((_, i) => i !== index);
+    setSelectedCities(updatedCities);
+  };
+
+  // تحديث بيانات المدينة
+  const updateCity = (index: number, field: string, value: any) => {
+    const updatedCities = [...selectedCities];
+    updatedCities[index] = { ...updatedCities[index], [field]: value };
+    
+    // إعادة تعيين الفندق والغرف عند تغيير المدينة
+    if (field === 'city') {
+      updatedCities[index].hotel = '';
+      updatedCities[index].roomSelections = [];
+    }
+    
+    // إعادة تعيين الغرف عند تغيير الفندق
+    if (field === 'hotel') {
+      updatedCities[index].roomSelections = [];
+    }
+
+    // التحقق من عدد الليالي عند التغيير
+    if (field === 'nights') {
+      const newTotal = updatedCities.reduce((total, city) => total + city.nights, 0);
+      if (newTotal > requiredNights) {
+        // تقليل الليالي للمدينة الحالية فقط
+        const excess = newTotal - requiredNights;
+        updatedCities[index].nights = Math.max(1, updatedCities[index].nights - excess);
+      }
+    }
+    
+    setSelectedCities(updatedCities);
   };
 
   // تحديث الجولات الإجبارية تلقائياً
@@ -343,14 +404,9 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                      city.roomSelections &&
                      city.roomSelections.length > 0
                    ) &&
-                   totalSelectedNights === requiredNights; // إضافة التحقق من تطابق عدد الليالي
+                   totalSelectedNights === requiredNights;
 
-    if (isValid) {
-      const validationResult = validateAndAutoCorrect();
-      onValidationChange?.(validationResult);
-    } else {
-      onValidationChange?.(false);
-    }
+    onValidationChange?.(isValid);
   }, [selectedCities, carType, arrivalAirport, departureAirport, totalSelectedNights, requiredNights]);
 
   // تحديث البيانات
@@ -430,11 +486,11 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
               <SelectValue placeholder="اختر نوع السيارة" />
             </SelectTrigger>
             <SelectContent className="bg-white z-50">
-              {transportData.map((transport) => (
+              {transports.map((transport) => (
                 <SelectItem key={transport.type} value={transport.type}>
                   <div className="flex items-center justify-between w-full">
                     <span>{transport.type}</span>
-                    <span className="text-gray-500 mr-2">{transport.capacity} أشخاص</span>
+                    <span className="text-gray-500 mr-2">{transport.capacity}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -564,6 +620,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                   <Input
                     type="number"
                     min="1"
+                    max={requiredNights}
                     value={cityStay.nights}
                     onChange={(e) => updateCity(cityIndex, 'nights', parseInt(e.target.value) || 1)}
                   />
@@ -582,12 +639,12 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                       <SelectValue placeholder="اختر الفندق" />
                     </SelectTrigger>
                     <SelectContent className="bg-white z-50">
-                      {(hotelData[cityStay.city] || []).map((hotel) => (
+                      {(hotels[cityStay.city] || []).map((hotel) => (
                         <SelectItem key={hotel.name} value={hotel.name}>
                           <div className="flex items-center gap-2">
                             <span>{hotel.name}</span>
                             <div className="flex">
-                              {[...Array(hotel.rating)].map((_, i) => (
+                              {[...Array(hotel.rating || 3)].map((_, i) => (
                                 <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                               ))}
                             </div>
@@ -686,9 +743,13 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
               onClick={addCity}
               variant="outline"
               className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              disabled={totalSelectedNights >= requiredNights}
             >
               <Plus className="w-4 h-4 mr-2" />
               إضافة مدينة جديدة
+              {totalSelectedNights >= requiredNights && (
+                <span className="mr-2 text-xs">(تم الوصول للحد الأقصى)</span>
+              )}
             </Button>
           </CardContent>
         </Card>

@@ -6,50 +6,147 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Save, Trash2, MapPin } from 'lucide-react';
-import { hotelData } from '@/data/hotels';
+import { Plus, Edit, Save, Trash2, MapPin, Loader } from 'lucide-react';
+import { useCitiesData } from '@/hooks/useCitiesData';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface City {
+  id: string;
   name: string;
-  description: string;
-  minTours: number;
+  description: string | null;
+  is_active: boolean | null;
 }
 
 export const CityManagement = () => {
-  const [cities, setCities] = useState<City[]>(
-    Object.keys(hotelData).map(city => ({
-      name: city,
-      description: `مدينة ${city} الجميلة`,
-      minTours: city === 'باتومي' ? 2 : 1
-    }))
-  );
+  const { data: cities, isLoading, error } = useCitiesData();
+  const queryClient = useQueryClient();
   
   const [editingCity, setEditingCity] = useState<City | null>(null);
   const [isAddingCity, setIsAddingCity] = useState(false);
-  const [newCity, setNewCity] = useState<City>({
+  const [newCity, setNewCity] = useState({
     name: '',
     description: '',
-    minTours: 1
   });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSaveCity = (city: City) => {
-    console.log('حفظ المدينة:', city);
-    const updatedCities = cities.map(c => c.name === city.name ? city : c);
-    setCities(updatedCities);
-    setEditingCity(null);
+  const handleSaveCity = async (city: City) => {
+    setIsSaving(true);
+    try {
+      console.log('حفظ المدينة:', city);
+      
+      const { error } = await supabase
+        .from('cities')
+        .update({
+          name: city.name,
+          description: city.description,
+        })
+        .eq('id', city.id);
+
+      if (error) {
+        console.error('خطأ في تحديث المدينة:', error);
+        alert('حدث خطأ في تحديث المدينة');
+        return;
+      }
+
+      console.log('تم تحديث المدينة بنجاح');
+      setEditingCity(null);
+      queryClient.invalidateQueries({ queryKey: ['cities'] });
+    } catch (error) {
+      console.error('خطأ غير متوقع:', error);
+      alert('حدث خطأ غير متوقع');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleAddCity = () => {
-    console.log('إضافة مدينة جديدة:', newCity);
-    setCities([...cities, newCity]);
-    setIsAddingCity(false);
-    setNewCity({ name: '', description: '', minTours: 1 });
+  const handleAddCity = async () => {
+    if (!newCity.name.trim()) {
+      alert('يرجى إدخال اسم المدينة');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      console.log('إضافة مدينة جديدة:', newCity);
+      
+      const { error } = await supabase
+        .from('cities')
+        .insert({
+          name: newCity.name,
+          description: newCity.description,
+          is_active: true
+        });
+
+      if (error) {
+        console.error('خطأ في إضافة المدينة:', error);
+        alert('حدث خطأ في إضافة المدينة');
+        return;
+      }
+
+      console.log('تم إضافة المدينة بنجاح');
+      setIsAddingCity(false);
+      setNewCity({ name: '', description: '' });
+      queryClient.invalidateQueries({ queryKey: ['cities'] });
+    } catch (error) {
+      console.error('خطأ غير متوقع:', error);
+      alert('حدث خطأ غير متوقع');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDeleteCity = (cityName: string) => {
-    console.log('حذف المدينة:', cityName);
-    setCities(cities.filter(c => c.name !== cityName));
+  const handleDeleteCity = async (cityId: string, cityName: string) => {
+    if (!confirm(`هل أنت متأكد من حذف مدينة ${cityName}؟`)) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      console.log('حذف المدينة:', cityName);
+      
+      const { error } = await supabase
+        .from('cities')
+        .update({ is_active: false })
+        .eq('id', cityId);
+
+      if (error) {
+        console.error('خطأ في حذف المدينة:', error);
+        alert('حدث خطأ في حذف المدينة');
+        return;
+      }
+
+      console.log('تم حذف المدينة بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['cities'] });
+    } catch (error) {
+      console.error('خطأ غير متوقع:', error);
+      alert('حدث خطأ غير متوقع');
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">جاري تحميل بيانات المدن...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert className="border-red-200 bg-red-50">
+        <AlertDescription className="text-red-800">
+          حدث خطأ في تحميل بيانات المدن: {error.message}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -72,6 +169,7 @@ export const CityManagement = () => {
                 <Input
                   value={newCity.name}
                   onChange={(e) => setNewCity({...newCity, name: e.target.value})}
+                  placeholder="أدخل اسم المدينة"
                 />
               </div>
               <div>
@@ -79,19 +177,25 @@ export const CityManagement = () => {
                 <Input
                   value={newCity.description}
                   onChange={(e) => setNewCity({...newCity, description: e.target.value})}
+                  placeholder="أدخل وصف المدينة"
                 />
               </div>
-              <div>
-                <Label>الحد الأدنى للجولات الإجبارية</Label>
-                <Input
-                  type="number"
-                  value={newCity.minTours}
-                  onChange={(e) => setNewCity({...newCity, minTours: Number(e.target.value)})}
-                />
-              </div>
-              <Button onClick={handleAddCity} className="w-full">
-                <Save className="w-4 h-4 ml-2" />
-                حفظ المدينة
+              <Button 
+                onClick={handleAddCity} 
+                className="w-full"
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader className="w-4 h-4 ml-2 animate-spin" />
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 ml-2" />
+                    حفظ المدينة
+                  </>
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -102,7 +206,7 @@ export const CityManagement = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="w-5 h-5" />
-            قائمة المدن
+            قائمة المدن ({cities?.length || 0})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -112,45 +216,45 @@ export const CityManagement = () => {
                 <TableRow>
                   <TableHead className="text-right">اسم المدينة</TableHead>
                   <TableHead className="text-right">الوصف</TableHead>
-                  <TableHead className="text-right">الحد الأدنى للجولات</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
                   <TableHead className="text-right">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cities.map((city, index) => (
-                  <TableRow key={index}>
+                {cities?.map((city) => (
+                  <TableRow key={city.id}>
                     <TableCell className="font-medium">{city.name}</TableCell>
                     <TableCell>
-                      {editingCity?.name === city.name ? (
+                      {editingCity?.id === city.id ? (
                         <Input
-                          value={editingCity.description}
+                          value={editingCity.description || ''}
                           onChange={(e) => setEditingCity({...editingCity, description: e.target.value})}
                         />
                       ) : (
-                        city.description
+                        city.description || 'لا يوجد وصف'
                       )}
                     </TableCell>
                     <TableCell>
-                      {editingCity?.name === city.name ? (
-                        <Input
-                          type="number"
-                          value={editingCity.minTours}
-                          onChange={(e) => setEditingCity({...editingCity, minTours: Number(e.target.value)})}
-                          className="w-20"
-                        />
-                      ) : (
-                        `${city.minTours} جولة`
-                      )}
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        city.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {city.is_active ? 'نشطة' : 'غير نشطة'}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {editingCity?.name === city.name ? (
+                        {editingCity?.id === city.id ? (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleSaveCity(editingCity)}
+                            disabled={isSaving}
                           >
-                            <Save className="w-4 h-4" />
+                            {isSaving ? (
+                              <Loader className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Save className="w-4 h-4" />
+                            )}
                           </Button>
                         ) : (
                           <Button
@@ -164,7 +268,8 @@ export const CityManagement = () => {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDeleteCity(city.name)}
+                          onClick={() => handleDeleteCity(city.id, city.name)}
+                          disabled={isSaving}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -175,6 +280,12 @@ export const CityManagement = () => {
               </TableBody>
             </Table>
           </div>
+          
+          {cities?.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              لا توجد مدن متاحة حالياً
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
