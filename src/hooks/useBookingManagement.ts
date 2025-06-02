@@ -43,6 +43,16 @@ export const useBookingManagement = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const processBookingData = (data: any): BookingRecord => {
+    return {
+      ...data,
+      booking_files: data.booking_files?.map((file: any) => ({
+        ...file,
+        file_type: file.file_type as 'passport' | 'ticket'
+      })) || []
+    };
+  };
+
   const searchBookingByReference = async (referenceNumber: string): Promise<BookingRecord | null> => {
     setLoading(true);
     setError(null);
@@ -65,7 +75,7 @@ export const useBookingManagement = () => {
         throw error;
       }
 
-      return data;
+      return processBookingData(data);
     } catch (err) {
       setError('حدث خطأ أثناء البحث');
       console.error('Error searching booking:', err);
@@ -90,7 +100,7 @@ export const useBookingManagement = () => {
 
       if (error) throw error;
 
-      return data || [];
+      return data?.map(processBookingData) || [];
     } catch (err) {
       setError('حدث خطأ أثناء تحميل الحجوزات');
       console.error('Error fetching bookings:', err);
