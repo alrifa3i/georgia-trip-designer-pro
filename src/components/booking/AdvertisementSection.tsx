@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -72,9 +73,9 @@ export const AdvertisementSection: React.FC<AdvertisementSectionProps> = ({ peop
     }
   };
 
-  const handleWhatsAppClick = () => {
+  const handleWhatsAppClick = (title: string, price: string) => {
     const phoneNumber = "+995514000668";
-    const message = encodeURIComponent("مرحباً، أرغب في الاستفسار عن العروض السياحية المتاحة");
+    const message = encodeURIComponent(`مرحباً، أرغب في الاستفسار عن ${title} - ${price} للشخص`);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -122,10 +123,11 @@ export const AdvertisementSection: React.FC<AdvertisementSectionProps> = ({ peop
                 عرض محدود
               </div>
               <button 
-                onClick={handleWhatsAppClick}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                onClick={() => handleWhatsAppClick(ad.title, ad.price)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex flex-col items-center"
               >
-                اطلب الآن
+                <span className="font-semibold">{ad.title}</span>
+                <span className="text-xs opacity-90">{ad.price} للشخص</span>
               </button>
             </div>
           </Card>

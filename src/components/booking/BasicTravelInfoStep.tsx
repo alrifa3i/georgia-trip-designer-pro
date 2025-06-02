@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -51,6 +50,24 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
       updateData({ phoneNumber });
     }
   }, [phoneNumber, updateData]);
+
+  // Function to get incomplete fields
+  const getIncompleteFields = () => {
+    const incompleteFields = [];
+    
+    if (!data.customerName?.trim()) incompleteFields.push('الاسم الكامل');
+    if (!phoneNumber?.trim()) incompleteFields.push('رقم الهاتف');
+    if (!data.arrivalDate) incompleteFields.push('تاريخ الوصول');
+    if (!data.departureDate) incompleteFields.push('تاريخ المغادرة');
+    if (!data.arrivalAirport) incompleteFields.push('مطار الوصول');
+    if (!data.departureAirport) incompleteFields.push('مطار المغادرة');
+    if (data.adults <= 0) incompleteFields.push('عدد البالغين');
+    if (data.rooms <= 0) incompleteFields.push('عدد الغرف');
+    if (data.budget <= 0) incompleteFields.push('الميزانية');
+    if (!data.currency) incompleteFields.push('العملة');
+    
+    return incompleteFields;
+  };
 
   const airports = [
     { code: 'TBS', name: 'مطار تبليسي الدولي', city: 'تبليسي' },
@@ -471,6 +488,27 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
           )}
         </CardContent>
       </Card>
+
+      {/* Incomplete Fields Indicator */}
+      {getIncompleteFields().length > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-4">
+            <div className="text-center">
+              <h4 className="font-semibold text-orange-800 mb-2">الحقول المتبقية لإكمال المرحلة الأولى:</h4>
+              <div className="flex flex-wrap justify-center gap-2">
+                {getIncompleteFields().map((field, index) => (
+                  <Badge key={index} variant="outline" className="border-orange-300 text-orange-700 bg-white">
+                    {field}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-sm text-orange-600 mt-2">
+                يرجى إكمال هذه الحقول للانتقال إلى المرحلة التالية
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
