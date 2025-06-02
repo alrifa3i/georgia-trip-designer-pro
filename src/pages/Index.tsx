@@ -6,6 +6,7 @@ import { AdminAccess } from "@/components/AdminAccess";
 import { VideoBackground } from "@/components/VideoBackground";
 import { FloatingNotifications } from "@/components/FloatingNotifications";
 import { TravelerCounter } from "@/components/TravelerCounter";
+import { HotelStats } from "@/components/HotelStats";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Search, PlusCircle, ArrowRight, Settings } from "lucide-react";
@@ -153,6 +154,9 @@ const Index = () => {
 
           {/* عداد المسافرين */}
           <TravelerCounter />
+
+          {/* إحصائيات الفنادق */}
+          <HotelStats />
         </div>
       </div>
 
