@@ -33,7 +33,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   const [showAutoCorrect, setShowAutoCorrect] = useState(false);
   const [suggestedCorrection, setSuggestedCorrection] = useState<any>(null);
 
-  // جلب البيانات من قاعدة البيانات
+  // جلب البيانات من قاعدة البيانات - Always called, no conditions
   const { data: citiesData, isLoading: citiesLoading, error: citiesError } = useCitiesData();
   const { data: hotelsData, isLoading: hotelsLoading, error: hotelsError } = useAllHotelsData();
   const { data: transportData, isLoading: transportLoading, error: transportError } = useTransportData();
@@ -53,37 +53,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   console.log('بيانات الفنادق:', hotels);
   console.log('بيانات النقل:', transports);
 
-  // إظهار رسالة التحميل
-  if (citiesLoading || hotelsLoading || transportLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">جاري تحميل البيانات...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // إظهار رسالة الخطأ
-  if (citiesError || hotelsError || transportError) {
-    return (
-      <Alert className="border-red-200 bg-red-50">
-        <AlertTriangle className="h-4 w-4 text-red-600" />
-        <AlertDescription className="text-red-800">
-          حدث خطأ في تحميل البيانات. الرجاء المحاولة مرة أخرى.
-          {(citiesError || hotelsError || transportError) && (
-            <div className="mt-2 text-sm">
-              {citiesError && <div>خطأ المدن: {citiesError.message}</div>}
-              {hotelsError && <div>خطأ الفنادق: {hotelsError.message}</div>}
-              {transportError && <div>خطأ النقل: {transportError.message}</div>}
-            </div>
-          )}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   // حساب عدد الليالي المطلوبة من تواريخ الوصول والمغادرة
   const getRequiredNights = () => {
     if (!data.arrivalDate || !data.departureDate) return 0;
@@ -100,161 +69,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
 
   const requiredNights = getRequiredNights();
   const totalSelectedNights = getTotalSelectedNights();
-
-  // التحقق من صحة البيانات والتحديث التلقائي
-  const validateAndAutoCorrect = () => {
-    if (selectedCities.length === 0 || !data.arrivalAirport || !data.departureAirport) {
-      return;
-    }
-
-    // تحديد المدينة الأولى والأخيرة بناءً على عدد الليالي
-    let firstCity = '';
-    let lastCity = '';
-    let maxNights = 0;
-
-    selectedCities.forEach(city => {
-      if (city.nights > maxNights) {
-        maxNights = city.nights;
-        lastCity = city.city;
-      }
-    });
-
-    // تحديد المدينة الأولى (يمكن أن تكون نفس المدينة الأخيرة إذا كانت لها أكبر عدد ليالي)
-    firstCity = selectedCities[0]?.city || '';
-    
-    // في حالة تساوي الليالي، نأخذ المدينة الأخيرة في المصفوفة
-    const citiesWithMaxNights = selectedCities.filter(city => city.nights === maxNights);
-    if (citiesWithMaxNights.length > 1) {
-      lastCity = citiesWithMaxNights[citiesWithMaxNights.length - 1].city;
-    }
-
-    const arrivalAirportCity = airports.find(a => a.code === data.arrivalAirport)?.city;
-    const departureAirportCity = airports.find(a => a.code === data.departureAirport)?.city;
-
-    let needsCorrection = false;
-    let correctionNeeded = '';
-
-    // التحقق من تطابق مطار الوصول مع المدينة الأولى
-    if (arrivalAirportCity !== firstCity) {
-      needsCorrection = true;
-      correctionNeeded = `يجب أن تكون المدينة الأولى هي ${arrivalAirportCity}، الرجاء تعديل المسار`;
-    }
-
-    // التحقق من تطابق مطار المغادرة مع المدينة الأخيرة
-    if (departureAirportCity !== lastCity) {
-      needsCorrection = true;
-      correctionNeeded = `يجب أن تكون المدينة الأخيرة هي ${departureAirportCity}، الرجاء تعديل الليلة الأخيرة لتكون في مدينة ${departureAirportCity}`;
-    }
-
-    // التحقق من تطابق عدد الليالي
-    if (totalSelectedNights !== requiredNights && requiredNights > 0) {
-      needsCorrection = true;
-      correctionNeeded = `مجموع الليالي المختارة (${totalSelectedNights}) يجب أن يساوي عدد الليالي المطلوبة (${requiredNights})`;
-    }
-
-    if (needsCorrection) {
-      setValidationMessage(correctionNeeded);
-      setShowValidationError(true);
-      
-      // اقتراح التصحيح التلقائي
-      const suggestion = {
-        arrivalCity: arrivalAirportCity,
-        departureCity: departureAirportCity,
-        currentFirst: firstCity,
-        currentLast: lastCity,
-        nightsMismatch: totalSelectedNights !== requiredNights
-      };
-      setSuggestedCorrection(suggestion);
-      setShowAutoCorrect(true);
-      
-      return false;
-    }
-
-    setShowValidationError(false);
-    setShowAutoCorrect(false);
-    return true;
-  };
-
-  // تطبيق التصحيح التلقائي
-  const applyAutoCorrection = () => {
-    if (!suggestedCorrection) return;
-
-    const correctedCities = [...selectedCities];
-    const arrivalAirportCity = airports.find(a => a.code === data.arrivalAirport)?.city;
-    const departureAirportCity = airports.find(a => a.code === data.departureAirport)?.city;
-
-    // التأكد من أن المدينة الأولى تطابق مطار الوصول
-    if (correctedCities.length > 0 && arrivalAirportCity) {
-      correctedCities[0] = {
-        ...correctedCities[0],
-        city: arrivalAirportCity,
-        name: arrivalAirportCity,
-        hotel: '', // إعادة تعيين الفندق عند تغيير المدينة
-        selectedHotelId: '',
-        roomSelections: [],
-        roomType: '',
-        pricePerNight: 0,
-        totalPrice: 0
-      };
-    }
-
-    // التأكد من أن المدينة الأخيرة تطابق مطار المغادرة
-    if (departureAirportCity) {
-      // البحث عن المدينة التي لها أكبر عدد ليالي
-      let maxNights = Math.max(...correctedCities.map(city => city.nights));
-      let lastCityIndex = correctedCities.findIndex(city => city.nights === maxNights);
-      
-      // في حالة وجود عدة مدن بنفس عدد الليالي، نأخذ الأخيرة
-      const citiesWithMaxNights = correctedCities
-        .map((city, index) => ({ city, index }))
-        .filter(item => item.city.nights === maxNights);
-      
-      if (citiesWithMaxNights.length > 0) {
-        lastCityIndex = citiesWithMaxNights[citiesWithMaxNights.length - 1].index;
-      }
-
-      if (lastCityIndex !== -1) {
-        correctedCities[lastCityIndex] = {
-          ...correctedCities[lastCityIndex],
-          city: departureAirportCity,
-          name: departureAirportCity,
-          hotel: '', // إعادة تعيين الفندق عند تغيير المدينة
-          selectedHotelId: '',
-          roomSelections: [],
-          roomType: '',
-          pricePerNight: 0,
-          totalPrice: 0
-        };
-      }
-    }
-
-    // تصحيح عدد الليالي إذا كان هناك عدم تطابق
-    if (suggestedCorrection.nightsMismatch && requiredNights > 0) {
-      const currentTotal = correctedCities.reduce((total, city) => total + city.nights, 0);
-      const difference = requiredNights - currentTotal;
-      
-      if (difference !== 0 && correctedCities.length > 0) {
-        // توزيع الفرق على المدن الموجودة
-        let remainingDifference = difference;
-        let cityIndex = 0;
-        
-        while (remainingDifference !== 0 && cityIndex < correctedCities.length) {
-          if (remainingDifference > 0) {
-            correctedCities[cityIndex].nights += 1;
-            remainingDifference -= 1;
-          } else if (remainingDifference < 0 && correctedCities[cityIndex].nights > 1) {
-            correctedCities[cityIndex].nights -= 1;
-            remainingDifference += 1;
-          }
-          cityIndex = (cityIndex + 1) % correctedCities.length;
-        }
-      }
-    }
-
-    setSelectedCities(correctedCities);
-    setShowAutoCorrect(false);
-    setShowValidationError(false);
-  };
 
   // حساب الجولات الإجبارية
   const calculateMandatoryTours = (cityName: string, cityIndex: number) => {
@@ -365,18 +179,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     setSelectedCities(updatedCities);
   };
 
-  // تحديث الجولات الإجبارية تلقائياً
-  useEffect(() => {
-    const updatedCities = selectedCities.map((city, index) => ({
-      ...city,
-      mandatoryTours: calculateMandatoryTours(city.city, index)
-    }));
-    
-    if (JSON.stringify(updatedCities) !== JSON.stringify(selectedCities)) {
-      setSelectedCities(updatedCities);
-    }
-  }, [carType, data.arrivalAirport, data.departureAirport, selectedCities.length]);
-
   // إضافة غرفة جديدة
   const addRoom = (cityIndex: number) => {
     const updatedCities = [...selectedCities];
@@ -414,7 +216,31 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     }
   };
 
-  // التحقق من صحة البيانات
+  const getRoomTypeName = (roomType: string) => {
+    switch (roomType) {
+      case 'single': return 'غرفة مفردة';
+      case 'single_v': return 'غرفة مفردة مع إطلالة';
+      case 'dbl_wv': return 'غرفة مزدوجة بدون إطلالة';
+      case 'dbl_v': return 'غرفة مزدوجة مع إطلالة';
+      case 'trbl_wv': return 'غرفة ثلاثية بدون إطلالة';
+      case 'trbl_v': return 'غرفة ثلاثية مع إطلالة';
+      default: return roomType;
+    }
+  };
+
+  // تحديث الجولات الإجبارية تلقائياً - Fixed: Always called, no conditions
+  useEffect(() => {
+    const updatedCities = selectedCities.map((city, index) => ({
+      ...city,
+      mandatoryTours: calculateMandatoryTours(city.city, index)
+    }));
+    
+    if (JSON.stringify(updatedCities) !== JSON.stringify(selectedCities)) {
+      setSelectedCities(updatedCities);
+    }
+  }, [carType, data.arrivalAirport, data.departureAirport, selectedCities.length]);
+
+  // التحقق من صحة البيانات - Fixed: Always called, no conditions
   useEffect(() => {
     const isValid = selectedCities.length > 0 && 
                    carType && 
@@ -429,28 +255,49 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                    ) &&
                    totalSelectedNights === requiredNights;
 
-    onValidationChange?.(isValid);
-  }, [selectedCities, carType, data.arrivalAirport, data.departureAirport, totalSelectedNights, requiredNights]);
+    if (onValidationChange) {
+      onValidationChange(isValid);
+    }
+  }, [selectedCities, carType, data.arrivalAirport, data.departureAirport, totalSelectedNights, requiredNights, onValidationChange]);
 
-  // تحديث البيانات
+  // تحديث البيانات - Fixed: Always called, no conditions
   useEffect(() => {
     updateData({
       selectedCities,
       carType
     });
-  }, [selectedCities, carType]);
+  }, [selectedCities, carType, updateData]);
 
-  const getRoomTypeName = (roomType: string) => {
-    switch (roomType) {
-      case 'single': return 'غرفة مفردة';
-      case 'single_v': return 'غرفة مفردة مع إطلالة';
-      case 'dbl_wv': return 'غرفة مزدوجة بدون إطلالة';
-      case 'dbl_v': return 'غرفة مزدوجة مع إطلالة';
-      case 'trbl_wv': return 'غرفة ثلاثية بدون إطلالة';
-      case 'trbl_v': return 'غرفة ثلاثية مع إطلالة';
-      default: return roomType;
-    }
-  };
+  // إظهار رسالة التحميل
+  if (citiesLoading || hotelsLoading || transportLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // إظهار رسالة الخطأ
+  if (citiesError || hotelsError || transportError) {
+    return (
+      <Alert className="border-red-200 bg-red-50">
+        <AlertTriangle className="h-4 w-4 text-red-600" />
+        <AlertDescription className="text-red-800">
+          حدث خطأ في تحميل البيانات. الرجاء المحاولة مرة أخرى.
+          {(citiesError || hotelsError || transportError) && (
+            <div className="mt-2 text-sm">
+              {citiesError && <div>خطأ المدن: {citiesError.message}</div>}
+              {hotelsError && <div>خطأ الفنادق: {hotelsError.message}</div>}
+              {transportError && <div>خطأ النقل: {transportError.message}</div>}
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -519,35 +366,6 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           </Select>
         </CardContent>
       </Card>
-
-      {/* رسائل التحقق */}
-      {showValidationError && (
-        <Alert className="border-red-200 bg-red-50">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            {validationMessage}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {showAutoCorrect && (
-        <Alert className="border-blue-200 bg-blue-50">
-          <AlertTriangle className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            <div className="space-y-2">
-              <p>تم اكتشاف تناقض في مسار الرحلة. هل تريد التصحيح التلقائي؟</p>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={applyAutoCorrection} className="bg-blue-600 hover:bg-blue-700">
-                  تطبيق التصحيح التلقائي
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setShowAutoCorrect(false)}>
-                  تعديل يدوي
-                </Button>
-              </div>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* المدن والفنادق */}
       <div className="space-y-4">

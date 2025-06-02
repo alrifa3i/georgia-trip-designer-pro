@@ -1,4 +1,3 @@
-
 export interface Child {
   age: number;
 }
@@ -10,13 +9,17 @@ export interface RoomSelection {
 
 export interface CityStay {
   city: string;
+  name: string;
   nights: number;
   hotel: string;
+  selectedHotelId: string;
   tours: number;
   mandatoryTours: number;
-  roomType?: string;
-  roomSelections?: RoomSelection[];
-  availableTours?: string[];
+  roomType: string;
+  roomSelections: RoomSelection[];
+  pricePerNight: number;
+  totalPrice: number;
+  availableTours: string[];
 }
 
 export interface TourLocation {

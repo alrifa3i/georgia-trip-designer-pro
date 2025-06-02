@@ -127,7 +127,7 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
           onValidationChange={(isValid) => updateStepValidation(4, isValid)}
         />;
       case 5:
-        return <FinalConfirmationStep data={bookingData} updateData={updateBookingData} />;
+        return <FinalConfirmationStep data={bookingData} />;
       default:
         return null;
     }
