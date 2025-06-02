@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Save, Trash2, Hotel, Upload, Download, FileText } from 'lucide-react';
+import { Plus, Edit, Save, Trash2, Hotel, Upload, Download, FileText, AlertCircle } from 'lucide-react';
 import { useAllHotelsData } from '@/hooks/useHotelsData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -26,12 +25,20 @@ interface HotelEdit {
   rating: number;
 }
 
+interface ImportPreview {
+  headers: string[];
+  rows: string[][];
+  mapping: Record<string, string>;
+}
+
 export const HotelManagement = () => {
   const { data: hotelsData, refetch } = useAllHotelsData();
   const { toast } = useToast();
   const [editingHotel, setEditingHotel] = useState<HotelEdit | null>(null);
   const [isAddingHotel, setIsAddingHotel] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [newHotel, setNewHotel] = useState<HotelEdit>({
     name: '',
     city: '',
@@ -45,6 +52,37 @@ export const HotelManagement = () => {
   });
 
   const cities = hotelsData ? Object.keys(hotelsData) : [];
+
+  // Field mappings for different CSV formats
+  const fieldMappings = {
+    name: ['اسم الفندق', 'name', 'hotel_name', 'فندق'],
+    city: ['المدينة', 'city', 'المدينه'],
+    single_price: ['فردية', 'single', 'single_price', 'فرديه'],
+    single_view_price: ['فردية مع إطلالة', 'single_view', 'single_view_price', 'فردية بطلالة'],
+    double_without_view_price: ['مزدوجة بدون إطلالة', 'double_without_view', 'double_wv', 'مزدوجه بدون اطلاله'],
+    double_view_price: ['مزدوجة مع إطلالة', 'double_view', 'double_v', 'مزدوجه مع اطلاله'],
+    triple_without_view_price: ['ثلاثية بدون إطلالة', 'triple_without_view', 'triple_wv', 'ثلاثيه بدون اطلاله'],
+    triple_view_price: ['ثلاثية مع إطلالة', 'triple_view', 'triple_v', 'ثلاثيه مع اطلاله'],
+    rating: ['التقييم', 'rating', 'تقييم', 'نجوم']
+  };
+
+  const findColumnMapping = (headers: string[]): Record<string, string> => {
+    const mapping: Record<string, string> = {};
+    
+    Object.entries(fieldMappings).forEach(([field, possibleNames]) => {
+      const foundHeader = headers.find(header => 
+        possibleNames.some(name => 
+          header.toLowerCase().includes(name.toLowerCase()) ||
+          name.toLowerCase().includes(header.toLowerCase())
+        )
+      );
+      if (foundHeader) {
+        mapping[field] = foundHeader;
+      }
+    });
+    
+    return mapping;
+  };
 
   const handleSaveHotel = async (hotel: HotelEdit) => {
     try {
@@ -199,35 +237,78 @@ export const HotelManagement = () => {
     });
   };
 
-  const handleImportHotels = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
-      setLoading(true);
       const text = await file.text();
-      const lines = text.split('\n');
-      const headers = lines[0].split(',');
+      const lines = text.split('\n').filter(line => line.trim());
       
+      if (lines.length < 2) {
+        toast({
+          title: "خطأ في الملف",
+          description: "الملف فارغ أو لا يحتوي على بيانات كافية",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+      const rows = lines.slice(1).map(line => 
+        line.split(',').map(val => val.replace(/"/g, '').trim())
+      );
+
+      const mapping = findColumnMapping(headers);
+      
+      setImportPreview({ headers, rows, mapping });
+      setShowImportDialog(true);
+    } catch (error) {
+      console.error('خطأ في قراءة الملف:', error);
+      toast({
+        title: "خطأ في قراءة الملف",
+        description: "تأكد من أن الملف بتنسيق CSV صحيح",
+        variant: "destructive"
+      });
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPreview) return;
+
+    try {
+      setLoading(true);
       const hotelsToImport = [];
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        
-        const values = line.split(',').map(val => val.replace(/"/g, '').trim());
-        if (values.length >= 9) {
-          hotelsToImport.push({
-            name: values[0],
-            city: values[1],
-            single_price: parseFloat(values[2]) || 0,
-            single_view_price: parseFloat(values[3]) || 0,
-            double_without_view_price: parseFloat(values[4]) || 0,
-            double_view_price: parseFloat(values[5]) || 0,
-            triple_without_view_price: parseFloat(values[6]) || 0,
-            triple_view_price: parseFloat(values[7]) || 0,
-            rating: parseInt(values[8]) || 5,
-            is_active: true
-          });
+
+      for (const row of importPreview.rows) {
+        if (row.length === 0 || !row.some(cell => cell.trim())) continue;
+
+        const hotel: any = {
+          is_active: true
+        };
+
+        // Map the data based on column mapping
+        Object.entries(importPreview.mapping).forEach(([field, headerName]) => {
+          const columnIndex = importPreview.headers.indexOf(headerName);
+          if (columnIndex !== -1 && row[columnIndex]) {
+            const value = row[columnIndex].trim();
+            
+            if (['single_price', 'single_view_price', 'double_without_view_price', 
+                 'double_view_price', 'triple_without_view_price', 'triple_view_price'].includes(field)) {
+              hotel[field] = parseFloat(value) || 0;
+            } else if (field === 'rating') {
+              hotel[field] = parseInt(value) || 5;
+            } else {
+              hotel[field] = value;
+            }
+          }
+        });
+
+        // Ensure required fields are present
+        if (hotel.name && hotel.city) {
+          hotelsToImport.push(hotel);
         }
       }
 
@@ -244,6 +325,14 @@ export const HotelManagement = () => {
         });
         
         refetch();
+        setShowImportDialog(false);
+        setImportPreview(null);
+      } else {
+        toast({
+          title: "لا توجد بيانات صالحة",
+          description: "لم يتم العثور على بيانات فنادق صالحة في الملف",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('خطأ في استيراد الفنادق:', error);
@@ -254,8 +343,19 @@ export const HotelManagement = () => {
       });
     } finally {
       setLoading(false);
-      event.target.value = '';
     }
+  };
+
+  const updateMapping = (field: string, header: string) => {
+    if (!importPreview) return;
+    
+    setImportPreview({
+      ...importPreview,
+      mapping: {
+        ...importPreview.mapping,
+        [field]: header
+      }
+    });
   };
 
   return (
@@ -275,7 +375,7 @@ export const HotelManagement = () => {
             <input
               type="file"
               accept=".csv"
-              onChange={handleImportHotels}
+              onChange={handleFileSelect}
               className="absolute inset-0 opacity-0 cursor-pointer"
               disabled={loading}
             />
@@ -394,17 +494,129 @@ export const HotelManagement = () => {
         </div>
       </div>
 
+      {/* Import Preview Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>معاينة الاستيراد وتخصيص الأعمدة</DialogTitle>
+          </DialogHeader>
+          
+          {importPreview && (
+            <div className="space-y-4">
+              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  <h3 className="font-semibold text-yellow-800">تخصيص الأعمدة</h3>
+                </div>
+                <p className="text-sm text-yellow-700 mb-3">
+                  يرجى تحديد الأعمدة المقابلة لكل حقل. الحقول المطلوبة: اسم الفندق والمدينة
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.keys(fieldMappings).map(field => (
+                    <div key={field}>
+                      <Label className="text-sm font-medium">
+                        {field === 'name' ? 'اسم الفندق*' :
+                         field === 'city' ? 'المدينة*' :
+                         field === 'single_price' ? 'فردية' :
+                         field === 'single_view_price' ? 'فردية مع إطلالة' :
+                         field === 'double_without_view_price' ? 'مزدوجة بدون إطلالة' :
+                         field === 'double_view_price' ? 'مزدوجة مع إطلالة' :
+                         field === 'triple_without_view_price' ? 'ثلاثية بدون إطلالة' :
+                         field === 'triple_view_price' ? 'ثلاثية مع إطلالة' :
+                         'التقييم'}
+                      </Label>
+                      <Select
+                        value={importPreview.mapping[field] || ''}
+                        onValueChange={(value) => updateMapping(field, value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر العمود" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">لا يوجد</SelectItem>
+                          {importPreview.headers.map(header => (
+                            <SelectItem key={header} value={header}>
+                              {header}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">معاينة البيانات (أول 5 صفوف)</h3>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {importPreview.headers.map(header => (
+                          <TableHead key={header} className="text-right">
+                            {header}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {importPreview.rows.slice(0, 5).map((row, index) => (
+                        <TableRow key={index}>
+                          {row.map((cell, cellIndex) => (
+                            <TableCell key={cellIndex}>
+                              {cell}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {importPreview.rows.length > 5 && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    وسيتم استيراد {importPreview.rows.length - 5} صف إضافي...
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowImportDialog(false);
+                    setImportPreview(null);
+                  }}
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  onClick={handleConfirmImport}
+                  disabled={loading || !importPreview.mapping.name || !importPreview.mapping.city}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {loading ? 'جاري الاستيراد...' : `استيراد ${importPreview.rows.length} فندق`}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            تعليمات الاستيراد
+            تعليمات الاستيراد والتصدير
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-600">
-            يجب أن يكون ملف CSV بالترتيب التالي: اسم الفندق، المدينة، فردية، فردية مع إطلالة، مزدوجة بدون إطلالة، مزدوجة مع إطلالة، ثلاثية بدون إطلالة، ثلاثية مع إطلالة، التقييم
-          </p>
+          <div className="space-y-2 text-sm text-gray-600">
+            <p><strong>للتصدير:</strong> سيتم تصدير جميع الفنادق بتنسيق CSV مع الأعمدة القياسية</p>
+            <p><strong>للاستيراد:</strong> يمكن استيراد ملفات CSV بأي ترتيب للأعمدة. سيتم عرض معاينة لتخصيص الأعمدة قبل الاستيراد</p>
+            <p><strong>الحقول المطلوبة:</strong> اسم الفندق والمدينة فقط</p>
+            <p><strong>الحقول الاختيارية:</strong> جميع أسعار الغرف والتقييم</p>
+          </div>
         </CardContent>
       </Card>
 
