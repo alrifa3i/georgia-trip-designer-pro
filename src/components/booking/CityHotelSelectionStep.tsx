@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { BookingData, SelectedCity } from '@/types/booking';
+import { BookingData, CityStay } from '@/types/booking';
 import { useCitiesData } from '@/hooks/useCitiesData';
 import { useAllHotelsData } from '@/hooks/useHotelsData';
 import { useTransportData } from '@/hooks/useTransportData';
@@ -63,8 +63,13 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     const isAlreadySelected = data.selectedCities?.some(city => city.name === cityName);
     
     if (!isAlreadySelected) {
-      const newCity: SelectedCity = {
+      const newCity: CityStay = {
+        city: cityName,
         name: cityName,
+        nights: 0,
+        hotel: '',
+        tours: 0,
+        mandatoryTours: 0,
         selectedHotelId: '',
         roomType: '',
         pricePerNight: 0,
@@ -98,6 +103,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           return {
             ...city,
             selectedHotelId: hotelId,
+            hotel: selectedHotel.name,
             roomType: '', // إعادة تعيين نوع الغرفة عند تغيير الفندق
             pricePerNight: 0,
             totalPrice: 0
