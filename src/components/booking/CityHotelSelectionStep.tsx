@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -505,7 +506,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                           <div className="flex items-center gap-2">
                             <span>{hotel.name}</span>
                             <div className="flex">
-                              {[...Array(hotel.stars)].map((_, i) => (
+                              {[...Array(hotel.rating)].map((_, i) => (
                                 <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                               ))}
                             </div>
