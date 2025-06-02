@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +16,21 @@ interface PricingDetailsStepProps {
 export const PricingDetailsStep = ({ data, updateData, onValidationChange }: PricingDetailsStepProps) => {
   const [totalCost, setTotalCost] = useState(0);
   const [breakdown, setBreakdown] = useState<any>({});
+
+  // Function to get incomplete fields
+  const getIncompleteFields = () => {
+    const incompleteFields = [];
+    
+    if (totalCost <= 0) incompleteFields.push('حساب التكلفة الإجمالية');
+    if (!data.currency) incompleteFields.push('العملة');
+    
+    // التحقق من اكتمال بيانات المدن
+    if (data.selectedCities.length === 0) {
+      incompleteFields.push('بيانات المدن من المرحلة السابقة');
+    }
+    
+    return incompleteFields;
+  };
 
   // حساب التكاليف
   useEffect(() => {
@@ -145,7 +159,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">تفاصيل الأسعار</h2>
-        <p className="text-gray-600">مراجعة تفصيلية لتكاليف رحلتك</p>
+        <p className="text-gray-600">مراجعة تكلفة رحلتك التفصيلية</p>
       </div>
 
       {/* ملخص الرحلة */}
@@ -336,6 +350,27 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
           </div>
         </CardContent>
       </Card>
+
+      {/* Incomplete Fields Indicator */}
+      {getIncompleteFields().length > 0 && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="text-center">
+              <h4 className="font-semibold text-red-800 mb-2">مشاكل في حساب الأسعار:</h4>
+              <div className="flex flex-wrap justify-center gap-2">
+                {getIncompleteFields().map((field, index) => (
+                  <Badge key={index} variant="outline" className="border-red-300 text-red-700 bg-white">
+                    {field}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-sm text-red-600 mt-2">
+                يرجى التأكد من إكمال المراحل السابقة بشكل صحيح
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

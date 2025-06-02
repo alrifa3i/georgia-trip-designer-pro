@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,6 +14,25 @@ interface OptionalServicesStepProps {
 }
 
 export const OptionalServicesStep = ({ data, updateData, onValidationChange }: OptionalServicesStepProps) => {
+  const [localServices, setLocalServices] = useState(data.additionalServices);
+
+  // Function to get incomplete fields
+  const getIncompleteFields = () => {
+    const incompleteFields = [];
+    
+    // هذه المرحلة اختيارية، لكن يمكن إضافة بعض التوجيهات
+    if (!localServices.travelInsurance.enabled && 
+        !localServices.phoneLines.enabled && 
+        !localServices.roomDecoration.enabled && 
+        !localServices.airportReception.enabled && 
+        !localServices.photoSession.enabled && 
+        !localServices.flowerReception.enabled) {
+      incompleteFields.push('لم يتم اختيار أي خدمة إضافية (اختياري)');
+    }
+    
+    return incompleteFields;
+  };
+
   const isAirportTrip = airports.some(airport => airport.code === data.arrivalAirport);
   
   const hasDoubleRoom = data.roomTypes?.includes('dbl_v') || data.roomTypes?.includes('dbl_wv');
@@ -50,7 +69,7 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">الخدمات الإضافية</h2>
-        <p className="text-gray-600">اختر الخدمات الإضافية لتحسين تجربة رحلتك (جميعها اختيارية)</p>
+        <p className="text-gray-600">اختر الخدمات الإضافية التي تريد إضافتها لرحلتك (اختياري)</p>
       </div>
 
       {/* Travel Insurance */}
@@ -405,6 +424,27 @@ export const OptionalServicesStep = ({ data, updateData, onValidationChange }: O
           <li>• يمكن إضافة أو حذف أي خدمة حتى قبل السفر بـ 48 ساعة</li>
         </ul>
       </div>
+
+      {/* Incomplete Fields Indicator */}
+      {getIncompleteFields().length > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="text-center">
+              <h4 className="font-semibold text-blue-800 mb-2">معلومات هذه المرحلة:</h4>
+              <div className="flex flex-wrap justify-center gap-2">
+                {getIncompleteFields().map((field, index) => (
+                  <Badge key={index} variant="outline" className="border-blue-300 text-blue-700 bg-white">
+                    {field}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-sm text-blue-600 mt-2">
+                هذه المرحلة اختيارية ويمكنك المتابعة للمرحلة التالية
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
