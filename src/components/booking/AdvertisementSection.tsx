@@ -73,6 +73,14 @@ export const AdvertisementSection: React.FC<AdvertisementSectionProps> = ({ peop
     }
   };
 
+  const handleWhatsAppClick = () => {
+    // رقم واتساب الشركة - يمكن تعديله حسب الحاجة
+    const phoneNumber = "+995123456789"; // استبدل بالرقم الفعلي
+    const message = encodeURIComponent("مرحباً، أرغب في الاستفسار عن العروض السياحية المتاحة");
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   const ads = getAdsForPeopleCount();
 
   return (
@@ -115,7 +123,10 @@ export const AdvertisementSection: React.FC<AdvertisementSectionProps> = ({ peop
                 <Clock className="w-3 h-3" />
                 عرض محدود
               </div>
-              <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <button 
+                onClick={handleWhatsAppClick}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
                 اطلب الآن
               </button>
             </div>

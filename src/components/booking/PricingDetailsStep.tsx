@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -105,7 +106,11 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
 
     const subtotal = hotelsCost + toursCost + transportServicesCost + additionalServicesCost;
     const discountAmount = data.discountAmount || 0;
-    const finalTotal = subtotal - discountAmount;
+    
+    // إضافة هامش الربح 22% مع التقريب لأقرب 10
+    const afterDiscount = subtotal - discountAmount;
+    const withProfitMargin = afterDiscount * 1.22;
+    const finalTotal = Math.round(withProfitMargin / 10) * 10;
 
     setTotalCost(finalTotal);
     setBreakdown({
@@ -237,75 +242,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardContent>
       </Card>
 
-      {/* تفاصيل التكاليف */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-green-600" />
-            تفصيل التكاليف
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-2">
-                <Building className="w-4 h-4 text-blue-600" />
-                تكلفة الفنادق
-              </span>
-              <span className="font-semibold">{formatPrice(breakdown.hotels || 0)}</span>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-green-600" />
-                تكلفة الجولات السياحية
-              </span>
-              <span className="font-semibold">{formatPrice(breakdown.tours || 0)}</span>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-2">
-                <Car className="w-4 h-4 text-orange-600" />
-                خدمات النقل (الاستقبال والتوديع)
-              </span>
-              <span className="font-semibold">{formatPrice(breakdown.transportServices || 0)}</span>
-            </div>
-            
-            {breakdown.additionalServices > 0 && (
-              <div className="flex justify-between items-center">
-                <span className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-purple-600" />
-                  الخدمات الإضافية
-                </span>
-                <span className="font-semibold">{formatPrice(breakdown.additionalServices)}</span>
-              </div>
-            )}
-            
-            <Separator />
-            
-            <div className="flex justify-between items-center text-lg">
-              <span className="font-semibold">المجموع الفرعي</span>
-              <span className="font-bold">{formatPrice(breakdown.subtotal || 0)}</span>
-            </div>
-            
-            {breakdown.discount > 0 && (
-              <div className="flex justify-between items-center text-green-600">
-                <span>الخصم</span>
-                <span>-{formatPrice(breakdown.discount)}</span>
-              </div>
-            )}
-            
-            <Separator className="border-t-2" />
-            
-            <div className="flex justify-between items-center text-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-200">
-              <span className="font-bold text-green-800">المجموع النهائي</span>
-              <span className="font-bold text-green-800">{formatPrice(breakdown.total || 0)}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* تفاصيل خدمات النقل */}
+      {/* تفاصيل خدمات النقل - بدون أسعار */}
       {data.carType && data.arrivalAirport && data.departureAirport && (
         <Card className="bg-orange-50 border-orange-200">
           <CardHeader>
@@ -316,63 +253,75 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {(() => {
-                const transportCosts = calculateTransportServicesCosts(
-                  data.arrivalAirport,
-                  data.departureAirport,
-                  data.carType
-                );
-                const isSameAirport = data.arrivalAirport === data.departureAirport;
-                
-                return (
-                  <>
-                    <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                      <div>
-                        <p className="font-semibold">خدمة الاستقبال</p>
-                        <p className="text-sm text-gray-600">من مطار {data.arrivalAirport}</p>
-                        {isSameAirport && (
-                          <p className="text-xs text-blue-600">مطار الوصول = مطار المغادرة</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-green-600">
-                          {formatPrice(transportCosts.reception)}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                      <div>
-                        <p className="font-semibold">خدمة التوديع</p>
-                        <p className="text-sm text-gray-600">إلى مطار {data.departureAirport}</p>
-                        {!isSameAirport && (
-                          <p className="text-xs text-orange-600">مطارات مختلفة - سعر إضافي</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-orange-600">
-                          {formatPrice(transportCosts.farewell)}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center p-3 bg-gray-100 rounded-lg border-2">
-                      <div>
-                        <p className="font-bold">إجمالي خدمات النقل</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-blue-800">
-                          {formatPrice(transportCosts.total)}
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
+                <div>
+                  <p className="font-semibold">خدمة الاستقبال</p>
+                  <p className="text-sm text-gray-600">من مطار {data.arrivalAirport}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-green-600">متضمن</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
+                <div>
+                  <p className="font-semibold">الجولات السياحية</p>
+                  <p className="text-sm text-gray-600">
+                    إجمالي {data.selectedCities.reduce((total, city) => total + (city.tours || 0) + (city.mandatoryTours || 0), 0)} جولة
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-blue-600">شامل البرنامج</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
+                <div>
+                  <p className="font-semibold">خدمة التوديع</p>
+                  <p className="text-sm text-gray-600">إلى مطار {data.departureAirport}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-orange-600">متضمن</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* السعر النهائي فقط */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-green-600" />
+            السعر الإجمالي
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            {breakdown.discount > 0 && (
+              <>
+                <div className="flex justify-between items-center text-lg">
+                  <span className="font-semibold">المجموع قبل الخصم</span>
+                  <span className="font-bold">{formatPrice(breakdown.subtotal || 0)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center text-green-600">
+                  <span>الخصم</span>
+                  <span>-{formatPrice(breakdown.discount)}</span>
+                </div>
+                
+                <Separator className="border-t-2" />
+              </>
+            )}
+            
+            <div className="flex justify-between items-center text-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-200">
+              <span className="font-bold text-green-800">المجموع النهائي</span>
+              <span className="font-bold text-green-800">{formatPrice(breakdown.total || 0)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* معلومات إضافية */}
       <Card className="bg-blue-50 border-blue-200">
