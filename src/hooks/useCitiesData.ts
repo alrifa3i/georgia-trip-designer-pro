@@ -18,19 +18,27 @@ export const useCitiesData = () => {
     queryFn: async (): Promise<City[]> => {
       console.log('جلب بيانات المدن من قاعدة البيانات...');
       
-      const { data, error } = await supabase
-        .from('cities')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
+      try {
+        const { data, error } = await supabase
+          .from('cities')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
 
-      if (error) {
-        console.error('خطأ في جلب بيانات المدن:', error);
+        if (error) {
+          console.error('خطأ في جلب بيانات المدن:', error);
+          throw new Error(`فشل في جلب المدن: ${error.message}`);
+        }
+
+        console.log('تم جلب المدن بنجاح:', data);
+        return data || [];
+      } catch (error) {
+        console.error('خطأ عام في جلب المدن:', error);
         throw error;
       }
-
-      console.log('تم جلب المدن بنجاح:', data);
-      return data || [];
-    }
+    },
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

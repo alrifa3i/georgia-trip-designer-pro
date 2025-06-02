@@ -25,26 +25,34 @@ export const useHotelsData = (cityName?: string) => {
     queryFn: async (): Promise<Hotel[]> => {
       console.log('جلب بيانات الفنادق من قاعدة البيانات للمدينة:', cityName);
       
-      let query = supabase
-        .from('hotels')
-        .select('*')
-        .eq('is_active', true);
+      try {
+        let query = supabase
+          .from('hotels')
+          .select('*')
+          .eq('is_active', true);
 
-      if (cityName) {
-        query = query.eq('city', cityName);
-      }
+        if (cityName) {
+          query = query.eq('city', cityName);
+        }
 
-      const { data, error } = await query.order('name');
+        const { data, error } = await query.order('name');
 
-      if (error) {
-        console.error('خطأ في جلب بيانات الفنادق:', error);
+        if (error) {
+          console.error('خطأ في جلب بيانات الفنادق:', error);
+          throw new Error(`فشل في جلب الفنادق: ${error.message}`);
+        }
+
+        console.log('تم جلب الفنادق بنجاح:', data);
+        return data || [];
+      } catch (error) {
+        console.error('خطأ عام في جلب الفنادق:', error);
         throw error;
       }
-
-      console.log('تم جلب الفنادق بنجاح:', data);
-      return data || [];
     },
-    enabled: !!cityName
+    enabled: !!cityName,
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
@@ -54,28 +62,36 @@ export const useAllHotelsData = () => {
     queryFn: async (): Promise<Record<string, Hotel[]>> => {
       console.log('جلب جميع بيانات الفنادق من قاعدة البيانات...');
       
-      const { data, error } = await supabase
-        .from('hotels')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
+      try {
+        const { data, error } = await supabase
+          .from('hotels')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
 
-      if (error) {
-        console.error('خطأ في جلب بيانات الفنادق:', error);
+        if (error) {
+          console.error('خطأ في جلب بيانات الفنادق:', error);
+          throw new Error(`فشل في جلب الفنادق: ${error.message}`);
+        }
+
+        // تجميع الفنادق حسب المدينة
+        const hotelsByCity: Record<string, Hotel[]> = {};
+        data?.forEach(hotel => {
+          if (!hotelsByCity[hotel.city]) {
+            hotelsByCity[hotel.city] = [];
+          }
+          hotelsByCity[hotel.city].push(hotel);
+        });
+
+        console.log('تم جلب جميع الفنادق بنجاح:', hotelsByCity);
+        return hotelsByCity;
+      } catch (error) {
+        console.error('خطأ عام في جلب جميع الفنادق:', error);
         throw error;
       }
-
-      // تجميع الفنادق حسب المدينة
-      const hotelsByCity: Record<string, Hotel[]> = {};
-      data?.forEach(hotel => {
-        if (!hotelsByCity[hotel.city]) {
-          hotelsByCity[hotel.city] = [];
-        }
-        hotelsByCity[hotel.city].push(hotel);
-      });
-
-      console.log('تم جلب جميع الفنادق بنجاح:', hotelsByCity);
-      return hotelsByCity;
-    }
+    },
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
