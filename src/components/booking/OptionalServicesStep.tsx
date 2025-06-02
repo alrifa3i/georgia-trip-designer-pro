@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { BookingData } from '@/types/booking';
 import { additionalServicesData, airports } from '@/data/hotels';
 import { Shield, Phone, Heart, UserCheck, Plus, Minus, Info, Flower } from 'lucide-react';
