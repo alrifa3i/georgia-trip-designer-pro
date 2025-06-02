@@ -131,10 +131,16 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
   const addCity = () => {
     const newCity: CityStay = {
       city: '',
+      name: '',
       nights: 1,
       hotel: '',
+      selectedHotelId: '',
       tours: 0,
       mandatoryTours: 0,
+      roomType: '',
+      pricePerNight: 0,
+      totalPrice: 0,
+      availableTours: [],
       roomSelections: Array.from({ length: data.rooms }, (_, i) => ({
         roomNumber: i + 1,
         roomType: ''
@@ -159,6 +165,7 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       const arrivalCity = airportCityMapping[data.arrivalAirport];
       const isArrivalCity = value === arrivalCity;
       newCities[index].mandatoryTours = getMandatoryTours(value as string, isArrivalCity);
+      newCities[index].name = value as string;
       
       // Update available tours based on selected city
       if (value && availableTours[value as string]) {
@@ -167,6 +174,7 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       
       // Reset hotel and room selections when city changes
       newCities[index].hotel = '';
+      newCities[index].selectedHotelId = '';
       newCities[index].roomSelections = Array.from({ length: data.rooms }, (_, i) => ({
         roomNumber: i + 1,
         roomType: ''
@@ -175,6 +183,7 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
     
     // Reset room selections when hotel changes and initialize with correct number of rooms
     if (field === 'hotel') {
+      newCities[index].selectedHotelId = value as string;
       newCities[index].roomSelections = Array.from({ length: data.rooms }, (_, i) => ({
         roomNumber: i + 1,
         roomType: ''

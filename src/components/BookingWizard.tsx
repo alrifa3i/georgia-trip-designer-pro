@@ -92,6 +92,12 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
     setBookingData(prev => ({ ...prev, ...data }));
   };
 
+  const handleFinalConfirmation = () => {
+    console.log('Booking confirmed:', bookingData);
+    // Here you would typically save the booking to database
+    // For now, just log the confirmation
+  };
+
   const steps = [
     { number: 1, title: 'معلومات السفر الأساسية' },
     { number: 2, title: 'المدن والفنادق' },
@@ -127,7 +133,10 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
           onValidationChange={(isValid) => updateStepValidation(4, isValid)}
         />;
       case 5:
-        return <FinalConfirmationStep data={bookingData} />;
+        return <FinalConfirmationStep 
+          data={bookingData} 
+          onConfirm={handleFinalConfirmation}
+        />;
       default:
         return null;
     }
