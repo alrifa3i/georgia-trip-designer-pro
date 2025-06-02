@@ -6,9 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { BookingData } from '@/types/booking';
-import { Calendar, Users, Plane, Phone, User, Info, Lightbulb, CheckCircle2 } from 'lucide-react';
-import { airports } from '@/data/hotels';
+import { BookingData, Child } from '@/types/booking';
+import { currencies, additionalCurrencies } from '@/data/currencies';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { Plus, Minus, Users, Calendar, DollarSign, MapPin, Info } from 'lucide-react';
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
@@ -17,162 +18,138 @@ interface BasicTravelInfoStepProps {
 }
 
 export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: BasicTravelInfoStepProps) => {
-  const [childAges, setChildAges] = useState<number[]>(data.children?.map(child => child.age) || []);
-  const [smartSuggestions, setSmartSuggestions] = useState<string[]>([]);
+  const [showCustomBudget, setShowCustomBudget] = useState(false);
+  const [customBudgetAmount, setCustomBudgetAmount] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('SA'); // افتراضي السعودية
+  const [phoneNumber, setPhoneNumber] = useState('');
 
-  const generateSmartSuggestions = () => {
-    const totalAdults = data.adults + data.children.filter(child => child.age > 6).length;
-    const suggestions: string[] = [];
-
-    if (totalAdults === 1) {
-      suggestions.push('غرفة مفردة واحدة');
-    } else if (totalAdults === 2) {
-      suggestions.push('غرفة مزدوجة واحدة');
-      suggestions.push('غرفتين مفردة');
-    } else if (totalAdults === 3) {
-      suggestions.push('غرفة ثلاثية واحدة');
-      suggestions.push('غرفة مفردة + غرفة مزدوجة');
-      suggestions.push('3 غرف مفردة');
-    } else if (totalAdults === 4) {
-      suggestions.push('غرفتين مزدوجة');
-      suggestions.push('4 غرف مفردة');
-      suggestions.push('غرفة ثلاثية + غرفة مفردة');
-    } else if (totalAdults === 5) {
-      suggestions.push('غرفة ثلاثية + غرفة مزدوجة');
-      suggestions.push('5 غرف مفردة');
-      suggestions.push('غرفتين مزدوجة + غرفة مفردة');
-    } else if (totalAdults === 6) {
-      suggestions.push('غرفتين ثلاثية');
-      suggestions.push('3 غرف مزدوجة');
-      suggestions.push('6 غرف مفردة');
-    } else if (totalAdults > 6) {
-      const roomsNeeded = Math.ceil(totalAdults / 3);
-      suggestions.push(`${roomsNeeded} غرف ثلاثية`);
-      suggestions.push(`${Math.ceil(totalAdults / 2)} غرف مزدوجة`);
-      suggestions.push(`${totalAdults} غرف مفردة`);
-    }
-
-    suggestions.push('غير ذلك');
-    setSmartSuggestions(suggestions);
-  };
-
-  useEffect(() => {
-    generateSmartSuggestions();
-  }, [data.adults, data.children]);
+  const allCurrencies = [...currencies, ...additionalCurrencies];
 
   // التحقق من صحة البيانات
   useEffect(() => {
     const isValid = !!(
-      data.customerName &&
-      data.phoneNumber &&
+      data.customerName?.trim() &&
+      phoneNumber?.trim() &&
       data.adults > 0 &&
       data.arrivalDate &&
       data.departureDate &&
       data.arrivalAirport &&
       data.departureAirport &&
-      data.rooms > 0
+      data.rooms > 0 &&
+      data.budget > 0 &&
+      data.currency
     );
-
+    
     if (onValidationChange) {
       onValidationChange(isValid);
     }
-  }, [data, onValidationChange]);
+  }, [data, phoneNumber, onValidationChange]);
 
-  const applySuggestion = (suggestion: string) => {
-    if (suggestion === 'غير ذلك') {
-      return;
+  // حفظ رقم الهاتف في البيانات عند تغييره
+  useEffect(() => {
+    if (phoneNumber) {
+      updateData({ phoneNumber });
     }
-    
-    if (suggestion.includes('مفردة واحدة')) {
-      updateData({ rooms: 1 });
-    } else if (suggestion.includes('مزدوجة واحدة')) {
-      updateData({ rooms: 1 });
-    } else if (suggestion.includes('ثلاثية واحدة')) {
-      updateData({ rooms: 1 });
-    } else if (suggestion.includes('غرفتين مفردة')) {
-      updateData({ rooms: 2 });
-    } else if (suggestion.includes('غرفتين مزدوجة')) {
-      updateData({ rooms: 2 });
-    } else if (suggestion.includes('غرفتين ثلاثية')) {
-      updateData({ rooms: 2 });
-    } else if (suggestion.includes('3 غرف مزدوجة')) {
-      updateData({ rooms: 3 });
-    }
-  };
+  }, [phoneNumber, updateData]);
+
+  const airports = [
+    { code: 'TBS', name: 'مطار تبليسي الدولي', city: 'تبليسي' },
+    { code: 'BUS', name: 'مطار باتومي الدولي', city: 'باتومي' },
+    { code: 'KUT', name: 'مطار كوتايسي الدولي', city: 'كوتايسي' }
+  ];
+
+  const predefinedBudgets = [
+    { label: '500 - 800 دولار', min: 500, max: 800, value: 650 },
+    { label: '800 - 1200 دولار', min: 800, max: 1200, value: 1000 },
+    { label: '1200 - 1800 دولار', min: 1200, max: 1800, value: 1500 },
+    { label: '1800 - 2500 دولار', min: 1800, max: 2500, value: 2150 },
+    { label: '2500 - 3500 دولار', min: 2500, max: 3500, value: 3000 },
+    { label: '3500+ دولار', min: 3500, max: 5000, value: 4000 }
+  ];
 
   const addChild = () => {
-    const newChildAges = [...childAges, 5];
-    setChildAges(newChildAges);
     updateData({
-      children: newChildAges.map(age => ({ age }))
+      children: [...data.children, { age: 5 }]
     });
   };
 
   const removeChild = (index: number) => {
-    const newChildAges = childAges.filter((_, i) => i !== index);
-    setChildAges(newChildAges);
-    updateData({
-      children: newChildAges.map(age => ({ age }))
-    });
+    const updatedChildren = data.children.filter((_, i) => i !== index);
+    updateData({ children: updatedChildren });
   };
 
-  const updateChildAge = (index: number, age: number) => {
-    const newChildAges = [...childAges];
-    newChildAges[index] = age;
-    setChildAges(newChildAges);
-    updateData({
-      children: newChildAges.map(age => ({ age }))
-    });
+  const updateChild = (index: number, age: number) => {
+    const updatedChildren = data.children.map((child, i) => 
+      i === index ? { ...child, age } : child
+    );
+    updateData({ children: updatedChildren });
+  };
+
+  const handleCustomBudget = () => {
+    const amount = parseFloat(customBudgetAmount);
+    if (amount && amount > 0) {
+      const selectedCurrency = allCurrencies.find(c => c.code === data.currency) || allCurrencies[0];
+      const budgetInSelectedCurrency = amount * selectedCurrency.exchangeRate;
+      updateData({ budget: budgetInSelectedCurrency });
+      setShowCustomBudget(false);
+      setCustomBudgetAmount('');
+    }
+  };
+
+  const handlePredefinedBudget = (budgetValue: number) => {
+    const selectedCurrency = allCurrencies.find(c => c.code === data.currency) || allCurrencies[0];
+    const budgetInSelectedCurrency = budgetValue * selectedCurrency.exchangeRate;
+    updateData({ budget: budgetInSelectedCurrency });
   };
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">معلومات السفر الأساسية</h2>
-        <p className="text-gray-600">أدخل معلومات السفر والمسافرين</p>
+        <p className="text-gray-600">أدخل تفاصيل رحلتك وبياناتك الشخصية</p>
       </div>
 
-      {/* معلومات العميل */}
+      {/* Customer Information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
+            <Users className="w-5 h-5" />
             معلومات العميل
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="customerName">اسم العميل *</Label>
+              <Label htmlFor="customerName">الاسم الكامل *</Label>
               <Input
                 id="customerName"
                 value={data.customerName}
                 onChange={(e) => updateData({ customerName: e.target.value })}
-                placeholder="أدخل اسم العميل"
+                placeholder="أدخل اسمك الكامل"
+                required
               />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber" className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                رقم الهاتف *
-              </Label>
-              <Input
-                id="phoneNumber"
-                value={data.phoneNumber || ''}
-                onChange={(e) => updateData({ phoneNumber: e.target.value })}
-                placeholder="أدخل رقم الهاتف"
+              <Label>رقم الهاتف (واتساب) *</Label>
+              <PhoneInput
+                value={phoneNumber}
+                onChange={setPhoneNumber}
+                selectedCountry={selectedCountry}
+                onCountryChange={setSelectedCountry}
+                placeholder="رقم الهاتف"
               />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* تواريخ السفر والمطارات */}
+      {/* Travel Dates */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            تفاصيل السفر
+            تواريخ السفر
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -184,8 +161,10 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                 type="date"
                 value={data.arrivalDate}
                 onChange={(e) => updateData({ arrivalDate: e.target.value })}
+                required
               />
             </div>
+            
             <div className="space-y-2">
               <Label htmlFor="departureDate">تاريخ المغادرة *</Label>
               <Input
@@ -193,16 +172,25 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                 type="date"
                 value={data.departureDate}
                 onChange={(e) => updateData({ departureDate: e.target.value })}
+                required
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
 
+      {/* Airport Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="w-5 h-5" />
+            المطارات
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Plane className="w-4 h-4" />
-                مطار الوصول *
-              </Label>
+              <Label>مطار الوصول *</Label>
               <Select
                 value={data.arrivalAirport}
                 onValueChange={(value) => updateData({ arrivalAirport: value })}
@@ -213,18 +201,15 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                 <SelectContent>
                   {airports.map((airport) => (
                     <SelectItem key={airport.code} value={airport.code}>
-                      {airport.nameAr}
+                      {airport.name} ({airport.city})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
+            
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Plane className="w-4 h-4" />
-                مطار المغادرة *
-              </Label>
+              <Label>مطار المغادرة *</Label>
               <Select
                 value={data.departureAirport}
                 onValueChange={(value) => updateData({ departureAirport: value })}
@@ -235,24 +220,17 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                 <SelectContent>
                   {airports.map((airport) => (
                     <SelectItem key={airport.code} value={airport.code}>
-                      {airport.nameAr}
+                      {airport.name} ({airport.city})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              يمكنك اختيار مطار وصول مختلف عن مطار المغادرة حسب برنامجك السياحي
-            </AlertDescription>
-          </Alert>
         </CardContent>
       </Card>
 
-      {/* عدد المسافرين */}
+      {/* Travelers */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -263,109 +241,231 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
         <CardContent className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="adults">عدد البالغين *</Label>
-              <Input
-                id="adults"
-                type="number"
-                min="1"
-                value={data.adults}
-                onChange={(e) => updateData({ adults: parseInt(e.target.value) || 1 })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>عدد الأطفال</Label>
+              <Label>عدد البالغين *</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">{childAges.length} طفل</span>
                 <Button
                   type="button"
-                  onClick={addChild}
                   variant="outline"
                   size="sm"
+                  onClick={() => updateData({ adults: Math.max(1, data.adults - 1) })}
+                  disabled={data.adults <= 1}
                 >
-                  إضافة طفل
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <span className="w-12 text-center font-semibold bg-gray-50 py-2 px-3 rounded border">
+                  {data.adults}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateData({ adults: data.adults + 1 })}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>عدد الغرف *</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateData({ rooms: Math.max(1, data.rooms - 1) })}
+                  disabled={data.rooms <= 1}
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <span className="w-12 text-center font-semibold bg-gray-50 py-2 px-3 rounded border">
+                  {data.rooms}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateData({ rooms: data.rooms + 1 })}
+                >
+                  <Plus className="w-4 h-4" />
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* أعمار الأطفال */}
-          {childAges.length > 0 && (
-            <div className="space-y-3">
-              <Label>أعمار الأطفال</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {childAges.map((age, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Select
-                      value={age.toString()}
-                      onValueChange={(value) => updateChildAge(index, parseInt(value))}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[...Array(18)].map((_, i) => (
-                          <SelectItem key={i} value={i.toString()}>
-                            {i === 0 ? 'أقل من سنة' : `${i} سنة`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      onClick={() => removeChild(index)}
-                      variant="outline"
-                      size="sm"
-                    >
-                      حذف
-                    </Button>
-                  </div>
-                ))}
-              </div>
+          {/* Children */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>الأطفال (أقل من 12 سنة)</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => updateData({ children: [...data.children, { age: 5 }] })}
+              >
+                <Plus className="w-4 h-4 ml-2" />
+                إضافة طفل
+              </Button>
             </div>
-          )}
+            
+            {data.children.map((child, index) => (
+              <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm font-medium">طفل {index + 1}:</span>
+                <Select
+                  value={child.age.toString()}
+                  onValueChange={(value) => {
+                    const updatedChildren = data.children.map((c, i) => 
+                      i === index ? { ...c, age: parseInt(value) } : c
+                    );
+                    updateData({ children: updatedChildren });
+                  }}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(age => (
+                      <SelectItem key={age} value={age.toString()}>
+                        {age}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-gray-600">سنة</span>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    const updatedChildren = data.children.filter((_, i) => i !== index);
+                    updateData({ children: updatedChildren });
+                  }}
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
-      {/* عدد الغرف */}
+      {/* Budget Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>عدد الغرف المطلوبة</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5" />
+            الميزانية والعملة
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Currency Selection */}
           <div className="space-y-2">
-            <Label htmlFor="rooms">عدد الغرف *</Label>
-            <Input
-              id="rooms"
-              type="number"
-              min="1"
-              value={data.rooms}
-              onChange={(e) => updateData({ rooms: parseInt(e.target.value) || 1 })}
-            />
+            <Label>العملة المفضلة *</Label>
+            <Select
+              value={data.currency}
+              onValueChange={(value) => updateData({ currency: value, budget: 0 })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر العملة" />
+              </SelectTrigger>
+              <SelectContent>
+                {allCurrencies.map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{currency.flag}</span>
+                      <span>{currency.nameAr} ({currency.symbol})</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* اقتراحات ذكية لتوزيع الغرف */}
-          {smartSuggestions.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
-              <div className="flex items-center gap-2 mb-4">
-                <Lightbulb className="w-5 h-5 text-blue-600" />
-                <h3 className="font-bold text-blue-800">اقتراحات ذكية لتوزيع الغرف</h3>
-              </div>
-              <p className="text-blue-700 mb-4 text-sm">
-                بناءً على عدد الأشخاص ({data.adults + data.children.filter(child => child.age > 6).length}), إليك أفضل خيارات توزيع الغرف:
-              </p>
-              <div className="grid md:grid-cols-2 gap-3">
-                {smartSuggestions.map((suggestion, index) => (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              الميزانية التي ستدخلها تساعدنا في تخصيص أفضل العروض والخيارات المناسبة لك، وستكون مرجعاً لنا لتقديم تجربة سفر تناسب توقعاتك تماماً
+            </AlertDescription>
+          </Alert>
+
+          {/* Budget Selection - اجبارية */}
+          <div className="space-y-3">
+            <Label>اختر نطاق الميزانية * (إجباري)</Label>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {predefinedBudgets.map((budget, index) => {
+                const selectedCurrency = allCurrencies.find(c => c.code === data.currency) || allCurrencies[0];
+                const convertedMin = Math.round(budget.min * selectedCurrency.exchangeRate);
+                const convertedMax = Math.round(budget.max * selectedCurrency.exchangeRate);
+                const convertedValue = Math.round(budget.value * selectedCurrency.exchangeRate);
+                
+                return (
                   <Button
                     key={index}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => applySuggestion(suggestion)}
-                    className="justify-start bg-white hover:bg-blue-50 border-blue-300"
+                    type="button"
+                    variant={data.budget === convertedValue ? "default" : "outline"}
+                    className="h-auto p-3 text-right"
+                    onClick={() => handlePredefinedBudget(budget.value)}
                   >
-                    <CheckCircle2 className="w-4 h-4 ml-2 text-blue-600" />
-                    {suggestion}
+                    <div className="text-center w-full">
+                      <div className="font-semibold text-sm">
+                        {convertedMin.toLocaleString()} - {convertedMax.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {selectedCurrency.nameAr}
+                      </div>
+                    </div>
                   </Button>
-                ))}
+                );
+              })}
+            </div>
+            
+            {/* Custom Budget Option */}
+            <div className="border-t pt-3">
+              {!showCustomBudget ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCustomBudget(true)}
+                  className="w-full"
+                >
+                  اكتب ميزانيتك المخصصة
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <Label>ميزانيتك المخصصة (بالدولار الأمريكي)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      value={customBudgetAmount}
+                      onChange={(e) => setCustomBudgetAmount(e.target.value)}
+                      placeholder="أدخل المبلغ بالدولار"
+                      min="0"
+                    />
+                    <Button onClick={handleCustomBudget} disabled={!customBudgetAmount}>
+                      تأكيد
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowCustomBudget(false);
+                        setCustomBudgetAmount('');
+                      }}
+                    >
+                      إلغاء
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {data.budget > 0 && (
+            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="text-center">
+                <span className="text-green-800 font-semibold">الميزانية المختارة: </span>
+                <span className="text-green-600 font-bold text-lg">
+                  {Math.round(data.budget).toLocaleString()} {allCurrencies.find(c => c.code === data.currency)?.symbol}
+                </span>
               </div>
             </div>
           )}

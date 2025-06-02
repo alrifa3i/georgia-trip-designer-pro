@@ -10,15 +10,11 @@ export interface RoomSelection {
 
 export interface CityStay {
   city: string;
-  name: string;
   nights: number;
   hotel: string;
   tours: number;
   mandatoryTours: number;
-  selectedHotelId: string;
-  roomType: string;
-  pricePerNight: number;
-  totalPrice: number;
+  roomType?: string;
   roomSelections?: RoomSelection[];
   availableTours?: string[];
 }

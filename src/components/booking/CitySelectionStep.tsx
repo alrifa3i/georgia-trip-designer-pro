@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -96,15 +97,10 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       const mandatoryTours = getMandatoryTours(firstNightCity, true);
       newCities.unshift({
         city: firstNightCity,
-        name: firstNightCity,
         nights: 1,
         hotel: '',
         tours: 0,
         mandatoryTours: mandatoryTours,
-        selectedHotelId: '',
-        roomType: '',
-        pricePerNight: 0,
-        totalPrice: 0,
         roomSelections: Array.from({ length: data.rooms }, (_, i) => ({
           roomNumber: i + 1,
           roomType: ''
@@ -118,15 +114,10 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       const mandatoryTours = getMandatoryTours(lastNightCity, false);
       newCities.push({
         city: lastNightCity,
-        name: lastNightCity,
         nights: 1,
         hotel: '',
         tours: 0,
         mandatoryTours: mandatoryTours,
-        selectedHotelId: '',
-        roomType: '',
-        pricePerNight: 0,
-        totalPrice: 0,
         roomSelections: Array.from({ length: data.rooms }, (_, i) => ({
           roomNumber: i + 1,
           roomType: ''
@@ -140,15 +131,10 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
   const addCity = () => {
     const newCity: CityStay = {
       city: '',
-      name: '',
       nights: 1,
       hotel: '',
       tours: 0,
       mandatoryTours: 0,
-      selectedHotelId: '',
-      roomType: '',
-      pricePerNight: 0,
-      totalPrice: 0,
       roomSelections: Array.from({ length: data.rooms }, (_, i) => ({
         roomNumber: i + 1,
         roomType: ''
@@ -173,7 +159,6 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       const arrivalCity = airportCityMapping[data.arrivalAirport];
       const isArrivalCity = value === arrivalCity;
       newCities[index].mandatoryTours = getMandatoryTours(value as string, isArrivalCity);
-      newCities[index].name = value as string; // Update name when city changes
       
       // Update available tours based on selected city
       if (value && availableTours[value as string]) {
@@ -182,10 +167,6 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
       
       // Reset hotel and room selections when city changes
       newCities[index].hotel = '';
-      newCities[index].selectedHotelId = '';
-      newCities[index].roomType = '';
-      newCities[index].pricePerNight = 0;
-      newCities[index].totalPrice = 0;
       newCities[index].roomSelections = Array.from({ length: data.rooms }, (_, i) => ({
         roomNumber: i + 1,
         roomType: ''
@@ -194,10 +175,6 @@ export const CitySelectionStep = ({ data, updateData }: CitySelectionStepProps) 
     
     // Reset room selections when hotel changes and initialize with correct number of rooms
     if (field === 'hotel') {
-      newCities[index].selectedHotelId = '';
-      newCities[index].roomType = '';
-      newCities[index].pricePerNight = 0;
-      newCities[index].totalPrice = 0;
       newCities[index].roomSelections = Array.from({ length: data.rooms }, (_, i) => ({
         roomNumber: i + 1,
         roomType: ''
