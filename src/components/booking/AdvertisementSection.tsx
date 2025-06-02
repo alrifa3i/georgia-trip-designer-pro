@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -74,8 +73,7 @@ export const AdvertisementSection: React.FC<AdvertisementSectionProps> = ({ peop
   };
 
   const handleWhatsAppClick = () => {
-    // رقم واتساب الشركة - يمكن تعديله حسب الحاجة
-    const phoneNumber = "+995123456789"; // استبدل بالرقم الفعلي
+    const phoneNumber = "+995514000668";
     const message = encodeURIComponent("مرحباً، أرغب في الاستفسار عن العروض السياحية المتاحة");
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
