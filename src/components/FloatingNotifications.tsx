@@ -224,16 +224,16 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({
   if (!isActive) return null; // لا تعرض أي شيء إذا كانت معطلة
 
   return (
-    <div className="fixed bottom-16 sm:bottom-4 left-1/2 sm:left-auto sm:right-4 transform -translate-x-1/2 sm:translate-x-0 z-50 space-y-2 max-w-xs sm:max-w-sm pointer-events-none">
+    <div className="fixed top-20 sm:top-4 left-4 sm:left-auto sm:right-4 z-50 space-y-2 max-w-xs pointer-events-none">
       {notifications.map((notification) => (
         <Card
           key={notification.id}
-          className="p-3 sm:p-4 bg-white/95 backdrop-blur-sm border border-green-200 shadow-lg animate-slide-in-right pointer-events-auto"
+          className="p-2 sm:p-4 bg-white/95 backdrop-blur-sm border border-green-200 shadow-lg animate-slide-in-right pointer-events-auto"
         >
           <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-2 sm:space-x-3 flex-1">
+            <div className="flex items-start space-x-2 flex-1">
               <div className="flex-shrink-0">
-                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5" />
+                <CheckCircle className="w-3 h-3 sm:w-5 sm:h-5 text-green-600 mt-0.5" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs sm:text-sm font-medium text-gray-900 mb-1">
@@ -249,9 +249,9 @@ export const FloatingNotifications: React.FC<FloatingNotificationsProps> = ({
             </div>
             <button
               onClick={() => removeNotification(notification.id)}
-              className="flex-shrink-0 ml-1 sm:ml-2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="flex-shrink-0 ml-1 text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <X className="w-3 h-3 sm:w-4 sm:h-4" />
+              <X className="w-3 h-3" />
             </button>
           </div>
         </Card>
