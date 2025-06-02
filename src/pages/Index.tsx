@@ -93,10 +93,10 @@ const Index = () => {
         <div className="container mx-auto">
           <div className="text-center mb-8 sm:mb-12">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 drop-shadow-2xl px-2">
-              مرحباً بك في جورجيا
+              صمم رحلتك بنفسك إلى جورجيا
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-6 sm:mb-8 drop-shadow-xl px-4">
-              اكتشف جمال القوقاز مع برامج سياحية مخصصة لك
+              اول موقع متخصص بالسياحة في جورجيا
             </p>
           </div>
 
