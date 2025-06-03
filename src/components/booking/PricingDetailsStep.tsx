@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -480,9 +479,6 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
                   خصم مطبق: {data.discountCode}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-green-600 font-bold">
-                    -{formatPrice(data.discountAmount)}
-                  </span>
                   <Button
                     onClick={removeDiscount}
                     variant="ghost"
@@ -498,7 +494,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardContent>
       </Card>
 
-      {/* Final Cost Summary */}
+      {/* Final Cost Summary - Only showing final total */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -508,20 +504,6 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            {breakdown.discount > 0 && (
-              <>
-                <div className="flex justify-between items-center text-green-600">
-                  <span>الخصم ({data.discountCode})</span>
-                  <span>-{formatPrice(breakdown.discount)}</span>
-                </div>
-                
-                <div className="flex justify-between items-center text-lg font-semibold bg-blue-50 p-3 rounded-lg border border-blue-200">
-                  <span className="text-blue-800">السعر بعد الخصم</span>
-                  <span className="text-blue-800">{formatPrice(breakdown.afterDiscount || 0)}</span>
-                </div>
-              </>
-            )}
-            
             <Separator className="border-t-2" />
             
             <div className="flex justify-between items-center text-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-200">
