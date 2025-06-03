@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Settings, 
   DollarSign, 
@@ -24,7 +25,9 @@ import {
   Plus,
   Trash2,
   MapPin,
-  Calendar
+  Calendar,
+  LogOut,
+  Percent
 } from 'lucide-react';
 import { hotelData, transportData, additionalServicesData } from '@/data/hotels';
 import { transportPricing, mandatoryToursRules } from '@/data/transportRules';
@@ -32,33 +35,55 @@ import { HotelManagement } from './HotelManagement';
 import { CityManagement } from './CityManagement';
 import { AdvertisementManagement } from './AdvertisementManagement';
 import { BookingManagement } from './BookingManagement';
+import { DiscountManagement } from './DiscountManagement';
 
-export const AdminPanel = () => {
+interface AdminPanelProps {
+  onLogout: () => void;
+}
+
+export const AdminPanel = ({ onLogout }: AdminPanelProps) => {
   const [editMode, setEditMode] = useState<string | null>(null);
+  const [profitMargin, setProfitMargin] = useState(22);
+  const [currency, setCurrency] = useState('USD');
+  const [safetyMessage, setSafetyMessage] = useState('لا يوجد دفع عبر الموقع - الدفع فقط عند الوصول');
+  const { toast } = useToast();
 
-  // بيانات المستخدمين
-  const [users] = useState([
-    { id: 1, name: 'أحمد محمد', email: 'ahmed@example.com', bookings: 3, status: 'active' },
-    { id: 2, name: 'فاطمة علي', email: 'fatima@example.com', bookings: 1, status: 'active' },
-    { id: 3, name: 'محمد سعد', email: 'mohammed@example.com', bookings: 5, status: 'inactive' }
-  ]);
+  const handleSaveSettings = () => {
+    // Here you would save to database or local storage
+    toast({
+      title: "تم حفظ الإعدادات",
+      description: "تم حفظ إعدادات النظام بنجاح",
+    });
+  };
 
-  // إعلانات
-  const [ads, setAds] = useState([
-    { id: 1, title: 'باقة رومانسية لشخصين', peopleRange: '1-2', price: '1,200$', status: 'active' },
-    { id: 2, title: 'باقة العائلة المميزة', peopleRange: '3-5', price: '2,400$', status: 'active' },
-    { id: 3, title: 'باقة المجموعات الكبيرة', peopleRange: '6-10', price: '4,800$', status: 'inactive' }
-  ]);
+  const formatDateArabic = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ar-IQ', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
   return (
     <div className="container mx-auto p-6 max-w-7xl" dir="rtl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">لوحة التحكم الإدارية</h1>
-        <p className="text-gray-600">إدارة شاملة للنظام والبيانات</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">لوحة التحكم الإدارية</h1>
+          <p className="text-gray-600">إدارة شاملة للنظام والبيانات</p>
+        </div>
+        <Button 
+          onClick={onLogout}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          تسجيل الخروج
+        </Button>
       </div>
 
       <Tabs defaultValue="bookings" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="bookings" className="flex items-center gap-2">
             <Calendar className="w-4 h-4" />
             إدارة الحجوزات
@@ -78,6 +103,10 @@ export const AdminPanel = () => {
           <TabsTrigger value="ads" className="flex items-center gap-2">
             <Image className="w-4 h-4" />
             إدارة الإعلانات
+          </TabsTrigger>
+          <TabsTrigger value="discounts" className="flex items-center gap-2">
+            <Percent className="w-4 h-4" />
+            إدارة الخصومات
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
@@ -340,6 +369,11 @@ export const AdminPanel = () => {
           <AdvertisementManagement />
         </TabsContent>
 
+        {/* إدارة الخصومات */}
+        <TabsContent value="discounts">
+          <DiscountManagement />
+        </TabsContent>
+
         {/* الإعدادات */}
         <TabsContent value="settings" className="space-y-6">
           <h2 className="text-xl font-bold">الإعدادات العامة</h2>
@@ -352,12 +386,21 @@ export const AdminPanel = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label>هامش الربح (%)</Label>
-                  <Input value="20" />
+                  <Input 
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={profitMargin}
+                    onChange={(e) => setProfitMargin(Number(e.target.value))}
+                  />
                   <p className="text-sm text-gray-500 mt-1">النسبة المضافة على التكلفة الأساسية</p>
                 </div>
                 <div>
                   <Label>العملة الافتراضية</Label>
-                  <Input value="USD" />
+                  <Input 
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                  />
                 </div>
               </div>
               
@@ -365,10 +408,16 @@ export const AdminPanel = () => {
               
               <div>
                 <Label>رسالة الأمان (الصفحة الرئيسية)</Label>
-                <Input value="لا يوجد دفع عبر الموقع - الدفع فقط عند الوصول" />
+                <Input 
+                  value={safetyMessage}
+                  onChange={(e) => setSafetyMessage(e.target.value)}
+                />
               </div>
               
-              <Button className="bg-emerald-600 hover:bg-emerald-700">
+              <Button 
+                onClick={handleSaveSettings}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
                 <Save className="w-4 h-4 ml-2" />
                 حفظ الإعدادات
               </Button>

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Shield, Lock, Eye, EyeOff } from 'lucide-react';
+import { Shield, Lock, Eye, EyeOff, LogOut } from 'lucide-react';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 
 export const AdminAccess = () => {
@@ -24,8 +24,14 @@ export const AdminAccess = () => {
     }
   };
 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setPassword('');
+    setError('');
+  };
+
   if (isAuthenticated) {
-    return <AdminPanel />;
+    return <AdminPanel onLogout={handleLogout} />;
   }
 
   return (
