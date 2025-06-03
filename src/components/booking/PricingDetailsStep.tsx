@@ -52,53 +52,36 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
 
     setIsValidatingCode(true);
     try {
-      // Since discount_codes table isn't in types yet, we'll use RPC call
-      const { data: discountData, error } = await supabase.rpc('validate_discount_code', {
-        code_param: code.toUpperCase()
-      });
+      // Query discount_codes table directly
+      const { data: discountData, error } = await supabase
+        .from('discount_codes')
+        .select('*')
+        .eq('code', code.toUpperCase())
+        .eq('is_active', true)
+        .single();
 
-      if (error) {
-        // Fallback to direct query if RPC doesn't exist
-        const { data: directQuery, error: directError } = await supabase
-          .from('discount_codes')
-          .select('*')
-          .eq('code', code.toUpperCase())
-          .eq('is_active', true)
-          .single();
-
-        if (directError || !directQuery) {
-          setDiscountStatus('invalid');
-          setDiscountPercentage(0);
-          return;
-        }
-
-        // Check if expired
-        if (directQuery.expires_at && new Date(directQuery.expires_at) < new Date()) {
-          setDiscountStatus('expired');
-          setDiscountPercentage(0);
-          return;
-        }
-
-        // Check if max uses reached
-        if (directQuery.max_uses && directQuery.current_uses >= directQuery.max_uses) {
-          setDiscountStatus('maxed');
-          setDiscountPercentage(0);
-          return;
-        }
-
-        setDiscountStatus('valid');
-        setDiscountPercentage(directQuery.discount_percentage);
-        return;
-      }
-
-      if (!discountData) {
+      if (error || !discountData) {
         setDiscountStatus('invalid');
         setDiscountPercentage(0);
         return;
       }
 
+      // Check if expired
+      if (discountData.expires_at && new Date(discountData.expires_at) < new Date()) {
+        setDiscountStatus('expired');
+        setDiscountPercentage(0);
+        return;
+      }
+
+      // Check if max uses reached
+      if (discountData.max_uses && discountData.current_uses >= discountData.max_uses) {
+        setDiscountStatus('maxed');
+        setDiscountPercentage(0);
+        return;
+      }
+
       setDiscountStatus('valid');
-      setDiscountPercentage(discountData.discount_percentage || 0);
+      setDiscountPercentage(discountData.discount_percentage);
     } catch (error) {
       console.error('Error validating discount code:', error);
       setDiscountStatus('invalid');
@@ -514,7 +497,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardContent>
       </Card>
 
-      {/* Final Cost Summary */}
+      {/* Final Cost Summary - Only showing final total */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -524,22 +507,12 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            <div className="flex justify-between items-center text-lg">
-              <span className="font-semibold">المجموع الفرعي</span>
-              <span className="font-bold">{formatPrice(breakdown.subtotal || 0)}</span>
-            </div>
-            
             {breakdown.discount > 0 && (
               <div className="flex justify-between items-center text-green-600">
                 <span>الخصم ({data.discountCode})</span>
                 <span>-{formatPrice(breakdown.discount)}</span>
               </div>
             )}
-            
-            <div className="flex justify-between items-center text-lg">
-              <span className="font-semibold">هامش الربح (22%)</span>
-              <span className="font-bold">{formatPrice((breakdown.subtotal - (breakdown.discount || 0)) * 0.22)}</span>
-            </div>
             
             <Separator className="border-t-2" />
             
