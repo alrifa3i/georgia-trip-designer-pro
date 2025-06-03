@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Edit, Save, Trash2, ArrowUp, ArrowDown, Star, Users, Baby, Clock, CheckCircle } from 'lucide-react';
+import { Plus, Edit, Save, Trash2, ArrowUp, ArrowDown, Star, Users, Baby, Clock, CheckCircle, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Advertisement {
@@ -25,19 +24,6 @@ interface Advertisement {
   whatsappMessage: string;
 }
 
-const availableServices = [
-  'إقامة في فنادق 4-5 نجوم',
-  'جولات سياحية يومية',
-  'مرشد سياحي متخصص',
-  'نقل خاص مريح',
-  'وجبات إفطار متنوعة',
-  'أنشطة ترفيهية',
-  'زيارة المعالم التاريخية',
-  'جولات طبيعية',
-  'تصوير فوتوغرافي',
-  'خدمة عملاء 24/7'
-];
-
 const adTypes = [
   { value: 'limited', label: 'محدود', color: 'bg-red-100 text-red-800' },
   { value: 'featured', label: 'مميز', color: 'bg-blue-100 text-blue-800' },
@@ -47,6 +33,23 @@ const adTypes = [
 
 export const AdvertisementManagement = () => {
   const { toast } = useToast();
+  
+  const [availableServices, setAvailableServices] = useState<string[]>([
+    'إقامة في فنادق 4-5 نجوم',
+    'جولات سياحية يومية',
+    'مرشد سياحي متخصص',
+    'نقل خاص مريح',
+    'وجبات إفطار متنوعة',
+    'أنشطة ترفيهية',
+    'زيارة المعالم التاريخية',
+    'جولات طبيعية',
+    'تصوير فوتوغرافي',
+    'خدمة عملاء 24/7'
+  ]);
+
+  const [editingService, setEditingService] = useState<{ index: number; value: string } | null>(null);
+  const [newService, setNewService] = useState('');
+  const [isServicesDialogOpen, setIsServicesDialogOpen] = useState(false);
   
   const [ads, setAds] = useState<Advertisement[]>([
     {
@@ -89,6 +92,50 @@ export const AdvertisementManagement = () => {
     status: 'active',
     whatsappMessage: ''
   });
+
+  const handleAddService = () => {
+    if (newService.trim() && !availableServices.includes(newService.trim())) {
+      setAvailableServices([...availableServices, newService.trim()]);
+      setNewService('');
+      toast({
+        title: "تم بنجاح",
+        description: "تم إضافة الخدمة الجديدة",
+      });
+    }
+  };
+
+  const handleEditService = (index: number, newValue: string) => {
+    if (newValue.trim() && !availableServices.filter((_, i) => i !== index).includes(newValue.trim())) {
+      const updatedServices = [...availableServices];
+      updatedServices[index] = newValue.trim();
+      setAvailableServices(updatedServices);
+      setEditingService(null);
+      toast({
+        title: "تم بنجاح",
+        description: "تم تحديث الخدمة",
+      });
+    }
+  };
+
+  const handleDeleteService = (index: number) => {
+    if (window.confirm('هل أنت متأكد من حذف هذه الخدمة؟')) {
+      const serviceToDelete = availableServices[index];
+      const updatedServices = availableServices.filter((_, i) => i !== index);
+      setAvailableServices(updatedServices);
+      
+      // إزالة الخدمة من جميع الإعلانات
+      const updatedAds = ads.map(ad => ({
+        ...ad,
+        services: ad.services.filter(service => service !== serviceToDelete)
+      }));
+      setAds(updatedAds);
+      
+      toast({
+        title: "تم بنجاح",
+        description: "تم حذف الخدمة",
+      });
+    }
+  };
 
   const handleSaveAd = (ad: Advertisement) => {
     console.log('حفظ الإعلان:', ad);
@@ -211,132 +258,208 @@ export const AdvertisementManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">إدارة الإعلانات المتقدمة</h2>
-        <Dialog open={isAddingAd} onOpenChange={setIsAddingAd}>
-          <DialogTrigger asChild>
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              <Plus className="w-4 h-4 ml-2" />
-              إضافة إعلان جديد
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
-            <DialogHeader>
-              <DialogTitle className="text-xl">إضافة إعلان جديد</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">اسم الإعلان *</Label>
+        <div className="flex gap-3">
+          <Dialog open={isServicesDialogOpen} onOpenChange={setIsServicesDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="bg-blue-50 hover:bg-blue-100 border-blue-200">
+                <Settings className="w-4 h-4 ml-2" />
+                إدارة الخدمات
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg" dir="rtl">
+              <DialogHeader>
+                <DialogTitle className="text-xl">إدارة الخدمات المتاحة</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex gap-2">
                   <Input
-                    value={newAd.title}
-                    onChange={(e) => setNewAd({...newAd, title: e.target.value})}
-                    placeholder="أدخل اسم الإعلان"
-                    className="mt-1"
+                    value={newService}
+                    onChange={(e) => setNewService(e.target.value)}
+                    placeholder="أدخل خدمة جديدة"
+                    className="flex-1"
                   />
+                  <Button onClick={handleAddService} size="sm">
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
                 
-                <div>
-                  <Label className="text-sm font-medium">وصف الإعلان *</Label>
-                  <Textarea
-                    value={newAd.description}
-                    onChange={(e) => setNewAd({...newAd, description: e.target.value})}
-                    placeholder="أدخل وصف مفصل للإعلان"
-                    rows={4}
-                    className="mt-1"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">عدد البالغين</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={newAd.adults}
-                      onChange={(e) => setNewAd({...newAd, adults: parseInt(e.target.value) || 0})}
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">عدد الأطفال</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={newAd.children}
-                      onChange={(e) => setNewAd({...newAd, children: parseInt(e.target.value) || 0})}
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">الأولوية</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={newAd.priority}
-                      onChange={(e) => setNewAd({...newAd, priority: parseInt(e.target.value) || 1})}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">نوع الإعلان</Label>
-                    <Select onValueChange={(value) => setNewAd({...newAd, type: value})}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="اختر نوع الإعلان" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {adTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">حالة الإعلان</Label>
-                    <Select onValueChange={(value: 'active' | 'inactive') => setNewAd({...newAd, status: value})}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="اختر الحالة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">نشط</SelectItem>
-                        <SelectItem value="inactive">غير نشط</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium">الخدمات المتاحة</Label>
-                  <div className="mt-2 p-4 border rounded-lg bg-gray-50">
-                    {renderServicesList(newAd.services)}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium">رسالة الواتساب</Label>
-                  <Textarea
-                    value={newAd.whatsappMessage}
-                    onChange={(e) => setNewAd({...newAd, whatsappMessage: e.target.value})}
-                    placeholder="أدخل الرسالة التي ستُرسل عبر الواتساب (اختياري)"
-                    rows={3}
-                    className="mt-1"
-                  />
+                <div className="max-h-60 overflow-y-auto space-y-2">
+                  {availableServices.map((service, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 border rounded-lg">
+                      {editingService?.index === index ? (
+                        <div className="flex gap-2 w-full">
+                          <Input
+                            value={editingService.value}
+                            onChange={(e) => setEditingService({ ...editingService, value: e.target.value })}
+                            className="flex-1 text-sm"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleEditService(index, editingService.value)}
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingService(null)}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="flex-1 text-sm">{service}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingService({ index, value: service })}
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteService(index)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
-              
-              <Button onClick={handleAddAd} className="w-full bg-emerald-600 hover:bg-emerald-700">
-                <Save className="w-4 h-4 ml-2" />
-                حفظ الإعلان
+            </DialogContent>
+          </Dialog>
+          
+          <Dialog open={isAddingAd} onOpenChange={setIsAddingAd}>
+            <DialogTrigger asChild>
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Plus className="w-4 h-4 ml-2" />
+                إضافة إعلان جديد
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+              <DialogHeader>
+                <DialogTitle className="text-xl">إضافة إعلان جديد</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">اسم الإعلان *</Label>
+                    <Input
+                      value={newAd.title}
+                      onChange={(e) => setNewAd({...newAd, title: e.target.value})}
+                      placeholder="أدخل اسم الإعلان"
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium">وصف الإعلان *</Label>
+                    <Textarea
+                      value={newAd.description}
+                      onChange={(e) => setNewAd({...newAd, description: e.target.value})}
+                      placeholder="أدخل وصف مفصل للإعلان"
+                      rows={4}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">عدد البالغين</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={newAd.adults}
+                        onChange={(e) => setNewAd({...newAd, adults: parseInt(e.target.value) || 0})}
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium">عدد الأطفال</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={newAd.children}
+                        onChange={(e) => setNewAd({...newAd, children: parseInt(e.target.value) || 0})}
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium">الأولوية</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={newAd.priority}
+                        onChange={(e) => setNewAd({...newAd, priority: parseInt(e.target.value) || 1})}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">نوع الإعلان</Label>
+                      <Select onValueChange={(value) => setNewAd({...newAd, type: value})}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="اختر نوع الإعلان" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {adTypes.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium">حالة الإعلان</Label>
+                      <Select onValueChange={(value: 'active' | 'inactive') => setNewAd({...newAd, status: value})}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="اختر الحالة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">نشط</SelectItem>
+                          <SelectItem value="inactive">غير نشط</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">الخدمات المتاحة</Label>
+                    <div className="mt-2 p-4 border rounded-lg bg-gray-50">
+                      {renderServicesList(newAd.services)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">رسالة الواتساب</Label>
+                    <Textarea
+                      value={newAd.whatsappMessage}
+                      onChange={(e) => setNewAd({...newAd, whatsappMessage: e.target.value})}
+                      placeholder="أدخل الرسالة التي ستُرسل عبر الواتساب (اختياري)"
+                      rows={3}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                
+                <Button onClick={handleAddAd} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                  <Save className="w-4 h-4 ml-2" />
+                  حفظ الإعلان
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-6">
