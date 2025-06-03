@@ -373,6 +373,28 @@ export const BookingManagement = () => {
     };
   };
 
+  const formatPhoneWithCountryCode = (phoneNumber: string) => {
+    if (!phoneNumber) return 'غير محدد';
+    
+    // إذا كان الرقم يبدأ بـ + فهو يحتوي على كود الدولة
+    if (phoneNumber.startsWith('+')) {
+      return phoneNumber;
+    }
+    
+    // إذا كان الرقم يبدأ بـ 964 (كود العراق)
+    if (phoneNumber.startsWith('964')) {
+      return `+${phoneNumber}`;
+    }
+    
+    // إذا كان الرقم يبدأ بـ 0، نستبدله بكود العراق
+    if (phoneNumber.startsWith('0')) {
+      return `+964${phoneNumber.substring(1)}`;
+    }
+    
+    // إضافة كود العراق افتراضياً
+    return `+964${phoneNumber}`;
+  };
+
   if (loading && bookings.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -431,7 +453,7 @@ export const BookingManagement = () => {
                   const children = parseJsonField(booking.children, []);
                   return (
                     <TableRow key={booking.id}>
-                      <TableCell className="font-medium">{booking.reference_number}</TableCell>
+                      <TableCell>{booking.reference_number}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span>{booking.customer_name}</span>
@@ -446,7 +468,12 @@ export const BookingManagement = () => {
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell>{booking.phone_number}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Phone className="w-4 h-4" />
+                          {formatPhoneWithCountryCode(booking.phone_number)}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Users className="w-4 h-4" />
