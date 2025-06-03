@@ -100,13 +100,13 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
     try {
       const referenceNumber = generateReferenceNumber();
       
-      // إعداد بيانات الحجز للحفظ
+      // إعداد بيانات الحجز للحفظ - تحويل البيانات للصيغة المطلوبة
       const bookingDataToSave = {
         reference_number: referenceNumber,
         customer_name: bookingData.customerName,
         phone_number: bookingData.phoneNumber,
         adults: bookingData.adults,
-        children: bookingData.children || [],
+        children: JSON.stringify(bookingData.children || []), // تحويل إلى JSON string
         arrival_date: bookingData.arrivalDate,
         departure_date: bookingData.departureDate,
         arrival_airport: bookingData.arrivalAirport,
@@ -115,14 +115,16 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
         budget: bookingData.budget,
         currency: bookingData.currency || 'USD',
         car_type: bookingData.carType,
-        room_types: bookingData.roomTypes || [],
-        selected_cities: bookingData.selectedCities || [],
+        room_types: JSON.stringify(bookingData.roomTypes || []), // تحويل إلى JSON string
+        selected_cities: JSON.stringify(bookingData.selectedCities || []), // تحويل إلى JSON string
         total_cost: calculateFinalCost(),
-        additional_services: bookingData.additionalServices || {},
+        additional_services: JSON.stringify(bookingData.additionalServices || {}), // تحويل إلى JSON string
         discount_amount: bookingData.discountAmount || 0,
         discount_coupon: bookingData.discountCoupon || null,
         status: 'pending'
       };
+
+      console.log('Saving booking to database:', bookingDataToSave);
 
       // حفظ الحجز في قاعدة البيانات
       const { data: booking, error: bookingError } = await supabase
