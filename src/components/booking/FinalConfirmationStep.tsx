@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { BookingData } from '@/types/booking';
 import { CheckCircle, AlertTriangle, QrCode, Download, Share2, MessageCircle } from 'lucide-react';
 import { useBookings } from '@/hooks/useBookings';
 import { WhatsAppVerification } from './WhatsAppVerification';
+import { FileUploadSection } from './FileUploadSection';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface FinalConfirmationStepProps {
@@ -247,6 +247,9 @@ ${data.selectedCities.map(city => `
     );
   }
 
+  // Check if travel insurance is enabled
+  const hasTravelInsurance = data.additionalServices?.travelInsurance?.enabled || false;
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -265,6 +268,15 @@ ${data.selectedCities.map(city => `
             <p className="text-sm text-emerald-700 mt-2">احتفظ بهذا الرقم للمراجعة المستقبلية</p>
           </CardContent>
         </Card>
+      )}
+
+      {/* File Upload Section */}
+      {bookingId && (
+        <FileUploadSection 
+          bookingId={bookingId}
+          adults={data.adults}
+          hasTravelInsurance={hasTravelInsurance}
+        />
       )}
 
       {/* QR Code - Shows only reference number */}
