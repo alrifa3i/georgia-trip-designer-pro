@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,7 +33,7 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
     carType: '',
     selectedCities: [],
     totalCost: 0,
-    phoneNumber: '',
+    phoneNumber: '', // إضافة رقم الهاتف
     additionalServices: {
       travelInsurance: { enabled: false, persons: 0 },
       phoneLines: { enabled: false, quantity: 0 },
