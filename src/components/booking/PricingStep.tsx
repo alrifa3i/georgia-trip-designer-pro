@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -32,10 +31,15 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
 
     let totalHotelCost = 0;
     
-    console.log('=== HOTEL COST CALCULATION ===');
+    console.log('=== HOTEL COST CALCULATION START ===');
     console.log('Selected cities:', data.selectedCities);
     console.log('Database hotels loaded:', !hotelsLoading);
-    console.log('Database hotels:', databaseHotels);
+    console.log('Database hotels available:', Object.keys(databaseHotels || {}).length > 0);
+    
+    if (hotelsLoading || !databaseHotels) {
+      console.log('Hotels still loading or not available');
+      return { total: 0, breakdown: [] };
+    }
     
     data.selectedCities.forEach((cityStay, cityIndex) => {
       console.log(`Processing city ${cityIndex + 1}: ${cityStay.city}`);
@@ -44,56 +48,57 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
       console.log(`Room selections:`, cityStay.roomSelections);
       
       if (cityStay.city && cityStay.hotel && cityStay.roomSelections && cityStay.roomSelections.length > 0) {
-        // البحث في قاعدة البيانات أولاً
+        // البحث في قاعدة البيانات
         const cityHotels = databaseHotels[cityStay.city];
-        console.log(`Available hotels in ${cityStay.city}:`, cityHotels?.map(h => h.name));
+        console.log(`Available hotels in ${cityStay.city}:`, cityHotels?.map(h => h.name) || 'No hotels found');
         
         const hotel = cityHotels?.find(h => h.name === cityStay.hotel);
-        console.log('Found hotel from database:', hotel?.name);
-        console.log('Hotel prices:', hotel ? {
-          single: hotel.single_price,
-          single_view: hotel.single_view_price,
-          double_without_view: hotel.double_without_view_price,
-          double_view: hotel.double_view_price,
-          triple_without_view: hotel.triple_without_view_price,
-          triple_view: hotel.triple_view_price
-        } : 'No hotel found');
+        console.log('Found hotel from database:', hotel ? hotel.name : 'Not found');
         
         if (hotel) {
+          console.log('Hotel prices from database:', {
+            single: hotel.single_price,
+            single_view: hotel.single_view_price,
+            double_without_view: hotel.double_without_view_price,
+            double_view: hotel.double_view_price,
+            triple_without_view: hotel.triple_without_view_price,
+            triple_view: hotel.triple_view_price
+          });
+          
           let roomCostPerNight = 0;
           const roomDetails: string[] = [];
           
           // حساب تكلفة كل غرفة حسب النوع المختار
           cityStay.roomSelections.forEach((room, roomIndex) => {
-            console.log(`Room ${roomIndex + 1} type: ${room.roomType}`);
+            console.log(`Processing room ${roomIndex + 1} with type: ${room.roomType}`);
             
             let roomPrice = 0;
             let roomTypeName = '';
             
-            // استخدام الأسعار من قاعدة البيانات
+            // استخدام الأسعار من قاعدة البيانات مع معالجة أفضل للقيم المفقودة
             switch (room.roomType) {
               case 'single':
-                roomPrice = hotel.single_price || hotel.double_without_view_price || 0;
+                roomPrice = Number(hotel.single_price) || Number(hotel.double_without_view_price) || 0;
                 roomTypeName = 'غرفة مفردة';
                 break;
               case 'single_v':
-                roomPrice = hotel.single_view_price || hotel.double_view_price || 0;
+                roomPrice = Number(hotel.single_view_price) || Number(hotel.double_view_price) || Number(hotel.single_price) || 0;
                 roomTypeName = 'غرفة مفردة (مع إطلالة)';
                 break;
               case 'dbl_wv':
-                roomPrice = hotel.double_without_view_price || 0;
+                roomPrice = Number(hotel.double_without_view_price) || Number(hotel.single_price) || 0;
                 roomTypeName = 'غرفة مزدوجة (بدون إطلالة)';
                 break;
               case 'dbl_v':
-                roomPrice = hotel.double_view_price || 0;
+                roomPrice = Number(hotel.double_view_price) || Number(hotel.double_without_view_price) || 0;
                 roomTypeName = 'غرفة مزدوجة (مع إطلالة)';
                 break;
               case 'trbl_wv':
-                roomPrice = hotel.triple_without_view_price || 0;
+                roomPrice = Number(hotel.triple_without_view_price) || Number(hotel.double_without_view_price) || 0;
                 roomTypeName = 'غرفة ثلاثية (بدون إطلالة)';
                 break;
               case 'trbl_v':
-                roomPrice = hotel.triple_view_price || 0;
+                roomPrice = Number(hotel.triple_view_price) || Number(hotel.triple_without_view_price) || Number(hotel.double_view_price) || 0;
                 roomTypeName = 'غرفة ثلاثية (مع إطلالة)';
                 break;
               default:
@@ -101,28 +106,45 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
                 roomTypeName = 'غير محدد';
             }
             
-            console.log(`Room ${roomIndex + 1} price per night: $${roomPrice}`);
-            roomCostPerNight += roomPrice;
-            roomDetails.push(`الغرفة ${roomIndex + 1}: ${roomTypeName} ($${roomPrice}/ليلة)`);
+            console.log(`Room ${roomIndex + 1} - Type: ${room.roomType}, Price: $${roomPrice}, Name: ${roomTypeName}`);
+            
+            if (roomPrice > 0) {
+              roomCostPerNight += roomPrice;
+              roomDetails.push(`الغرفة ${roomIndex + 1}: ${roomTypeName} ($${roomPrice}/ليلة)`);
+            } else {
+              console.warn(`No price found for room type ${room.roomType} in hotel ${hotel.name}`);
+              // حتى لو لم يكن هناك سعر، نضيف تفاصيل الغرفة
+              roomDetails.push(`الغرفة ${roomIndex + 1}: ${roomTypeName} (السعر غير متاح)`);
+            }
           });
 
-          const cityTotal = roomCostPerNight * cityStay.nights;
+          const cityTotal = roomCostPerNight * (cityStay.nights || 1);
           totalHotelCost += cityTotal;
           
-          console.log(`City ${cityStay.city}: $${roomCostPerNight}/night × ${cityStay.nights} nights = $${cityTotal}`);
+          console.log(`City ${cityStay.city} calculation: $${roomCostPerNight}/night × ${cityStay.nights} nights = $${cityTotal}`);
 
           cityBreakdown.push({
             city: cityStay.city,
-            nights: cityStay.nights,
+            nights: cityStay.nights || 1,
             roomCost: roomCostPerNight,
             totalCost: cityTotal,
             roomDetails
           });
         } else {
-          console.log(`Hotel ${cityStay.hotel} not found in database for city ${cityStay.city}`);
+          console.error(`Hotel "${cityStay.hotel}" not found in database for city "${cityStay.city}"`);
+          console.log(`Available hotels in ${cityStay.city}:`, cityHotels?.map(h => h.name) || 'None');
+          
+          // إضافة معلومات للمدينة حتى لو لم نجد الفندق
+          cityBreakdown.push({
+            city: cityStay.city,
+            nights: cityStay.nights || 1,
+            roomCost: 0,
+            totalCost: 0,
+            roomDetails: [`الفندق "${cityStay.hotel}" غير موجود في قاعدة البيانات`]
+          });
         }
       } else {
-        console.log(`Missing data for city ${cityStay.city}:`, {
+        console.log(`Missing required data for city ${cityStay.city}:`, {
           hasCity: !!cityStay.city,
           hasHotel: !!cityStay.hotel,
           hasRoomSelections: !!cityStay.roomSelections,
@@ -131,7 +153,10 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
       }
     });
     
+    console.log('=== HOTEL COST CALCULATION END ===');
     console.log('Total hotel cost calculated:', totalHotelCost);
+    console.log('City breakdown:', cityBreakdown);
+    
     return { total: totalHotelCost, breakdown: cityBreakdown };
   };
 
