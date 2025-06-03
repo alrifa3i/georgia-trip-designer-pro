@@ -17,8 +17,8 @@ export const HotelStats = () => {
   return (
     <div className="text-center mt-8">
       <div className="max-w-4xl mx-auto px-4">
-        <h3 className="text-white text-xl sm:text-2xl font-bold mb-6 flex items-center justify-center gap-2">
-          <Building className="w-6 h-6" />
+        <h3 className="text-white text-xl sm:text-2xl font-bold mb-6 flex items-center justify-center gap-2 animate-fade-in">
+          <Building className="w-6 h-6 animate-pulse" />
           فنادقنا المتاحة في جميع أنحاء جورجيا
         </h3>
         
@@ -26,7 +26,8 @@ export const HotelStats = () => {
           {cityStats.map((city, index) => (
             <div 
               key={index}
-              className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/20 hover:bg-white/20 transition-all duration-300"
+              className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-fade-in"
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="flex items-center justify-center gap-2 mb-2">
                 <MapPin className="w-4 h-4 text-emerald-300" />
@@ -43,8 +44,8 @@ export const HotelStats = () => {
           ))}
         </div>
         
-        <p className="text-white/80 text-sm sm:text-base font-medium">
-          🏨 نغطي جميع جورجيا بأفضل الفنادق والمنتجعات
+        <p className="text-white/80 text-sm sm:text-base font-medium animate-fade-in hover:text-white transition-colors duration-300">
+          🏨 نغطي جميع جورجيا بأفضل الفنادق والمنتجعات المتميزة ✨
         </p>
       </div>
     </div>
