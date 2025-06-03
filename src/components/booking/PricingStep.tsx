@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -139,36 +138,13 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
       // حساب الجولات الإجبارية حسب القواعد الجديدة
       let mandatoryTours = 0;
       
-      if (cityStay.city === 'باتومي') {
-        mandatoryTours = mandatoryToursRules.batumi;
+      // استخدام النظام الجديد للجولات الإجبارية
+      if (mandatoryToursRules.doubleTourCities.includes(cityStay.city)) {
+        mandatoryTours = 2; // باتومي وكوتايسي = 2 جولات
+      } else if (mandatoryToursRules.singleTourCities.includes(cityStay.city)) {
+        mandatoryTours = 1; // باقي المدن = 1 جولة
       } else {
-        mandatoryTours = mandatoryToursRules.default;
-      }
-      
-      // تطبيق قواعد المطارات
-      const isFirstCity = index === 0;
-      const isLastCity = index === data.selectedCities.length - 1;
-      
-      if (isFirstCity) {
-        const arrivalAirport = data.arrivalAirport;
-        if (arrivalAirport === 'TBS') {
-          mandatoryTours = mandatoryToursRules.arrivalRules.TBS;
-        } else if (arrivalAirport === 'BUS') {
-          mandatoryTours = mandatoryToursRules.arrivalRules.BUS;
-        } else if (arrivalAirport === 'KUT') {
-          mandatoryTours = mandatoryToursRules.arrivalRules.KUT;
-        }
-      }
-      
-      if (isLastCity) {
-        const departureAirport = data.departureAirport;
-        if (departureAirport === 'TBS') {
-          mandatoryTours = mandatoryToursRules.departureRules.TBS;
-        } else if (departureAirport === 'BUS') {
-          mandatoryTours = mandatoryToursRules.departureRules.BUS;
-        } else if (departureAirport === 'KUT') {
-          mandatoryTours = mandatoryToursRules.departureRules.KUT;
-        }
+        mandatoryTours = mandatoryToursRules.default; // افتراضي = 1 جولة
       }
       
       const totalTours = regularTours + mandatoryTours;

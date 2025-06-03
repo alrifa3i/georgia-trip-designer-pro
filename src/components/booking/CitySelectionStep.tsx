@@ -75,33 +75,13 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
 
     let mandatoryTours = 0;
     
-    if (cityName === 'باتومي') {
-      mandatoryTours = mandatoryToursRules.batumi;
+    // استخدام النظام الجديد للجولات الإجبارية
+    if (mandatoryToursRules.doubleTourCities.includes(cityName)) {
+      mandatoryTours = 2; // باتومي وكوتايسي = 2 جولات
+    } else if (mandatoryToursRules.singleTourCities.includes(cityName)) {
+      mandatoryTours = 1; // باقي المدن = 1 جولة
     } else {
-      mandatoryTours = mandatoryToursRules.default;
-    }
-    
-    const isFirstCity = cityIndex === 0;
-    const isLastCity = cityIndex === selectedCities.length - 1;
-    
-    if (isFirstCity && data.arrivalAirport) {
-      if (data.arrivalAirport === 'TBS') {
-        mandatoryTours = mandatoryToursRules.arrivalRules.TBS;
-      } else if (data.arrivalAirport === 'BUS') {
-        mandatoryTours = mandatoryToursRules.arrivalRules.BUS;
-      } else if (data.arrivalAirport === 'KUT') {
-        mandatoryTours = mandatoryToursRules.arrivalRules.KUT;
-      }
-    }
-    
-    if (isLastCity && data.departureAirport) {
-      if (data.departureAirport === 'TBS') {
-        mandatoryTours = mandatoryToursRules.departureRules.TBS;
-      } else if (data.departureAirport === 'BUS') {
-        mandatoryTours = mandatoryToursRules.departureRules.BUS;
-      } else if (data.departureAirport === 'KUT') {
-        mandatoryTours = mandatoryToursRules.departureRules.KUT;
-      }
+      mandatoryTours = mandatoryToursRules.default; // افتراضي = 1 جولة
     }
     
     return mandatoryTours;

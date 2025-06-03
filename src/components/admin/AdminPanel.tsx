@@ -202,7 +202,7 @@ export const AdminPanel = () => {
                 <div className="grid gap-4">
                   {Object.entries(transportPricing).map(([type, pricing]) => (
                     <Card key={type} className="p-4">
-                      <h4 className="font-semibold mb-3 capitalize">{type === 'sedan' ? 'سيدان' : type === 'minivan' ? 'ميني فان' : type === 'van' ? 'فان' : 'سبرنتر'}</h4>
+                      <h4 className="font-semibold mb-3 capitalize">{type === 'سيدان' ? 'سيدان' : type === 'ميني فان' ? 'ميني فان' : type === 'فان' ? 'فان' : 'سبرنتر'}</h4>
                       <div className="grid md:grid-cols-4 gap-4 text-sm">
                         <div>
                           <Label>استقبال نفس المدينة</Label>
@@ -294,34 +294,38 @@ export const AdminPanel = () => {
                     <h4 className="font-semibold mb-3">القواعد العامة للمدن</h4>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span>باتومي:</span>
-                        <Badge>{mandatoryToursRules.batumi} جولة إجبارية</Badge>
+                        <span>المدن ذات الجولتين الإجباريتين:</span>
+                        <div className="flex gap-1">
+                          {mandatoryToursRules.doubleTourCities.map((city) => (
+                            <Badge key={city}>{city}</Badge>
+                          ))}
+                        </div>
                       </div>
                       <div className="flex justify-between">
-                        <span>باقي المدن:</span>
+                        <span>المدن ذات الجولة الواحدة:</span>
+                        <div className="flex gap-1 flex-wrap">
+                          {mandatoryToursRules.singleTourCities.map((city) => (
+                            <Badge key={city} variant="outline">{city}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>القاعدة الافتراضية:</span>
                         <Badge variant="outline">{mandatoryToursRules.default} جولة إجبارية</Badge>
                       </div>
                     </div>
                   </div>
                   
                   <div>
-                    <h4 className="font-semibold mb-3">قواعد المطارات</h4>
-                    <div className="space-y-2">
-                      <div className="text-sm">
-                        <strong>الوصول:</strong>
-                        <ul className="mt-1 space-y-1">
-                          <li>تبليسي: {mandatoryToursRules.arrivalRules.TBS} جولة</li>
-                          <li>باتومي: {mandatoryToursRules.arrivalRules.BUS} جولة</li>
-                          <li>كوتايسي: {mandatoryToursRules.arrivalRules.KUT} جولة</li>
-                        </ul>
+                    <h4 className="font-semibold mb-3">معلومات إضافية</h4>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <strong>حساب الجولات:</strong>
+                        <p className="text-gray-600 mt-1">يتم حساب الجولات الإجبارية تلقائياً حسب المدينة المختارة</p>
                       </div>
-                      <div className="text-sm">
-                        <strong>المغادرة:</strong>
-                        <ul className="mt-1 space-y-1">
-                          <li>تبليسي: {mandatoryToursRules.departureRules.TBS} جولة</li>
-                          <li>باتومي: {mandatoryToursRules.departureRules.BUS} جولة</li>
-                          <li>كوتايسي: {mandatoryToursRules.departureRules.KUT} جولة</li>
-                        </ul>
+                      <div>
+                        <strong>التسعير:</strong>
+                        <p className="text-gray-600 mt-1">تعتمد تكلفة الجولات على نوع السيارة المختارة</p>
                       </div>
                     </div>
                   </div>
