@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -33,15 +34,30 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
     
     console.log('=== HOTEL COST CALCULATION ===');
     console.log('Selected cities:', data.selectedCities);
+    console.log('Database hotels loaded:', !hotelsLoading);
     console.log('Database hotels:', databaseHotels);
     
     data.selectedCities.forEach((cityStay, cityIndex) => {
       console.log(`Processing city ${cityIndex + 1}: ${cityStay.city}`);
+      console.log(`Hotel: ${cityStay.hotel}`);
+      console.log(`Nights: ${cityStay.nights}`);
+      console.log(`Room selections:`, cityStay.roomSelections);
       
       if (cityStay.city && cityStay.hotel && cityStay.roomSelections && cityStay.roomSelections.length > 0) {
         // البحث في قاعدة البيانات أولاً
-        const hotel = databaseHotels[cityStay.city]?.find(h => h.name === cityStay.hotel);
+        const cityHotels = databaseHotels[cityStay.city];
+        console.log(`Available hotels in ${cityStay.city}:`, cityHotels?.map(h => h.name));
+        
+        const hotel = cityHotels?.find(h => h.name === cityStay.hotel);
         console.log('Found hotel from database:', hotel?.name);
+        console.log('Hotel prices:', hotel ? {
+          single: hotel.single_price,
+          single_view: hotel.single_view_price,
+          double_without_view: hotel.double_without_view_price,
+          double_view: hotel.double_view_price,
+          triple_without_view: hotel.triple_without_view_price,
+          triple_view: hotel.triple_view_price
+        } : 'No hotel found');
         
         if (hotel) {
           let roomCostPerNight = 0;
@@ -58,7 +74,7 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             switch (room.roomType) {
               case 'single':
                 roomPrice = hotel.single_price || hotel.double_without_view_price || 0;
-                roomTypeName = 'غرفة مفردة (بدون إطلالة)';
+                roomTypeName = 'غرفة مفردة';
                 break;
               case 'single_v':
                 roomPrice = hotel.single_view_price || hotel.double_view_price || 0;
@@ -102,11 +118,20 @@ export const PricingStep = ({ data, updateData }: PricingStepProps) => {
             totalCost: cityTotal,
             roomDetails
           });
+        } else {
+          console.log(`Hotel ${cityStay.hotel} not found in database for city ${cityStay.city}`);
         }
+      } else {
+        console.log(`Missing data for city ${cityStay.city}:`, {
+          hasCity: !!cityStay.city,
+          hasHotel: !!cityStay.hotel,
+          hasRoomSelections: !!cityStay.roomSelections,
+          roomSelectionsLength: cityStay.roomSelections?.length || 0
+        });
       }
     });
     
-    console.log('Total hotel cost:', totalHotelCost);
+    console.log('Total hotel cost calculated:', totalHotelCost);
     return { total: totalHotelCost, breakdown: cityBreakdown };
   };
 
