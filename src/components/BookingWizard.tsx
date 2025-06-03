@@ -128,14 +128,15 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
         />;
       case 4:
         return <PricingDetailsStep 
-          data={bookingData} 
-          updateData={updateBookingData}
-          onValidationChange={(isValid) => updateStepValidation(4, isValid)}
+          bookingData={bookingData} 
+          onNext={updateBookingData}
+          onPrevious={prevStep}
         />;
       case 5:
         return <FinalConfirmationStep 
-          data={bookingData} 
-          onConfirm={handleFinalConfirmation}
+          bookingData={bookingData} 
+          onNext={handleFinalConfirmation}
+          onPrevious={prevStep}
         />;
       default:
         return null;
@@ -183,27 +184,29 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
       </Card>
 
       {/* Navigation Buttons - محسن للموبايل */}
-      <div className="flex justify-between mb-6 sm:mb-8 gap-4">
-        <Button
-          onClick={prevStep}
-          disabled={currentStep === 1}
-          variant="outline"
-          className="flex items-center gap-2 bg-white/90 hover:bg-white border-2 border-gray-300 shadow-lg text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
-        >
-          <ChevronRight className="w-4 h-4" />
-          <span className="hidden sm:inline">السابق</span>
-          <span className="sm:hidden">◀</span>
-        </Button>
-        <Button
-          onClick={nextStep}
-          disabled={currentStep === totalSteps || !isNextButtonEnabled()}
-          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg disabled:opacity-50 text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
-        >
-          <span className="hidden sm:inline">التالي</span>
-          <span className="sm:hidden">▶</span>
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-      </div>
+      {currentStep < 4 && (
+        <div className="flex justify-between mb-6 sm:mb-8 gap-4">
+          <Button
+            onClick={prevStep}
+            disabled={currentStep === 1}
+            variant="outline"
+            className="flex items-center gap-2 bg-white/90 hover:bg-white border-2 border-gray-300 shadow-lg text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
+          >
+            <ChevronRight className="w-4 h-4" />
+            <span className="hidden sm:inline">السابق</span>
+            <span className="sm:hidden">◀</span>
+          </Button>
+          <Button
+            onClick={nextStep}
+            disabled={currentStep === totalSteps || !isNextButtonEnabled()}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg disabled:opacity-50 text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
+          >
+            <span className="hidden sm:inline">التالي</span>
+            <span className="sm:hidden">▶</span>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Advertisement Section - فقط في المرحلة الأولى ومحسن للموبايل */}
       {currentStep === 1 && (

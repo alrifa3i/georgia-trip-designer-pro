@@ -99,7 +99,7 @@ export const BookingManagement = () => {
   };
 
   const getStatusColor = (status: string) => {
-    const statusColors: { [key: string]: string } = {
+    const statusColors: { [key: string]: "default" | "destructive" | "outline" | "secondary" } = {
       'pending': 'outline',
       'confirmed': 'default',
       'cancelled': 'destructive',
@@ -119,7 +119,7 @@ export const BookingManagement = () => {
   };
 
   const calculateTotalTours = (selectedCities: any[]) => {
-    if (!selectedCities) return 0;
+    if (!selectedCities || !Array.isArray(selectedCities)) return 0;
     
     return selectedCities.reduce((total, city) => {
       const mandatoryTours = city.mandatoryTours || 0;
@@ -129,29 +129,37 @@ export const BookingManagement = () => {
   };
 
   const getTourDetails = (selectedCities: any[]) => {
-    if (!selectedCities) return [];
+    if (!selectedCities || !Array.isArray(selectedCities)) return [];
     
     return selectedCities.map(city => ({
-      cityName: city.name,
+      cityName: city.name || 'غير محدد',
       mandatory: city.mandatoryTours || 0,
       optional: city.optionalTours || 0
     }));
   };
 
   const getHotelDetails = (selectedCities: any[]) => {
-    if (!selectedCities) return [];
+    if (!selectedCities || !Array.isArray(selectedCities)) return [];
     
     const hotels: any[] = [];
     selectedCities.forEach(city => {
-      if (city.selectedHotels) {
+      if (city.selectedHotels && Array.isArray(city.selectedHotels)) {
         city.selectedHotels.forEach((hotel: any) => {
           hotels.push({
-            name: hotel.name,
-            city: city.name,
+            name: hotel.name || 'فندق غير محدد',
+            city: city.name || 'مدينة غير محددة',
             nights: hotel.nights || city.nights || 0,
             roomType: hotel.roomType || 'غير محدد',
             rooms: hotel.rooms || 1
           });
+        });
+      } else if (city.selectedHotelId) {
+        hotels.push({
+          name: 'فندق محدد',
+          city: city.name || 'مدينة غير محددة',
+          nights: city.nights || 0,
+          roomType: 'غير محدد',
+          rooms: 1
         });
       }
     });
@@ -159,6 +167,7 @@ export const BookingManagement = () => {
   };
 
   const openDetailsDialog = (booking: any) => {
+    console.log('Opening details for booking:', booking);
     setSelectedBooking(booking);
     setIsDetailsDialogOpen(true);
   };
@@ -412,7 +421,7 @@ export const BookingManagement = () => {
                     <div className="text-2xl font-bold text-emerald-600">
                       {selectedBooking.total_cost?.toFixed(2) || '0.00'} {selectedBooking.currency || 'USD'}
                     </div>
-                    {selectedBooking.discount_amount > 0 && (
+                    {selectedBooking.discount_amount && selectedBooking.discount_amount > 0 && (
                       <div className="text-sm text-gray-600">
                         خصم مطبق: {selectedBooking.discount_amount} {selectedBooking.currency || 'USD'}
                       </div>

@@ -145,8 +145,7 @@ export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
     
     onNext({
       discountCoupon: discountApplied ? discountCode.toUpperCase() : null,
-      discountAmount: discountAmount,
-      finalTotal: calculateFinalTotal()
+      discountAmount: discountAmount
     });
   };
 

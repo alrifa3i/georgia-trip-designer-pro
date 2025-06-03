@@ -39,8 +39,6 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passportFile, setPassportFile] = useState<File | null>(null);
   const [ticketFile, setTicketFile] = useState<File | null>(null);
-  const [passportUploaded, setPassportUploaded] = useState(false);
-  const [ticketUploaded, setTicketUploaded] = useState(false);
   const { toast } = useToast();
 
   const formatDate = (dateString: string) => {
@@ -70,7 +68,6 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
     const file = event.target.files?.[0];
     if (file) {
       setPassportFile(file);
-      // محاكاة رفع الملف
       toast({
         title: "تم تحديد ملف الجواز",
         description: "سيتم رفع الملف عند تأكيد الحجز",
@@ -82,7 +79,6 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
     const file = event.target.files?.[0];
     if (file) {
       setTicketFile(file);
-      // محاكاة رفع الملف
       toast({
         title: "تم تحديد ملف التذكرة",
         description: "سيتم رفع الملف عند تأكيد الحجز",
@@ -92,12 +88,10 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
 
   const removePassportFile = () => {
     setPassportFile(null);
-    setPassportUploaded(false);
   };
 
   const removeTicketFile = () => {
     setTicketFile(null);
-    setTicketUploaded(false);
   };
 
   const submitBooking = async () => {
@@ -230,12 +224,12 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
                     <span className="font-medium">{city.name}</span>
                     <Badge variant="outline">{city.nights} ليلة</Badge>
                   </div>
-                  {city.selectedHotels?.map((hotel, hotelIndex) => (
-                    <div key={hotelIndex} className="text-sm text-gray-600 mr-6">
+                  {city.selectedHotelId && (
+                    <div className="text-sm text-gray-600 mr-6">
                       <Hotel className="w-3 h-3 inline mr-1" />
-                      {hotel.name} - {hotel.roomType}
+                      فندق محدد في {city.name}
                     </div>
-                  ))}
+                  )}
                 </Card>
               ))}
             </div>
