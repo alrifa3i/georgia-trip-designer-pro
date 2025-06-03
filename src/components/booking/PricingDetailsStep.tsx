@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -18,7 +19,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
   const [breakdown, setBreakdown] = useState<any>({});
 
   // Function to get incomplete fields
-  const getIncompleteFields = () => {
+  const getIncompleteFields = useCallback(() => {
     const incompleteFields = [];
     
     if (totalCost <= 0) incompleteFields.push('حساب التكلفة الإجمالية');
@@ -30,23 +31,34 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     }
     
     return incompleteFields;
-  };
+  }, [totalCost, data.currency, data.selectedCities.length]);
 
-  // حساب التكاليف
-  useEffect(() => {
+  // Memoized cost calculations to prevent infinite loops
+  const costCalculations = useMemo(() => {
     let hotelsCost = 0;
     let toursCost = 0;
     let transportServicesCost = 0;
     let additionalServicesCost = 0;
 
-    // حساب تكلفة الفنادق
-    data.selectedCities.forEach(city => {
+    console.log('=== CALCULATING COSTS ===');
+    console.log('Selected cities:', data.selectedCities);
+
+    // حساب تكلفة الفنادق - Fixed calculation
+    data.selectedCities.forEach((city, cityIndex) => {
+      console.log(`Processing city ${cityIndex + 1}: ${city.city}`);
+      
       const cityHotels = hotelData[city.city] || [];
       const selectedHotel = cityHotels.find(hotel => hotel.name === city.hotel);
       
-      if (selectedHotel && city.roomSelections) {
-        city.roomSelections.forEach(room => {
+      if (selectedHotel && city.roomSelections && city.roomSelections.length > 0) {
+        let cityRoomCostPerNight = 0;
+        
+        // حساب تكلفة جميع الغرف في هذه المدينة
+        city.roomSelections.forEach((room, roomIndex) => {
           let roomPrice = 0;
+          
+          console.log(`Room ${roomIndex + 1} type: ${room.roomType}`);
+          
           switch (room.roomType) {
             case 'single':
               roomPrice = selectedHotel.single_price || 0;
@@ -67,8 +79,16 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
               roomPrice = selectedHotel.triple_view_price || 0;
               break;
           }
-          hotelsCost += roomPrice * city.nights;
+          
+          console.log(`Room ${roomIndex + 1} price per night: $${roomPrice}`);
+          cityRoomCostPerNight += roomPrice;
         });
+
+        // المجموع = (مجموع أسعار الغرف) × عدد الليالي
+        const cityTotalCost = cityRoomCostPerNight * city.nights;
+        hotelsCost += cityTotalCost;
+        
+        console.log(`City ${city.city}: $${cityRoomCostPerNight}/night × ${city.nights} nights = $${cityTotalCost}`);
       }
     });
 
@@ -126,8 +146,13 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     const withProfitMargin = afterDiscount * 1.22;
     const finalTotal = Math.round(withProfitMargin / 10) * 10;
 
-    setTotalCost(finalTotal);
-    setBreakdown({
+    console.log('Total hotel cost:', hotelsCost);
+    console.log('Total tour cost:', toursCost);
+    console.log('Total transport cost:', transportServicesCost);
+    console.log('Total additional services:', additionalServicesCost);
+    console.log('Final total:', finalTotal);
+
+    return {
       hotels: hotelsCost,
       tours: toursCost,
       transportServices: transportServicesCost,
@@ -135,14 +160,33 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
       subtotal,
       discount: discountAmount,
       total: finalTotal
-    });
+    };
+  }, [
+    data.selectedCities,
+    data.carType,
+    data.arrivalAirport,
+    data.departureAirport,
+    data.additionalServices,
+    data.discountAmount
+  ]);
 
-    updateData({ totalCost: finalTotal });
+  // Update state only when calculations change
+  useEffect(() => {
+    setTotalCost(costCalculations.total);
+    setBreakdown(costCalculations);
+  }, [costCalculations]);
 
+  // Update parent data only when total cost changes
+  useEffect(() => {
+    updateData({ totalCost: costCalculations.total });
+  }, [costCalculations.total, updateData]);
+
+  // Validation check
+  useEffect(() => {
     if (onValidationChange) {
       onValidationChange(true);
     }
-  }, [data.selectedCities, data.carType, data.additionalServices, data.discountAmount, updateData, onValidationChange]);
+  }, [onValidationChange]);
 
   const currentCurrency = currencies.find(c => c.code === data.currency);
   const exchangeRate = currentCurrency?.exchangeRate || 1;

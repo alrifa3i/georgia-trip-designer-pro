@@ -43,10 +43,6 @@ export const HotelStats = () => {
             </div>
           ))}
         </div>
-        
-        <p className="text-white/80 text-sm sm:text-base font-medium animate-fade-in hover:text-white transition-colors duration-300">
-          🏨 نغطي جميع جورجيا بأفضل الفنادق والمنتجعات المتميزة ✨
-        </p>
       </div>
     </div>
   );
