@@ -36,7 +36,8 @@ export const WhatsAppVerification = ({ phoneNumber, onVerificationSuccess, onCan
   }, [step, timeLeft, phoneNumber]);
 
   const handleSendToWhatsApp = () => {
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+    const companyPhone = '+995514000668'; // رقم الشركة المحدث
+    const whatsappUrl = `https://wa.me/${companyPhone}?text=${encodeURIComponent(whatsappMessage)}`;
     window.open(whatsappUrl, '_blank');
     setStep(2);
   };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -211,7 +212,7 @@ ${data.selectedCities.map(city => `
 *QR Code:* متاح في النظام
     `.trim();
 
-    const companyPhone = '+995555123456'; // رقم الشركة
+    const companyPhone = '+995514000668'; // رقم الشركة المحدث
     const whatsappUrl = `https://wa.me/${companyPhone}?text=${encodeURIComponent(bookingDetails)}`;
     window.open(whatsappUrl, '_blank');
   };
