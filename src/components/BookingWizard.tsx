@@ -34,7 +34,7 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
     carType: '',
     selectedCities: [],
     totalCost: 0,
-    phoneNumber: '', // إضافة رقم الهاتف
+    phoneNumber: '',
     additionalServices: {
       travelInsurance: { enabled: false, persons: 0 },
       phoneLines: { enabled: false, quantity: 0 },
@@ -69,7 +69,6 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
       // حفظ رقم الهاتف عند الانتقال من المرحلة الأولى للثانية
       if (currentStep === 1 && bookingData.phoneNumber) {
         console.log('Phone number automatically saved:', bookingData.phoneNumber);
-        // رقم الهاتف محفوظ بالفعل في bookingData
       }
       
       setCurrentStep(currentStep + 1);
@@ -94,9 +93,9 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
   };
 
   const handleFinalConfirmation = () => {
-    console.log('Booking confirmed:', bookingData);
-    // Here you would typically save the booking to database
-    // For now, just log the confirmation
+    console.log('Booking confirmed successfully:', bookingData);
+    // يمكن إضافة المزيد من المنطق هنا إذا لزم الأمر
+    alert('تم تأكيد الحجز بنجاح! سيتم التواصل معك قريباً.');
   };
 
   const steps = [

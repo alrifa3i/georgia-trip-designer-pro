@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BookingData } from '@/types/booking';
-import { CheckCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, QrCode, Download, Share2, MessageCircle } from 'lucide-react';
+import { useBookings } from '@/hooks/useBookings';
+import { WhatsAppVerification } from './WhatsAppVerification';
+import QRCode from 'qrcode.react';
 
 interface FinalConfirmationStepProps {
   data: BookingData;
@@ -12,6 +16,28 @@ interface FinalConfirmationStepProps {
 
 export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStepProps) => {
   const [isConfirming, setIsConfirming] = useState(false);
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [bookingId, setBookingId] = useState('');
+  const [showWhatsAppVerification, setShowWhatsAppVerification] = useState(false);
+  const [isWhatsAppVerified, setIsWhatsAppVerified] = useState(false);
+  const { saveBooking, loading } = useBookings();
+
+  // Generate and save booking when component mounts
+  useEffect(() => {
+    const saveBookingData = async () => {
+      if (!referenceNumber) {
+        console.log('Saving booking data...');
+        const result = await saveBooking(data);
+        if (result.success && result.data) {
+          setReferenceNumber(result.data.reference_number);
+          setBookingId(result.data.id);
+          console.log('Booking saved with reference:', result.data.reference_number);
+        }
+      }
+    };
+
+    saveBookingData();
+  }, [data, saveBooking, referenceNumber]);
 
   // Function to get incomplete fields
   const getIncompleteFields = () => {
@@ -28,13 +54,159 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
     return incompleteFields;
   };
 
+  // Generate QR Code data
+  const generateQRData = () => {
+    const bookingDetails = {
+      referenceNumber,
+      customerName: data.customerName,
+      phoneNumber: data.phoneNumber,
+      arrivalDate: data.arrivalDate,
+      departureDate: data.departureDate,
+      cities: data.selectedCities.map(city => ({
+        city: city.city,
+        hotel: city.hotel,
+        nights: city.nights,
+        tours: (city.tours || 0) + (city.mandatoryTours || 0),
+        rooms: city.roomSelections?.map(room => ({
+          number: room.roomNumber,
+          type: room.roomType === 'single' ? 'مفردة' :
+                room.roomType === 'single_v' ? 'مفردة مع إطلالة' :
+                room.roomType === 'dbl_wv' ? 'مزدوجة بدون إطلالة' :
+                room.roomType === 'dbl_v' ? 'مزدوجة مع إطلالة' :
+                room.roomType === 'trbl_wv' ? 'ثلاثية بدون إطلالة' :
+                room.roomType === 'trbl_v' ? 'ثلاثية مع إطلالة' : 'غير محدد'
+        })) || []
+      })),
+      carType: data.carType,
+      totalCost: data.totalCost,
+      currency: data.currency
+    };
+    
+    return JSON.stringify(bookingDetails);
+  };
+
+  // Download QR Code
+  const downloadQRCode = () => {
+    const canvas = document.querySelector('#qr-code canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const url = canvas.toDataURL();
+      const link = document.createElement('a');
+      link.download = `booking-qr-${referenceNumber}.png`;
+      link.href = url;
+      link.click();
+    }
+  };
+
+  // Share QR Code
+  const shareQRCode = async () => {
+    const canvas = document.querySelector('#qr-code canvas') as HTMLCanvasElement;
+    if (canvas && navigator.share) {
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const file = new File([blob], `booking-qr-${referenceNumber}.png`, { type: 'image/png' });
+          try {
+            await navigator.share({
+              title: `QR Code للحجز ${referenceNumber}`,
+              files: [file]
+            });
+          } catch (error) {
+            console.log('Error sharing QR code:', error);
+          }
+        }
+      });
+    } else {
+      // Fallback - copy to clipboard
+      const canvas = document.querySelector('#qr-code canvas') as HTMLCanvasElement;
+      if (canvas) {
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            try {
+              await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+              ]);
+              alert('تم نسخ QR Code إلى الحافظة');
+            } catch (error) {
+              console.log('Error copying QR code:', error);
+            }
+          }
+        });
+      }
+    }
+  };
+
+  // Send booking to company via WhatsApp
+  const sendBookingToCompany = () => {
+    const bookingDetails = `
+*حجز جديد - ${referenceNumber}*
+
+*بيانات العميل:*
+الاسم: ${data.customerName}
+الهاتف: ${data.phoneNumber}
+
+*تفاصيل السفر:*
+تاريخ الوصول: ${data.arrivalDate}
+تاريخ المغادرة: ${data.departureDate}
+مطار الوصول: ${data.arrivalAirport}
+مطار المغادرة: ${data.departureAirport}
+
+*المدن والفنادق:*
+${data.selectedCities.map(city => `
+🏨 ${city.city} - ${city.hotel}
+- ${city.nights} ليالي
+- ${(city.tours || 0) + (city.mandatoryTours || 0)} جولات
+- الغرف: ${city.roomSelections?.map(room => 
+  `الغرفة ${room.roomNumber}: ${
+    room.roomType === 'single' ? 'مفردة' :
+    room.roomType === 'single_v' ? 'مفردة مع إطلالة' :
+    room.roomType === 'dbl_wv' ? 'مزدوجة بدون إطلالة' :
+    room.roomType === 'dbl_v' ? 'مزدوجة مع إطلالة' :
+    room.roomType === 'trbl_wv' ? 'ثلاثية بدون إطلالة' :
+    room.roomType === 'trbl_v' ? 'ثلاثية مع إطلالة' : 'غير محدد'
+  }`
+).join(', ') || 'غير محدد'}`).join('\n')}
+
+*نوع السيارة:* ${data.carType}
+
+*التكلفة الإجمالية:* ${data.totalCost} ${data.currency}
+
+*رقم الحجز:* ${referenceNumber}
+    `.trim();
+
+    const companyPhone = '+995555123456'; // رقم الشركة
+    const whatsappUrl = `https://wa.me/${companyPhone}?text=${encodeURIComponent(bookingDetails)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleWhatsAppVerification = () => {
+    setShowWhatsAppVerification(true);
+  };
+
+  const handleVerificationSuccess = () => {
+    setIsWhatsAppVerified(true);
+    setShowWhatsAppVerification(false);
+  };
+
   const handleConfirm = async () => {
     setIsConfirming(true);
-    // Simulate booking confirmation process
+    
+    // Send booking details to company
+    sendBookingToCompany();
+    
+    // Simulate final confirmation process
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setIsConfirming(false);
     onConfirm();
   };
+
+  if (showWhatsAppVerification) {
+    return (
+      <WhatsAppVerification
+        phoneNumber={data.phoneNumber}
+        onVerificationSuccess={handleVerificationSuccess}
+        onCancel={() => setShowWhatsAppVerification(false)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -42,6 +214,51 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
         <h2 className="text-2xl font-bold text-gray-800 mb-2">التأكيد النهائي</h2>
         <p className="text-gray-600">مراجعة أخيرة لتفاصيل حجزك قبل التأكيد</p>
       </div>
+
+      {/* Reference Number */}
+      {referenceNumber && (
+        <Card className="bg-emerald-50 border-emerald-200">
+          <CardContent className="p-4 text-center">
+            <h3 className="text-lg font-bold text-emerald-800 mb-2">رقم الحجز المرجعي</h3>
+            <div className="text-2xl font-bold text-emerald-600 bg-white p-3 rounded-lg border-2 border-emerald-300">
+              {referenceNumber}
+            </div>
+            <p className="text-sm text-emerald-700 mt-2">احتفظ بهذا الرقم للمراجعة المستقبلية</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* QR Code */}
+      {referenceNumber && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5" />
+              QR Code للحجز
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <div id="qr-code" className="flex justify-center">
+              <QRCode 
+                value={generateQRData()} 
+                size={200}
+                level="M"
+                includeMargin={true}
+              />
+            </div>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={downloadQRCode} variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                تحميل
+              </Button>
+              <Button onClick={shareQRCode} variant="outline" size="sm">
+                <Share2 className="w-4 h-4 mr-2" />
+                مشاركة
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Confirmation Details */}
       <Card>
@@ -67,15 +284,87 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
               <div className="text-lg">{data.departureDate || 'غير محدد'}</div>
             </div>
             <div>
-              <div className="text-sm font-semibold text-gray-600">المدن المختارة:</div>
-              <div className="text-lg">
-                {data.selectedCities.map((city) => city.city).join(', ') || 'غير محدد'}
-              </div>
+              <div className="text-sm font-semibold text-gray-600">مطار الوصول:</div>
+              <div className="text-lg">{data.arrivalAirport || 'غير محدد'}</div>
             </div>
             <div>
-              <div className="text-sm font-semibold text-gray-600">نوع السيارة:</div>
-              <div className="text-lg">{data.carType || 'غير محدد'}</div>
+              <div className="text-sm font-semibold text-gray-600">مطار المغادرة:</div>
+              <div className="text-lg">{data.departureAirport || 'غير محدد'}</div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cities and Hotels Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle>تفاصيل المدن والفنادق والجولات</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {data.selectedCities.map((city, index) => {
+              const totalTours = (city.tours || 0) + (city.mandatoryTours || 0);
+              return (
+                <div key={index} className="p-4 bg-gray-50 rounded-lg border">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h4 className="font-semibold text-lg text-blue-800">{city.city}</h4>
+                      <p className="text-sm text-gray-600">🏨 {city.hotel}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{city.nights} ليالي</p>
+                      <p className="text-sm text-gray-600">🎯 {totalTours} جولات</p>
+                    </div>
+                  </div>
+                  
+                  {/* Room Details */}
+                  {city.roomSelections && city.roomSelections.length > 0 && (
+                    <div className="mb-3">
+                      <h5 className="font-semibold text-sm text-gray-700 mb-2">🛏️ تفاصيل الغرف:</h5>
+                      <div className="space-y-1">
+                        {city.roomSelections.map((room, roomIndex) => (
+                          <div key={roomIndex} className="text-xs bg-white p-2 rounded border">
+                            <span className="font-semibold">الغرفة {room.roomNumber}:</span> {
+                              room.roomType === 'single' ? 'مفردة' :
+                              room.roomType === 'single_v' ? 'مفردة مع إطلالة' :
+                              room.roomType === 'dbl_wv' ? 'مزدوجة بدون إطلالة' :
+                              room.roomType === 'dbl_v' ? 'مزدوجة مع إطلالة' :
+                              room.roomType === 'trbl_wv' ? 'ثلاثية بدون إطلالة' :
+                              room.roomType === 'trbl_v' ? 'ثلاثية مع إطلالة' :
+                              'غير محدد'
+                            }
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tours Details */}
+                  {totalTours > 0 && (
+                    <div>
+                      <h5 className="font-semibold text-sm text-gray-700 mb-2">🗺️ الجولات السياحية:</h5>
+                      <div className="text-xs bg-blue-50 p-2 rounded border">
+                        {city.tours > 0 && <p>• جولات اختيارية: {city.tours}</p>}
+                        {city.mandatoryTours > 0 && <p>• جولات إجبارية: {city.mandatoryTours}</p>}
+                        <p className="font-semibold mt-1">إجمالي الجولات: {totalTours} جولة في {city.city}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Car Type */}
+      <Card>
+        <CardHeader>
+          <CardTitle>نوع السيارة</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-lg font-semibold text-center p-3 bg-blue-50 rounded-lg">
+            🚗 {data.carType || 'غير محدد'}
           </div>
         </CardContent>
       </Card>
@@ -92,6 +381,18 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
               {data.totalCost} {data.currency}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment Notice */}
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="p-4 text-center">
+          <div className="text-yellow-800 font-semibold mb-2">
+            ⚠️ إشعار مهم
+          </div>
+          <p className="text-yellow-700">
+            الموقع لا يطلب منك أي دفع أو أي وسيلة دفع أخرى. جميع المدفوعات تتم مع الشركة مباشرة.
+          </p>
         </CardContent>
       </Card>
 
@@ -116,14 +417,39 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
         </Card>
       )}
 
+      {/* WhatsApp Verification */}
+      {!isWhatsAppVerified && data.phoneNumber && getIncompleteFields().length === 0 && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4 text-center">
+            <h4 className="font-semibold text-green-800 mb-3">التحقق من رقم الواتساب</h4>
+            <p className="text-sm text-green-700 mb-4">
+              يرجى التحقق من رقم الواتساب قبل تأكيد الحجز النهائي
+            </p>
+            <Button
+              onClick={handleWhatsAppVerification}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              التحقق من الواتساب
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Confirmation Button */}
       <Button
         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded"
         onClick={handleConfirm}
-        disabled={isConfirming || getIncompleteFields().length > 0}
+        disabled={isConfirming || getIncompleteFields().length > 0 || !isWhatsAppVerified}
       >
-        {isConfirming ? 'جارٍ التأكيد...' : 'تأكيد الحجز'}
+        {isConfirming ? 'جارٍ إرسال الحجز للشركة...' : 'تأكيد الحجز وإرسال للشركة'}
       </Button>
+
+      {isWhatsAppVerified && (
+        <div className="text-center text-green-600 text-sm">
+          ✅ تم التحقق من رقم الواتساب بنجاح
+        </div>
+      )}
     </div>
   );
 };
