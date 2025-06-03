@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,34 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
     saveBookingData();
   }, [data, saveBooking, referenceNumber]);
 
+  // Format phone number with country code
+  const formatPhoneNumber = (phoneNumber: string) => {
+    if (!phoneNumber) return 'غير محدد';
+    
+    // إذا كان الرقم يبدأ بـ + فهو يحتوي على كود الدولة بالفعل
+    if (phoneNumber.startsWith('+')) {
+      return phoneNumber;
+    }
+    
+    // إذا كان الرقم يبدأ بـ 00 نستبدله بـ +
+    if (phoneNumber.startsWith('00')) {
+      return '+' + phoneNumber.substring(2);
+    }
+    
+    // إذا كان الرقم يبدأ بـ 5 نفترض أنه رقم سعودي
+    if (phoneNumber.startsWith('5')) {
+      return '+966' + phoneNumber;
+    }
+    
+    // إذا كان الرقم يبدأ بـ 9 نفترض أنه رقم جورجي
+    if (phoneNumber.startsWith('9')) {
+      return '+995' + phoneNumber;
+    }
+    
+    // إذا لم يتطابق مع أي نمط، نضيف كود دولة افتراضي (+995 لجورجيا)
+    return '+995' + phoneNumber;
+  };
+
   // Function to get incomplete fields
   const getIncompleteFields = () => {
     const incompleteFields = [];
@@ -53,35 +82,22 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
     return incompleteFields;
   };
 
-  // Generate QR Code data
+  // Generate QR Code data - simplified to show reference number
   const generateQRData = () => {
-    const bookingDetails = {
-      referenceNumber,
-      customerName: data.customerName,
-      phoneNumber: data.phoneNumber,
-      arrivalDate: data.arrivalDate,
-      departureDate: data.departureDate,
-      cities: data.selectedCities.map(city => ({
-        city: city.city,
-        hotel: city.hotel,
-        nights: city.nights,
-        tours: (city.tours || 0) + (city.mandatoryTours || 0),
-        rooms: city.roomSelections?.map(room => ({
-          number: room.roomNumber,
-          type: room.roomType === 'single' ? 'مفردة' :
-                room.roomType === 'single_v' ? 'مفردة مع إطلالة' :
-                room.roomType === 'dbl_wv' ? 'مزدوجة بدون إطلالة' :
-                room.roomType === 'dbl_v' ? 'مزدوجة مع إطلالة' :
-                room.roomType === 'trbl_wv' ? 'ثلاثية بدون إطلالة' :
-                room.roomType === 'trbl_v' ? 'ثلاثية مع إطلالة' : 'غير محدد'
-        })) || []
-      })),
-      carType: data.carType,
-      totalCost: data.totalCost,
+    if (!referenceNumber) return '';
+    
+    const qrData = {
+      type: 'booking',
+      reference: referenceNumber,
+      customer: data.customerName,
+      phone: formatPhoneNumber(data.phoneNumber),
+      arrival: data.arrivalDate,
+      departure: data.departureDate,
+      cost: data.totalCost,
       currency: data.currency
     };
     
-    return JSON.stringify(bookingDetails);
+    return JSON.stringify(qrData);
   };
 
   // Download QR Code
@@ -153,12 +169,14 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
 
   // Send booking to company via WhatsApp
   const sendBookingToCompany = () => {
+    const formattedPhone = formatPhoneNumber(data.phoneNumber);
+    
     const bookingDetails = `
 *حجز جديد - ${referenceNumber}*
 
 *بيانات العميل:*
 الاسم: ${data.customerName}
-الهاتف: ${data.phoneNumber}
+الهاتف: ${formattedPhone}
 
 *تفاصيل السفر:*
 تاريخ الوصول: ${data.arrivalDate}
@@ -187,6 +205,8 @@ ${data.selectedCities.map(city => `
 *التكلفة الإجمالية:* ${data.totalCost} ${data.currency}
 
 *رقم الحجز:* ${referenceNumber}
+
+*QR Code:* متاح في النظام
     `.trim();
 
     const companyPhone = '+995555123456'; // رقم الشركة
@@ -251,7 +271,7 @@ ${data.selectedCities.map(city => `
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <QrCode className="w-5 h-5" />
-              QR Code للحجز
+              QR Code للحجز - {referenceNumber}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
@@ -263,6 +283,9 @@ ${data.selectedCities.map(city => `
                 includeMargin={true}
               />
             </div>
+            <p className="text-sm text-gray-600">
+              امسح الكود لعرض رقم الحجز المرجعي وتفاصيل الحجز
+            </p>
             <div className="flex gap-2 justify-center">
               <Button onClick={downloadQRCode} variant="outline" size="sm">
                 <Download className="w-4 h-4 mr-2" />
@@ -290,7 +313,7 @@ ${data.selectedCities.map(city => `
             </div>
             <div>
               <div className="text-sm font-semibold text-gray-600">رقم الهاتف:</div>
-              <div className="text-lg">{data.phoneNumber || 'غير محدد'}</div>
+              <div className="text-lg">{formatPhoneNumber(data.phoneNumber)}</div>
             </div>
             <div>
               <div className="text-sm font-semibold text-gray-600">تاريخ الوصول:</div>
