@@ -33,6 +33,8 @@ interface BookingRecord {
   selected_cities?: any;
   total_cost?: number;
   additional_services?: any;
+  discount_amount?: number;
+  discount_coupon?: string;
   status: string;
   created_at: string;
   updated_at?: string;
@@ -135,6 +137,39 @@ export const useBookingManagement = () => {
     }
   };
 
+  const deleteBooking = async (bookingId: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // حذف ملفات الحجز أولاً
+      const { error: filesError } = await supabase
+        .from('booking_files')
+        .delete()
+        .eq('booking_id', bookingId);
+
+      if (filesError) {
+        console.warn('Warning deleting booking files:', filesError);
+      }
+
+      // ثم حذف الحجز
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', bookingId);
+
+      if (error) throw error;
+
+      return true;
+    } catch (err) {
+      setError('حدث خطأ أثناء حذف الحجز');
+      console.error('Error deleting booking:', err);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const uploadFile = async (
     bookingId: string, 
     file: File, 
@@ -221,6 +256,7 @@ export const useBookingManagement = () => {
     searchBookingByReference,
     getAllBookings,
     updateBookingStatus,
+    deleteBooking,
     uploadFile,
     deleteFile
   };

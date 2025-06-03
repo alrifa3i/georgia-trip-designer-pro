@@ -1,307 +1,301 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Edit, Save, Trash2, ArrowUp, ArrowDown, Star, Users, Baby, Clock, CheckCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-
-interface Advertisement {
-  id: string;
-  title: string;
-  description: string;
-  adults: number;
-  children: number;
-  services: string[];
-  type: string;
-  priority: number;
-  status: 'active' | 'inactive';
-  whatsappMessage: string;
-}
-
-const availableServices = [
-  'إقامة في فنادق 4-5 نجوم',
-  'جولات سياحية يومية',
-  'مرشد سياحي متخصص',
-  'نقل خاص مريح',
-  'وجبات إفطار متنوعة',
-  'أنشطة ترفيهية',
-  'زيارة المعالم التاريخية',
-  'جولات طبيعية',
-  'تصوير فوتوغرافي',
-  'خدمة عملاء 24/7'
-];
-
-const adTypes = [
-  { value: 'limited', label: 'محدود', color: 'bg-red-100 text-red-800' },
-  { value: 'featured', label: 'مميز', color: 'bg-blue-100 text-blue-800' },
-  { value: 'special', label: 'خاص', color: 'bg-green-100 text-green-800' },
-  { value: 'premium', label: 'بريميوم', color: 'bg-purple-100 text-purple-800' }
-];
+import { useAdvertisementManagement } from '@/hooks/useAdvertisementManagement';
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Image, 
+  Users,
+  DollarSign,
+  Save,
+  RefreshCw,
+  X
+} from 'lucide-react';
 
 export const AdvertisementManagement = () => {
+  const {
+    advertisements,
+    loading,
+    error,
+    fetchAdvertisements,
+    createAdvertisement,
+    updateAdvertisement,
+    deleteAdvertisement
+  } = useAdvertisementManagement();
+
+  const [editingAd, setEditingAd] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newService, setNewService] = useState('');
   const { toast } = useToast();
-  
-  const [ads, setAds] = useState<Advertisement[]>([
-    {
-      id: '1',
-      title: 'باقة رومانسية لشهر العسل',
-      description: 'باقة مميزة للأزواج تشمل إقامة فاخرة وجولات رومانسية في أجمل المناطق الطبيعية',
+
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    price: '',
+    people_range: '',
+    adults: 2,
+    children: 0,
+    services: [] as string[],
+    type: 'special',
+    priority: 1,
+    status: 'active',
+    image_url: '',
+    whatsapp_message: '',
+    display_order: 0
+  });
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      price: '',
+      people_range: '',
       adults: 2,
       children: 0,
-      services: ['إقامة في فنادق 4-5 نجوم', 'جولات سياحية يومية', 'نقل خاص مريح'],
+      services: [],
       type: 'special',
       priority: 1,
       status: 'active',
-      whatsappMessage: 'مرحباً، أرغب في الاستفسار عن باقة شهر العسل الرومانسية'
-    },
-    {
-      id: '2',
-      title: 'باقة العائلة الكبيرة',
-      description: 'باقة شاملة للعائلات الكبيرة مع أنشطة مناسبة للأطفال وبرامج ترفيهية متنوعة',
-      adults: 6,
-      children: 3,
-      services: ['إقامة في فنادق 4-5 نجوم', 'أنشطة ترفيهية', 'وجبات إفطار متنوعة'],
-      type: 'featured',
-      priority: 2,
-      status: 'active',
-      whatsappMessage: 'مرحباً، أرغب في الاستفسار عن باقة العائلة الكبيرة'
-    }
-  ]);
-
-  const [editingAd, setEditingAd] = useState<Advertisement | null>(null);
-  const [isAddingAd, setIsAddingAd] = useState(false);
-  const [newAd, setNewAd] = useState<Advertisement>({
-    id: '',
-    title: '',
-    description: '',
-    adults: 1,
-    children: 0,
-    services: [],
-    type: 'limited',
-    priority: 1,
-    status: 'active',
-    whatsappMessage: ''
-  });
-
-  const handleSaveAd = (ad: Advertisement) => {
-    console.log('حفظ الإعلان:', ad);
-    const updatedAds = ads.map(a => a.id === ad.id ? ad : a);
-    setAds(updatedAds);
-    setEditingAd(null);
-    
-    toast({
-      title: "تم بنجاح",
-      description: "تم حفظ تعديلات الإعلان بنجاح",
+      image_url: '',
+      whatsapp_message: '',
+      display_order: 0
     });
+    setEditingAd(null);
+    setNewService('');
   };
 
-  const handleAddAd = () => {
-    if (!newAd.title || !newAd.description) {
+  const handleSave = async () => {
+    if (!formData.title) {
       toast({
-        title: "خطأ",
-        description: "يرجى تعبئة جميع الحقول المطلوبة",
-        variant: "destructive"
+        title: "خطأ في البيانات",
+        description: "يرجى ملء العنوان على الأقل",
+        variant: "destructive",
       });
       return;
     }
 
-    const id = Date.now().toString();
-    const adToAdd = { 
-      ...newAd, 
-      id,
-      whatsappMessage: newAd.whatsappMessage || `مرحباً، أرغب في الاستفسار عن ${newAd.title}`
-    };
-    
-    console.log('إضافة إعلان جديد:', adToAdd);
-    setAds([...ads, adToAdd]);
-    setIsAddingAd(false);
-    setNewAd({
-      id: '',
-      title: '',
-      description: '',
-      adults: 1,
-      children: 0,
-      services: [],
-      type: 'limited',
-      priority: 1,
-      status: 'active',
-      whatsappMessage: ''
-    });
+    const success = editingAd 
+      ? await updateAdvertisement(editingAd.id, formData)
+      : await createAdvertisement(formData);
 
-    toast({
-      title: "تم بنجاح",
-      description: "تم إضافة الإعلان الجديد بنجاح",
-    });
+    if (success) {
+      toast({
+        title: editingAd ? "تم التحديث" : "تم الإنشاء",
+        description: editingAd ? "تم تحديث الإعلان بنجاح" : "تم إنشاء الإعلان بنجاح",
+      });
+      resetForm();
+      setIsDialogOpen(false);
+    }
   };
 
-  const handleDeleteAd = (adId: string) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا الإعلان؟')) {
-      console.log('حذف الإعلان:', adId);
-      setAds(ads.filter(a => a.id !== adId));
-      
+  const handleDelete = async (id: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا الإعلان؟')) return;
+
+    const success = await deleteAdvertisement(id);
+    if (success) {
       toast({
-        title: "تم بنجاح",
+        title: "تم الحذف",
         description: "تم حذف الإعلان بنجاح",
       });
     }
   };
 
-  const handleServiceToggle = (service: string, ad: Advertisement, isEditing: boolean = false) => {
-    if (isEditing && editingAd) {
-      const updatedServices = editingAd.services.includes(service)
-        ? editingAd.services.filter(s => s !== service)
-        : [...editingAd.services, service];
-      setEditingAd({ ...editingAd, services: updatedServices });
-    } else {
-      const updatedServices = newAd.services.includes(service)
-        ? newAd.services.filter(s => s !== service)
-        : [...newAd.services, service];
-      setNewAd({ ...newAd, services: updatedServices });
+  const openEditDialog = (ad: any) => {
+    setEditingAd(ad);
+    setFormData({
+      title: ad.title || '',
+      description: ad.description || '',
+      price: ad.price || '',
+      people_range: ad.people_range || '',
+      adults: ad.adults || 2,
+      children: ad.children || 0,
+      services: ad.services || [],
+      type: ad.type || 'special',
+      priority: ad.priority || 1,
+      status: ad.status || 'active',
+      image_url: ad.image_url || '',
+      whatsapp_message: ad.whatsapp_message || '',
+      display_order: ad.display_order || 0
+    });
+    setIsDialogOpen(true);
+  };
+
+  const addService = () => {
+    if (newService.trim() && !formData.services.includes(newService.trim())) {
+      setFormData({
+        ...formData,
+        services: [...formData.services, newService.trim()]
+      });
+      setNewService('');
     }
   };
 
-  const handlePriorityChange = (adId: string, direction: 'up' | 'down') => {
-    const updatedAds = ads.map(ad => {
-      if (ad.id === adId) {
-        const newPriority = direction === 'up' ? Math.max(1, ad.priority - 1) : ad.priority + 1;
-        return { ...ad, priority: newPriority };
-      }
-      return ad;
-    });
-    setAds(updatedAds);
-    
-    toast({
-      title: "تم بنجاح",
-      description: "تم تحديث أولوية الإعلان",
+  const removeService = (serviceToRemove: string) => {
+    setFormData({
+      ...formData,
+      services: formData.services.filter(service => service !== serviceToRemove)
     });
   };
 
-  const getTypeInfo = (type: string) => {
-    return adTypes.find(t => t.value === type) || adTypes[0];
+  const formatDateArabic = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ar-IQ', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
-
-  const renderServicesList = (services: string[], ad?: Advertisement, isEditing: boolean = false) => (
-    <div className="space-y-2 max-h-40 overflow-y-auto">
-      {availableServices.map((service) => (
-        <div key={service} className="flex items-center space-x-2">
-          <Checkbox
-            id={`service-${service}-${ad?.id || 'new'}`}
-            checked={services.includes(service)}
-            onCheckedChange={() => handleServiceToggle(service, ad || newAd, isEditing)}
-          />
-          <Label 
-            htmlFor={`service-${service}-${ad?.id || 'new'}`}
-            className="text-sm cursor-pointer"
-          >
-            {service}
-          </Label>
-        </div>
-      ))}
-    </div>
-  );
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">إدارة الإعلانات المتقدمة</h2>
-        <Dialog open={isAddingAd} onOpenChange={setIsAddingAd}>
-          <DialogTrigger asChild>
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              <Plus className="w-4 h-4 ml-2" />
-              إضافة إعلان جديد
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
-            <DialogHeader>
-              <DialogTitle className="text-xl">إضافة إعلان جديد</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">اسم الإعلان *</Label>
-                  <Input
-                    value={newAd.title}
-                    onChange={(e) => setNewAd({...newAd, title: e.target.value})}
-                    placeholder="أدخل اسم الإعلان"
-                    className="mt-1"
-                  />
+        <h2 className="text-xl font-bold">إدارة الإعلانات</h2>
+        <div className="flex gap-2">
+          <Button onClick={fetchAdvertisements} variant="outline" size="sm" disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            تحديث
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm} className="bg-emerald-600 hover:bg-emerald-700">
+                <Plus className="w-4 h-4 mr-2" />
+                إضافة إعلان
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" dir="rtl">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingAd ? 'تعديل الإعلان' : 'إضافة إعلان جديد'}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">العنوان *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="أدخل عنوان الإعلان"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="price">السعر</Label>
+                    <Input
+                      id="price"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      placeholder="مثال: من 500$"
+                    />
+                  </div>
                 </div>
-                
+
                 <div>
-                  <Label className="text-sm font-medium">وصف الإعلان *</Label>
+                  <Label htmlFor="description">الوصف</Label>
                   <Textarea
-                    value={newAd.description}
-                    onChange={(e) => setNewAd({...newAd, description: e.target.value})}
-                    placeholder="أدخل وصف مفصل للإعلان"
-                    rows={4}
-                    className="mt-1"
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="أدخل وصف الإعلان"
+                    rows={3}
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <Label className="text-sm font-medium">عدد البالغين</Label>
+                    <Label htmlFor="adults">عدد البالغين</Label>
                     <Input
-                      type="number"
-                      min="0"
-                      value={newAd.adults}
-                      onChange={(e) => setNewAd({...newAd, adults: parseInt(e.target.value) || 0})}
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">عدد الأطفال</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={newAd.children}
-                      onChange={(e) => setNewAd({...newAd, children: parseInt(e.target.value) || 0})}
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">الأولوية</Label>
-                    <Input
+                      id="adults"
                       type="number"
                       min="1"
-                      value={newAd.priority}
-                      onChange={(e) => setNewAd({...newAd, priority: parseInt(e.target.value) || 1})}
-                      className="mt-1"
+                      value={formData.adults}
+                      onChange={(e) => setFormData({ ...formData, adults: Number(e.target.value) })}
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="children">عدد الأطفال</Label>
+                    <Input
+                      id="children"
+                      type="number"
+                      min="0"
+                      value={formData.children}
+                      onChange={(e) => setFormData({ ...formData, children: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="people_range">نطاق الأشخاص</Label>
+                    <Input
+                      id="people_range"
+                      value={formData.people_range}
+                      onChange={(e) => setFormData({ ...formData, people_range: e.target.value })}
+                      placeholder="مثال: 2-4 أشخاص"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>الخدمات المشمولة</Label>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        value={newService}
+                        onChange={(e) => setNewService(e.target.value)}
+                        placeholder="أدخل اسم الخدمة"
+                        onKeyPress={(e) => e.key === 'Enter' && addService()}
+                      />
+                      <Button type="button" onClick={addService} size="sm">
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.services.map((service, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {service}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0"
+                            onClick={() => removeService(service)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium">نوع الإعلان</Label>
-                    <Select onValueChange={(value) => setNewAd({...newAd, type: value})}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="اختر نوع الإعلان" />
+                    <Label htmlFor="type">نوع الإعلان</Label>
+                    <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {adTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="special">عرض خاص</SelectItem>
+                        <SelectItem value="package">باقة سياحية</SelectItem>
+                        <SelectItem value="hotel">عرض فندقي</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  
                   <div>
-                    <Label className="text-sm font-medium">حالة الإعلان</Label>
-                    <Select onValueChange={(value: 'active' | 'inactive') => setNewAd({...newAd, status: value})}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="اختر الحالة" />
+                    <Label htmlFor="status">الحالة</Label>
+                    <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="active">نشط</SelectItem>
@@ -311,223 +305,177 @@ export const AdvertisementManagement = () => {
                   </div>
                 </div>
 
-                <div>
-                  <Label className="text-sm font-medium">الخدمات المتاحة</Label>
-                  <div className="mt-2 p-4 border rounded-lg bg-gray-50">
-                    {renderServicesList(newAd.services)}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="priority">الأولوية</Label>
+                    <Input
+                      id="priority"
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="display_order">ترتيب العرض</Label>
+                    <Input
+                      id="display_order"
+                      type="number"
+                      min="0"
+                      value={formData.display_order}
+                      onChange={(e) => setFormData({ ...formData, display_order: Number(e.target.value) })}
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">رسالة الواتساب</Label>
-                  <Textarea
-                    value={newAd.whatsappMessage}
-                    onChange={(e) => setNewAd({...newAd, whatsappMessage: e.target.value})}
-                    placeholder="أدخل الرسالة التي ستُرسل عبر الواتساب (اختياري)"
-                    rows={3}
-                    className="mt-1"
+                  <Label htmlFor="image_url">رابط الصورة</Label>
+                  <Input
+                    id="image_url"
+                    value={formData.image_url}
+                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                    placeholder="https://example.com/image.jpg"
                   />
                 </div>
+
+                <div>
+                  <Label htmlFor="whatsapp_message">رسالة الواتساب</Label>
+                  <Textarea
+                    id="whatsapp_message"
+                    value={formData.whatsapp_message}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_message: e.target.value })}
+                    placeholder="النص الذي سيرسل عبر الواتساب"
+                    rows={3}
+                  />
+                </div>
+
+                <Button onClick={handleSave} disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                  {loading ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  {editingAd ? 'تحديث' : 'إضافة'}
+                </Button>
               </div>
-              
-              <Button onClick={handleAddAd} className="w-full bg-emerald-600 hover:bg-emerald-700">
-                <Save className="w-4 h-4 ml-2" />
-                حفظ الإعلان
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="grid gap-6">
-        {ads.sort((a, b) => a.priority - b.priority).map((ad) => (
-          <Card key={ad.id} className="border-2 hover:border-emerald-200 transition-colors">
-            <CardHeader className="pb-4">
-              <div className="flex justify-between items-start">
-                <div className="space-y-2 flex-1">
-                  {editingAd?.id === ad.id ? (
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-sm font-medium">اسم الإعلان</Label>
-                        <Input
-                          value={editingAd.title}
-                          onChange={(e) => setEditingAd({...editingAd, title: e.target.value})}
-                          className="mt-1 font-bold text-lg"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label className="text-sm font-medium">وصف الإعلان</Label>
-                        <Textarea
-                          value={editingAd.description}
-                          onChange={(e) => setEditingAd({...editingAd, description: e.target.value})}
-                          rows={3}
-                          className="mt-1"
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-4 gap-4">
-                        <div>
-                          <Label className="text-sm font-medium">البالغين</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={editingAd.adults}
-                            onChange={(e) => setEditingAd({...editingAd, adults: parseInt(e.target.value) || 0})}
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label className="text-sm font-medium">الأطفال</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={editingAd.children}
-                            onChange={(e) => setEditingAd({...editingAd, children: parseInt(e.target.value) || 0})}
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label className="text-sm font-medium">النوع</Label>
-                          <Select
-                            value={editingAd.type}
-                            onValueChange={(value) => setEditingAd({...editingAd, type: value})}
-                          >
-                            <SelectTrigger className="mt-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {adTypes.map((type) => (
-                                <SelectItem key={type.value} value={type.value}>
-                                  {type.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label className="text-sm font-medium">الحالة</Label>
-                          <Select
-                            value={editingAd.status}
-                            onValueChange={(value: 'active' | 'inactive') => setEditingAd({...editingAd, status: value})}
-                          >
-                            <SelectTrigger className="mt-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="active">نشط</SelectItem>
-                              <SelectItem value="inactive">غير نشط</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label className="text-sm font-medium">الخدمات</Label>
-                        <div className="mt-2 p-4 border rounded-lg bg-gray-50 max-h-40 overflow-y-auto">
-                          {renderServicesList(editingAd.services, editingAd, true)}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-4">
-                        <h3 className="font-bold text-xl text-gray-800">{ad.title}</h3>
-                        <Badge className={getTypeInfo(ad.type).color}>
-                          {getTypeInfo(ad.type).label}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Image className="w-5 h-5" />
+            الإعلانات
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading && advertisements.length === 0 ? (
+            <div className="flex items-center justify-center p-8">
+              <RefreshCw className="w-6 h-6 animate-spin mr-2" />
+              <span>جاري تحميل الإعلانات...</span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">العنوان</TableHead>
+                    <TableHead className="text-right">النوع</TableHead>
+                    <TableHead className="text-right">السعر</TableHead>
+                    <TableHead className="text-right">عدد الأشخاص</TableHead>
+                    <TableHead className="text-right">الخدمات</TableHead>
+                    <TableHead className="text-right">الأولوية</TableHead>
+                    <TableHead className="text-right">الحالة</TableHead>
+                    <TableHead className="text-right">تاريخ الإنشاء</TableHead>
+                    <TableHead className="text-right">الإجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {advertisements.map((ad) => (
+                    <TableRow key={ad.id}>
+                      <TableCell className="font-medium">{ad.title}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {ad.type === 'special' ? 'عرض خاص' : 
+                           ad.type === 'package' ? 'باقة سياحية' : 'عرض فندقي'}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-4 h-4" />
+                          {ad.price || 'غير محدد'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          {ad.adults || 0} بالغ + {ad.children || 0} طفل
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {ad.services?.slice(0, 3).map((service: string, index: number) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {service}
+                            </Badge>
+                          ))}
+                          {ad.services?.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{ad.services.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{ad.priority}</TableCell>
+                      <TableCell>
                         <Badge variant={ad.status === 'active' ? 'default' : 'secondary'}>
                           {ad.status === 'active' ? 'نشط' : 'غير نشط'}
                         </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          أولوية: {ad.priority}
-                        </Badge>
-                      </div>
-                      
-                      <p className="text-gray-600 leading-relaxed">{ad.description}</p>
-                      
-                      <div className="flex items-center gap-6 mt-4">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm font-medium">{ad.adults} بالغ</span>
+                      </TableCell>
+                      <TableCell>
+                        {ad.created_at && formatDateArabic(ad.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(ad)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(ad.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                        {ad.children > 0 && (
-                          <div className="flex items-center gap-2">
-                            <Baby className="w-4 h-4 text-pink-600" />
-                            <span className="text-sm font-medium">{ad.children} طفل</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">الخدمات المتاحة:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {ad.services.map((service, index) => (
-                            <div key={index} className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full text-xs">
-                              <Star className="w-3 h-3" />
-                              <span>{service}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-                
-                <div className="flex gap-2">
-                  <div className="flex flex-col gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePriorityChange(ad.id, 'up')}
-                      disabled={ad.priority === 1}
-                    >
-                      <ArrowUp className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePriorityChange(ad.id, 'down')}
-                    >
-                      <ArrowDown className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  
-                  {editingAd?.id === ad.id ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSaveAd(editingAd)}
-                      className="bg-emerald-50 hover:bg-emerald-100"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditingAd(ad)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  )}
-                  
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteAd(ad.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center py-8 text-red-600">
+              {error}
+            </div>
+          )}
+
+          {!loading && advertisements.length === 0 && !error && (
+            <div className="text-center py-8 text-gray-500">
+              لا توجد إعلانات متوفرة
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
