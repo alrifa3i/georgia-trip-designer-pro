@@ -134,7 +134,7 @@ export const BookingWizard = ({ onBookingStart }: BookingWizardProps) => {
         />;
       case 5:
         return <FinalConfirmationStep 
-          data={bookingData} 
+          bookingData={bookingData} 
           onConfirm={handleFinalConfirmation}
         />;
       default:

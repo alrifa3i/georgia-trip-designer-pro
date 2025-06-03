@@ -27,14 +27,12 @@ import { BookingData } from '@/types/booking';
 
 interface FinalConfirmationStepProps {
   bookingData: BookingData;
-  onNext: () => void;
-  onPrevious: () => void;
+  onConfirm: () => void;
 }
 
 export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
   bookingData,
-  onNext,
-  onPrevious
+  onConfirm
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passportFile, setPassportFile] = useState<File | null>(null);
@@ -112,7 +110,7 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
         customer_name: bookingData.customerName,
         phone_number: bookingData.phoneNumber,
         adults: bookingData.adults,
-        children: bookingData.children || [],
+        children: JSON.stringify(bookingData.children || []),
         arrival_date: bookingData.arrivalDate,
         departure_date: bookingData.departureDate,
         arrival_airport: bookingData.arrivalAirport,
@@ -121,10 +119,10 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
         budget: bookingData.budget,
         currency: bookingData.currency || 'USD',
         car_type: bookingData.carType,
-        room_types: bookingData.roomTypes || [],
-        selected_cities: bookingData.selectedCities || [],
+        room_types: JSON.stringify(bookingData.roomTypes || []),
+        selected_cities: JSON.stringify(bookingData.selectedCities || []),
         total_cost: calculateFinalCost(),
-        additional_services: bookingData.additionalServices || {},
+        additional_services: JSON.stringify(bookingData.additionalServices || {}),
         discount_amount: bookingData.discountAmount || 0,
         discount_coupon: bookingData.discountCoupon || null,
         status: 'pending'
@@ -144,8 +142,8 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
         description: `رقم الحجز المرجعي: ${referenceNumber}`,
       });
 
-      // الانتقال للخطوة التالية
-      onNext();
+      // استدعاء دالة التأكيد
+      onConfirm();
     } catch (error) {
       console.error('Error submitting booking:', error);
       toast({
@@ -230,12 +228,12 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
                     <span className="font-medium">{city.name}</span>
                     <Badge variant="outline">{city.nights} ليلة</Badge>
                   </div>
-                  {city.selectedHotels?.map((hotel, hotelIndex) => (
-                    <div key={hotelIndex} className="text-sm text-gray-600 mr-6">
+                  {city.selectedHotelId && (
+                    <div className="text-sm text-gray-600 mr-6">
                       <Hotel className="w-3 h-3 inline mr-1" />
-                      {hotel.name} - {hotel.roomType}
+                      فندق محدد
                     </div>
-                  ))}
+                  )}
                 </Card>
               ))}
             </div>
@@ -361,15 +359,12 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
 
           <Separator />
 
-          {/* أزرار التنقل */}
-          <div className="flex justify-between pt-4">
-            <Button variant="outline" onClick={onPrevious}>
-              السابق
-            </Button>
+          {/* زر التأكيد */}
+          <div className="flex justify-center pt-4">
             <Button 
               onClick={submitBooking}
               disabled={isSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-emerald-600 hover:bg-emerald-700 px-8 py-3 text-lg"
             >
               {isSubmitting ? (
                 <>
@@ -378,7 +373,7 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
                 </>
               ) : (
                 <>
-                  <CheckCircle className="w-4 h-4 mr-2" />
+                  <CheckCircle className="w-5 h-5 mr-2" />
                   تأكيد الحجز
                 </>
               )}

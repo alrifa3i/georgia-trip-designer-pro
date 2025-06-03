@@ -4,64 +4,66 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useBookingManagement } from '@/hooks/useBookingManagement';
-import { 
-  Search, 
-  Calendar, 
-  Users, 
-  DollarSign, 
-  Phone, 
-  Plane,
-  Hotel,
+import {
+  Search,
+  Eye,
+  Edit,
+  Trash2,
+  Calendar,
+  User,
+  Phone,
   MapPin,
-  Clock,
+  DollarSign,
+  Users,
+  Hotel,
+  Car,
   FileText,
   Download,
-  RefreshCw,
-  Trash2,
-  Eye
+  Upload
 } from 'lucide-react';
 
 export const BookingManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [bookings, setBookings] = useState<any[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const { 
-    loading, 
-    error, 
-    searchBookingByReference, 
-    getAllBookings, 
-    updateBookingStatus,
-    deleteBooking
-  } = useBookingManagement();
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const { toast } = useToast();
+  
+  const {
+    loading,
+    error,
+    searchBookingByReference,
+    getAllBookings,
+    updateBookingStatus,
+    deleteBooking,
+    uploadFile,
+    deleteFile
+  } = useBookingManagement();
 
   useEffect(() => {
-    fetchAllBookings();
+    loadAllBookings();
   }, []);
 
-  const fetchAllBookings = async () => {
-    const result = await getAllBookings();
-    setBookings(result);
+  const loadAllBookings = async () => {
+    const data = await getAllBookings();
+    setBookings(data);
   };
 
   const handleSearch = async () => {
-    if (!searchTerm.trim()) {
-      fetchAllBookings();
-      return;
-    }
-
-    const result = await searchBookingByReference(searchTerm);
-    if (result) {
-      setBookings([result]);
+    if (searchTerm.trim()) {
+      const booking = await searchBookingByReference(searchTerm);
+      if (booking) {
+        setBookings([booking]);
+      } else {
+        setBookings([]);
+      }
     } else {
-      setBookings([]);
+      loadAllBookings();
     }
   };
 
@@ -70,360 +72,290 @@ export const BookingManagement = () => {
     if (success) {
       toast({
         title: "تم تحديث الحالة",
-        description: "تم تحديث حالة الحجز بنجاح",
+        description: "تم تحديث حالة الحجز بنجاح"
       });
-      fetchAllBookings();
+      loadAllBookings();
     }
   };
 
   const handleDeleteBooking = async (bookingId: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا الحجز؟')) return;
-    
-    const success = await deleteBooking(bookingId);
-    if (success) {
-      toast({
-        title: "تم الحذف",
-        description: "تم حذف الحجز بنجاح",
-      });
-      fetchAllBookings();
+    if (confirm('هل أنت متأكد من حذف هذا الحجز؟')) {
+      const success = await deleteBooking(bookingId);
+      if (success) {
+        toast({
+          title: "تم حذف الحجز",
+          description: "تم حذف الحجز بنجاح"
+        });
+        loadAllBookings();
+        setShowDetailsDialog(false);
+      }
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ar-IQ', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    return date.toLocaleDateString('ar-IQ');
   };
 
-  const getStatusColor = (status: string) => {
-    const statusColors: { [key: string]: string } = {
-      'pending': 'outline',
-      'confirmed': 'default',
-      'cancelled': 'destructive',
-      'completed': 'secondary'
-    };
-    return statusColors[status] || 'outline';
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'confirmed': return 'default';
+      case 'pending': return 'secondary';
+      case 'cancelled': return 'destructive';
+      default: return 'outline';
+    }
   };
 
   const getStatusText = (status: string) => {
-    const statusTexts: { [key: string]: string } = {
-      'pending': 'في الانتظار',
-      'confirmed': 'مؤكد',
-      'cancelled': 'ملغي',
-      'completed': 'مكتمل'
-    };
-    return statusTexts[status] || status;
+    switch (status) {
+      case 'confirmed': return 'مؤكد';
+      case 'pending': return 'في الانتظار';
+      case 'cancelled': return 'ملغي';
+      default: return status;
+    }
   };
 
-  const calculateTotalTours = (selectedCities: any[]) => {
-    if (!selectedCities) return 0;
-    
-    return selectedCities.reduce((total, city) => {
-      const mandatoryTours = city.mandatoryTours || 0;
-      const optionalTours = city.optionalTours || 0;
-      return total + mandatoryTours + optionalTours;
-    }, 0);
-  };
-
-  const getTourDetails = (selectedCities: any[]) => {
-    if (!selectedCities) return [];
-    
-    return selectedCities.map(city => ({
-      cityName: city.name,
-      mandatory: city.mandatoryTours || 0,
-      optional: city.optionalTours || 0
-    }));
-  };
-
-  const getHotelDetails = (selectedCities: any[]) => {
-    if (!selectedCities) return [];
-    
-    const hotels: any[] = [];
-    selectedCities.forEach(city => {
-      if (city.selectedHotels) {
-        city.selectedHotels.forEach((hotel: any) => {
-          hotels.push({
-            name: hotel.name,
-            city: city.name,
-            nights: hotel.nights || city.nights || 0,
-            roomType: hotel.roomType || 'غير محدد',
-            rooms: hotel.rooms || 1
-          });
-        });
+  const parseJsonSafely = (jsonString: any, fallback: any = []) => {
+    if (typeof jsonString === 'object') return jsonString;
+    if (typeof jsonString === 'string') {
+      try {
+        return JSON.parse(jsonString);
+      } catch {
+        return fallback;
       }
-    });
-    return hotels;
+    }
+    return fallback;
   };
 
-  const openDetailsDialog = (booking: any) => {
-    setSelectedBooking(booking);
-    setIsDetailsDialogOpen(true);
+  const renderBookingDetails = (booking: any) => {
+    const children = parseJsonSafely(booking.children, []);
+    const selectedCities = parseJsonSafely(booking.selected_cities, []);
+    const additionalServices = parseJsonSafely(booking.additional_services, {});
+
+    return (
+      <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+        {/* معلومات أساسية */}
+        <div>
+          <h3 className="text-lg font-semibold mb-3">معلومات أساسية</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4 text-gray-500" />
+              <span>{booking.customer_name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-gray-500" />
+              <span>{booking.phone_number}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <span>من {formatDate(booking.arrival_date)} إلى {formatDate(booking.departure_date)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-gray-500" />
+              <span>{booking.adults} بالغ</span>
+              {children.length > 0 && <span>+ {children.length} أطفال</span>}
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* المدن المختارة */}
+        {selectedCities.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3">المدن المختارة</h3>
+            <div className="space-y-2">
+              {selectedCities.map((city: any, index: number) => (
+                <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                  <MapPin className="w-4 h-4 text-emerald-600" />
+                  <span className="font-medium">{city.name}</span>
+                  <Badge variant="outline">{city.nights} ليلة</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Separator />
+
+        {/* النقل */}
+        {booking.car_type && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3">النقل</h3>
+            <div className="flex items-center gap-2">
+              <Car className="w-4 h-4 text-gray-500" />
+              <span>{booking.car_type}</span>
+            </div>
+          </div>
+        )}
+
+        <Separator />
+
+        {/* التكلفة */}
+        <div>
+          <h3 className="text-lg font-semibold mb-3">التكلفة</h3>
+          <div className="space-y-2">
+            {booking.discount_amount > 0 && (
+              <>
+                <div className="flex justify-between">
+                  <span>المجموع الأساسي:</span>
+                  <span>{(booking.total_cost + booking.discount_amount).toFixed(2)} {booking.currency}</span>
+                </div>
+                <div className="flex justify-between text-red-600">
+                  <span>خصم ({booking.discount_coupon}):</span>
+                  <span>-{booking.discount_amount.toFixed(2)} {booking.currency}</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between text-lg font-bold text-emerald-600">
+              <span>المجموع النهائي:</span>
+              <span>{booking.total_cost?.toFixed(2)} {booking.currency}</span>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* الملفات المرفقة */}
+        {booking.booking_files && booking.booking_files.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3">الملفات المرفقة</h3>
+            <div className="space-y-2">
+              {booking.booking_files.map((file: any) => (
+                <div key={file.id} className="flex items-center justify-between p-2 border rounded">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-sm">{file.file_name}</span>
+                    <Badge variant="outline">{file.file_type}</Badge>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={file.file_url} target="_blank" rel="noopener noreferrer">
+                        <Download className="w-3 h-3" />
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Separator />
+
+        {/* إدارة الحالة */}
+        <div>
+          <h3 className="text-lg font-semibold mb-3">إدارة الحجز</h3>
+          <div className="flex gap-4">
+            <Select
+              value={booking.status}
+              onValueChange={(value) => handleStatusUpdate(booking.id, value)}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">في الانتظار</SelectItem>
+                <SelectItem value="confirmed">مؤكد</SelectItem>
+                <SelectItem value="cancelled">ملغي</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Button
+              variant="destructive"
+              onClick={() => handleDeleteBooking(booking.id)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              حذف الحجز
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">إدارة الحجوزات</h2>
-        <Button onClick={fetchAllBookings} variant="outline" size="sm" disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          تحديث
-        </Button>
-      </div>
-
       <Card>
         <CardHeader>
-          <CardTitle>البحث في الحجوزات</CardTitle>
+          <CardTitle>إدارة الحجوزات</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
+          {/* البحث */}
+          <div className="flex gap-4 mb-6">
             <Input
-              placeholder="ادخل الرقم المرجعي للحجز"
+              placeholder="ابحث برقم الحجز المرجعي..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              className="flex-1"
             />
             <Button onClick={handleSearch} disabled={loading}>
               <Search className="w-4 h-4 mr-2" />
               بحث
             </Button>
+            <Button variant="outline" onClick={loadAllBookings} disabled={loading}>
+              عرض الكل
+            </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            قائمة الحجوزات
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading && bookings.length === 0 ? (
-            <div className="flex items-center justify-center p-8">
-              <RefreshCw className="w-6 h-6 animate-spin mr-2" />
-              <span>جاري تحميل الحجوزات...</span>
-            </div>
+          {/* قائمة الحجوزات */}
+          {loading ? (
+            <div className="text-center py-8">جاري التحميل...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">{error}</div>
+          ) : bookings.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">لا توجد حجوزات</div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">الرقم المرجعي</TableHead>
-                    <TableHead className="text-right">اسم العميل</TableHead>
-                    <TableHead className="text-right">رقم الهاتف</TableHead>
-                    <TableHead className="text-right">تواريخ السفر</TableHead>
-                    <TableHead className="text-right">عدد المسافرين</TableHead>
-                    <TableHead className="text-right">تفاصيل الحجز</TableHead>
-                    <TableHead className="text-right">التكلفة الإجمالية</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
-                    <TableHead className="text-right">الإجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bookings.map((booking) => (
-                    <TableRow key={booking.id}>
-                      <TableCell className="font-mono">{booking.reference_number}</TableCell>
-                      <TableCell>{booking.customer_name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Phone className="w-4 h-4" />
-                          {booking.phone_number || 'غير متوفر'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="flex items-center gap-1">
-                            <Plane className="w-3 h-3" />
-                            {formatDate(booking.arrival_date)}
-                          </div>
-                          <div className="flex items-center gap-1 text-gray-600">
-                            <Plane className="w-3 h-3 rotate-180" />
-                            {formatDate(booking.departure_date)}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Users className="w-4 h-4" />
-                          {booking.adults} بالغ
-                          {booking.children && Array.isArray(booking.children) && booking.children.length > 0 && 
-                            ` + ${booking.children.length} طفل`
-                          }
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openDetailsDialog(booking)}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          عرض التفاصيل
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4" />
-                          {booking.total_cost?.toFixed(2) || '0.00'} {booking.currency || 'USD'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusColor(booking.status)}>
-                          {getStatusText(booking.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Select value={booking.status} onValueChange={(value) => handleStatusUpdate(booking.id, value)}>
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">في الانتظار</SelectItem>
-                              <SelectItem value="confirmed">مؤكد</SelectItem>
-                              <SelectItem value="cancelled">ملغي</SelectItem>
-                              <SelectItem value="completed">مكتمل</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteBooking(booking.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
+            <div className="space-y-4">
+              {bookings.map((booking) => (
+                <Card key={booking.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <div className="font-semibold">{booking.reference_number}</div>
+                        <div className="text-sm text-gray-600">{booking.customer_name}</div>
+                      </div>
+                      <Badge variant={getStatusBadgeVariant(booking.status)}>
+                        {getStatusText(booking.status)}
+                      </Badge>
+                      <div className="text-sm text-gray-600">
+                        {formatDate(booking.arrival_date)} - {formatDate(booking.departure_date)}
+                      </div>
+                      <div className="flex items-center gap-1 text-emerald-600 font-semibold">
+                        <DollarSign className="w-4 h-4" />
+                        {booking.total_cost?.toFixed(2)} {booking.currency}
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Dialog 
+                        open={showDetailsDialog && selectedBooking?.id === booking.id}
+                        onOpenChange={(open) => {
+                          setShowDetailsDialog(open);
+                          if (open) setSelectedBooking(booking);
+                        }}
+                      >
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Eye className="w-4 h-4 mr-1" />
+                            تفاصيل
                           </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-
-          {error && (
-            <div className="text-center py-8 text-red-600">
-              {error}
-            </div>
-          )}
-
-          {!loading && bookings.length === 0 && !error && (
-            <div className="text-center py-8 text-gray-500">
-              لا توجد حجوزات متوفرة
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl">
+                          <DialogHeader>
+                            <DialogTitle>تفاصيل الحجز - {booking.reference_number}</DialogTitle>
+                          </DialogHeader>
+                          {selectedBooking && renderBookingDetails(selectedBooking)}
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Dialog لعرض تفاصيل الحجز */}
-      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" dir="rtl">
-          <DialogHeader>
-            <DialogTitle>تفاصيل الحجز - {selectedBooking?.reference_number}</DialogTitle>
-          </DialogHeader>
-          
-          {selectedBooking && (
-            <div className="space-y-6">
-              {/* معلومات أساسية */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">المعلومات الأساسية</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <strong>اسم العميل:</strong> {selectedBooking.customer_name}
-                    </div>
-                    <div>
-                      <strong>رقم الهاتف:</strong> {selectedBooking.phone_number || 'غير متوفر'}
-                    </div>
-                    <div>
-                      <strong>مطار الوصول:</strong> {selectedBooking.arrival_airport || 'غير محدد'}
-                    </div>
-                    <div>
-                      <strong>مطار المغادرة:</strong> {selectedBooking.departure_airport || 'غير محدد'}
-                    </div>
-                    <div>
-                      <strong>تاريخ الوصول:</strong> {formatDate(selectedBooking.arrival_date)}
-                    </div>
-                    <div>
-                      <strong>تاريخ المغادرة:</strong> {formatDate(selectedBooking.departure_date)}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* تفاصيل الجولات */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">تفاصيل الجولات</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <strong>إجمالي عدد الجولات:</strong> {calculateTotalTours(selectedBooking.selected_cities)}
-                    </div>
-                    <div className="space-y-2">
-                      {getTourDetails(selectedBooking.selected_cities).map((tour, index) => (
-                        <div key={index} className="border rounded p-3">
-                          <div className="font-medium">{tour.cityName}</div>
-                          <div className="text-sm text-gray-600">
-                            جولات إجبارية: {tour.mandatory} | جولات اختيارية: {tour.optional}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* تفاصيل الفنادق */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">تفاصيل الفنادق</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {getHotelDetails(selectedBooking.selected_cities).map((hotel, index) => (
-                      <div key={index} className="border rounded p-4">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><strong>اسم الفندق:</strong> {hotel.name}</div>
-                          <div><strong>المدينة:</strong> {hotel.city}</div>
-                          <div><strong>عدد الليالي:</strong> {hotel.nights}</div>
-                          <div><strong>نوع الغرفة:</strong> {hotel.roomType}</div>
-                          <div><strong>عدد الغرف:</strong> {hotel.rooms}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* التكلفة الإجمالية */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">التكلفة الإجمالية</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-2xl font-bold text-emerald-600">
-                      {selectedBooking.total_cost?.toFixed(2) || '0.00'} {selectedBooking.currency || 'USD'}
-                    </div>
-                    {selectedBooking.discount_amount > 0 && (
-                      <div className="text-sm text-gray-600">
-                        خصم مطبق: {selectedBooking.discount_amount} {selectedBooking.currency || 'USD'}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
