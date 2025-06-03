@@ -79,6 +79,7 @@ export interface BookingData {
   totalCost: number;
   additionalServices: AdditionalServices;
   discountCoupon?: string;
+  discountCode?: string;
   discountAmount?: number;
   status?: string;
 }

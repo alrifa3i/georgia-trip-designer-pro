@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +42,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     return incompleteFields;
   }, [totalCost, data.currency, data.selectedCities.length]);
 
-  // Validate discount code
+  // Validate discount code using RPC call
   const validateDiscountCode = async (code: string) => {
     if (!code) {
       setDiscountStatus('none');
@@ -51,35 +52,53 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
 
     setIsValidatingCode(true);
     try {
-      const { data: discountData, error } = await supabase
-        .from('discount_codes')
-        .select('*')
-        .eq('code', code.toUpperCase())
-        .eq('is_active', true)
-        .single();
+      // Since discount_codes table isn't in types yet, we'll use RPC call
+      const { data: discountData, error } = await supabase.rpc('validate_discount_code', {
+        code_param: code.toUpperCase()
+      });
 
-      if (error || !discountData) {
+      if (error) {
+        // Fallback to direct query if RPC doesn't exist
+        const { data: directQuery, error: directError } = await supabase
+          .from('discount_codes')
+          .select('*')
+          .eq('code', code.toUpperCase())
+          .eq('is_active', true)
+          .single();
+
+        if (directError || !directQuery) {
+          setDiscountStatus('invalid');
+          setDiscountPercentage(0);
+          return;
+        }
+
+        // Check if expired
+        if (directQuery.expires_at && new Date(directQuery.expires_at) < new Date()) {
+          setDiscountStatus('expired');
+          setDiscountPercentage(0);
+          return;
+        }
+
+        // Check if max uses reached
+        if (directQuery.max_uses && directQuery.current_uses >= directQuery.max_uses) {
+          setDiscountStatus('maxed');
+          setDiscountPercentage(0);
+          return;
+        }
+
+        setDiscountStatus('valid');
+        setDiscountPercentage(directQuery.discount_percentage);
+        return;
+      }
+
+      if (!discountData) {
         setDiscountStatus('invalid');
         setDiscountPercentage(0);
         return;
       }
 
-      // Check if expired
-      if (discountData.expires_at && new Date(discountData.expires_at) < new Date()) {
-        setDiscountStatus('expired');
-        setDiscountPercentage(0);
-        return;
-      }
-
-      // Check if max uses reached
-      if (discountData.max_uses && discountData.current_uses >= discountData.max_uses) {
-        setDiscountStatus('maxed');
-        setDiscountPercentage(0);
-        return;
-      }
-
       setDiscountStatus('valid');
-      setDiscountPercentage(discountData.discount_percentage);
+      setDiscountPercentage(discountData.discount_percentage || 0);
     } catch (error) {
       console.error('Error validating discount code:', error);
       setDiscountStatus('invalid');
@@ -470,7 +489,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
             </div>
           )}
 
-          {data.discountAmount > 0 && (
+          {data.discountAmount && data.discountAmount > 0 && (
             <div className="p-3 bg-green-100 rounded-lg border border-green-200">
               <div className="flex justify-between items-center">
                 <span className="text-green-800 font-medium">

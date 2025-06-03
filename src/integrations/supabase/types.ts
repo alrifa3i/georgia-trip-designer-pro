@@ -215,6 +215,78 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_code_usage: {
+        Row: {
+          booking_id: string | null
+          discount_code_id: string | null
+          id: string
+          used_at: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          discount_code_id?: string | null
+          id?: string
+          used_at?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          discount_code_id?: string | null
+          id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_code_usage_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_code_usage_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discount_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          current_uses: number | null
+          discount_percentage: number
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          current_uses?: number | null
+          discount_percentage: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          current_uses?: number | null
+          discount_percentage?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       hotels: {
         Row: {
           amenities: Json | null
