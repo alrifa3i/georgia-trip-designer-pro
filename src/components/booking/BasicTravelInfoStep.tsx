@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -11,7 +10,7 @@ import { BookingData, Child } from '@/types/booking';
 import { currencies, additionalCurrencies } from '@/data/currencies';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { Plus, Minus, Users, Calendar, DollarSign, MapPin, Info } from 'lucide-react';
+import { Plus, Minus, Users, Calendar, DollarSign, MapPin, Info, AlertTriangle } from 'lucide-react';
 
 interface BasicTravelInfoStepProps {
   data: BookingData;
@@ -145,6 +144,13 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
                 onCountryChange={setSelectedCountry}
                 placeholder="رقم الهاتف"
               />
+              {/* Phone Number Warning */}
+              <Alert className="bg-amber-50 border-amber-200">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800 text-sm">
+                  أدخل رقم هاتفك بعناية لأنه سيرتبط بالحجز مباشرة. إدخال رقم خاطئ قد يؤدي إلى إلغاء الحجز.
+                </AlertDescription>
+              </Alert>
             </div>
           </div>
         </CardContent>

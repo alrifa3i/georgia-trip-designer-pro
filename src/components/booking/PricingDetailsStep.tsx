@@ -1,13 +1,15 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { BookingData } from '@/types/booking';
 import { additionalServicesData } from '@/data/hotels';
 import { transportPricing, calculateTransportServicesCosts } from '@/data/transportRules';
 import { useHotelData } from '@/hooks/useHotelData';
-import { Calculator, DollarSign, Users, Building, MapPin, Car, Plane } from 'lucide-react';
+import { Calculator, DollarSign, Users, Building, MapPin, Car, Plane, Tag, CheckCircle, XCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PricingDetailsStepProps {
   data: BookingData;
@@ -18,6 +20,10 @@ interface PricingDetailsStepProps {
 export const PricingDetailsStep = ({ data, updateData, onValidationChange }: PricingDetailsStepProps) => {
   const [totalCost, setTotalCost] = useState(0);
   const [breakdown, setBreakdown] = useState<any>({});
+  const [discountCode, setDiscountCode] = useState('');
+  const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const [discountStatus, setDiscountStatus] = useState<'none' | 'valid' | 'invalid' | 'expired' | 'maxed'>('none');
+  const [discountPercentage, setDiscountPercentage] = useState(0);
   const { hotels: databaseHotels, loading: hotelsLoading } = useHotelData();
 
   // Function to get incomplete fields
@@ -34,6 +40,76 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     
     return incompleteFields;
   }, [totalCost, data.currency, data.selectedCities.length]);
+
+  // Validate discount code
+  const validateDiscountCode = async (code: string) => {
+    if (!code) {
+      setDiscountStatus('none');
+      setDiscountPercentage(0);
+      return;
+    }
+
+    setIsValidatingCode(true);
+    try {
+      const { data: discountData, error } = await supabase
+        .from('discount_codes')
+        .select('*')
+        .eq('code', code.toUpperCase())
+        .eq('is_active', true)
+        .single();
+
+      if (error || !discountData) {
+        setDiscountStatus('invalid');
+        setDiscountPercentage(0);
+        return;
+      }
+
+      // Check if expired
+      if (discountData.expires_at && new Date(discountData.expires_at) < new Date()) {
+        setDiscountStatus('expired');
+        setDiscountPercentage(0);
+        return;
+      }
+
+      // Check if max uses reached
+      if (discountData.max_uses && discountData.current_uses >= discountData.max_uses) {
+        setDiscountStatus('maxed');
+        setDiscountPercentage(0);
+        return;
+      }
+
+      setDiscountStatus('valid');
+      setDiscountPercentage(discountData.discount_percentage);
+    } catch (error) {
+      console.error('Error validating discount code:', error);
+      setDiscountStatus('invalid');
+      setDiscountPercentage(0);
+    } finally {
+      setIsValidatingCode(false);
+    }
+  };
+
+  // Apply discount code
+  const applyDiscountCode = () => {
+    if (discountStatus === 'valid') {
+      const discountAmount = (breakdown.subtotal || 0) * (discountPercentage / 100);
+      updateData({ 
+        discountAmount,
+        discountCode: discountCode.toUpperCase()
+      });
+    }
+  };
+
+  // Remove discount
+  const removeDiscount = () => {
+    setDiscountCode('');
+    setDiscountStatus('none');
+    setDiscountPercentage(0);
+    updateData({ 
+      discountAmount: 0,
+      discountCode: ''
+    });
+  };
 
   // Memoized cost calculations to prevent infinite loops
   const costCalculations = useMemo(() => {
@@ -235,6 +311,21 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
   // حساب عدد الأشخاص
   const totalPeople = data.adults + data.children.length;
 
+  const getDiscountStatusMessage = () => {
+    switch (discountStatus) {
+      case 'valid':
+        return `كود صحيح! خصم ${discountPercentage}%`;
+      case 'invalid':
+        return 'كود غير صحيح';
+      case 'expired':
+        return 'كود منتهي الصلاحية';
+      case 'maxed':
+        return 'تم استنفاد عدد مرات الاستخدام';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -336,40 +427,84 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardContent>
       </Card>
 
-      {/* تفاصيل التكلفة */}
+      {/* Discount Code Section */}
+      <Card className="bg-purple-50 border-purple-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-purple-800">
+            <Tag className="w-5 h-5" />
+            كود الخصم
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              placeholder="أدخل كود الخصم"
+              value={discountCode}
+              onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+              className="flex-1"
+            />
+            <Button
+              onClick={() => validateDiscountCode(discountCode)}
+              disabled={!discountCode || isValidatingCode}
+              variant="outline"
+            >
+              {isValidatingCode ? 'جاري التحقق...' : 'تحقق'}
+            </Button>
+            {discountStatus === 'valid' && (
+              <Button onClick={applyDiscountCode}>
+                تطبيق
+              </Button>
+            )}
+          </div>
+          
+          {discountStatus !== 'none' && (
+            <div className={`flex items-center gap-2 p-3 rounded-lg ${
+              discountStatus === 'valid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}>
+              {discountStatus === 'valid' ? (
+                <CheckCircle className="w-4 h-4" />
+              ) : (
+                <XCircle className="w-4 h-4" />
+              )}
+              <span className="text-sm font-medium">{getDiscountStatusMessage()}</span>
+            </div>
+          )}
+
+          {data.discountAmount > 0 && (
+            <div className="p-3 bg-green-100 rounded-lg border border-green-200">
+              <div className="flex justify-between items-center">
+                <span className="text-green-800 font-medium">
+                  خصم مطبق: {data.discountCode}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-green-600 font-bold">
+                    -{formatPrice(data.discountAmount)}
+                  </span>
+                  <Button
+                    onClick={removeDiscount}
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    إزالة
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Final Cost Summary */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-green-600" />
-            تفصيل التكلفة
+            الإجمالي النهائي
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            <div className="flex justify-between items-center text-lg">
-              <span className="font-semibold">تكلفة الإقامة</span>
-              <span className="font-bold">{formatPrice(breakdown.hotels || 0)}</span>
-            </div>
-            
-            <div className="flex justify-between items-center text-lg">
-              <span className="font-semibold">تكلفة الجولات</span>
-              <span className="font-bold">{formatPrice(breakdown.tours || 0)}</span>
-            </div>
-            
-            <div className="flex justify-between items-center text-lg">
-              <span className="font-semibold">خدمات النقل (استقبال + توديع)</span>
-              <span className="font-bold">{formatPrice(breakdown.transportServices || 0)}</span>
-            </div>
-            
-            {breakdown.additionalServices > 0 && (
-              <div className="flex justify-between items-center text-lg">
-                <span className="font-semibold">الخدمات الإضافية</span>
-                <span className="font-bold">{formatPrice(breakdown.additionalServices)}</span>
-              </div>
-            )}
-            
-            <Separator className="border-t-2" />
-            
             <div className="flex justify-between items-center text-lg">
               <span className="font-semibold">المجموع الفرعي</span>
               <span className="font-bold">{formatPrice(breakdown.subtotal || 0)}</span>
@@ -377,7 +512,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
             
             {breakdown.discount > 0 && (
               <div className="flex justify-between items-center text-green-600">
-                <span>الخصم</span>
+                <span>الخصم ({data.discountCode})</span>
                 <span>-{formatPrice(breakdown.discount)}</span>
               </div>
             )}
