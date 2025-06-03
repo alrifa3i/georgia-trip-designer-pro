@@ -22,12 +22,25 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
   const [isWhatsAppVerified, setIsWhatsAppVerified] = useState(false);
   const { saveBooking, loading } = useBookings();
 
+  // Generate unique reference number with random letters
+  const generateUniqueReference = () => {
+    const year = new Date().getFullYear();
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let randomLetters = '';
+    for (let i = 0; i < 4; i++) {
+      randomLetters += letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+    return `GEO-${year}-${randomLetters}`;
+  };
+
   // Generate and save booking when component mounts
   useEffect(() => {
     const saveBookingData = async () => {
       if (!referenceNumber) {
         console.log('Saving booking data...');
-        const result = await saveBooking(data);
+        const uniqueRef = generateUniqueReference();
+        const bookingDataWithRef = { ...data, referenceNumber: uniqueRef };
+        const result = await saveBooking(bookingDataWithRef);
         if (result.success && result.data) {
           setReferenceNumber(result.data.reference_number);
           setBookingId(result.data.id);
@@ -82,22 +95,11 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
     return incompleteFields;
   };
 
-  // Generate QR Code data - simplified to show reference number
+  // Generate QR Code data - only show reference number
   const generateQRData = () => {
     if (!referenceNumber) return '';
     
-    const qrData = {
-      type: 'booking',
-      reference: referenceNumber,
-      customer: data.customerName,
-      phone: formatPhoneNumber(data.phoneNumber),
-      arrival: data.arrivalDate,
-      departure: data.departureDate,
-      cost: data.totalCost,
-      currency: data.currency
-    };
-    
-    return JSON.stringify(qrData);
+    return `رقم الحجز المرجعي: ${referenceNumber}`;
   };
 
   // Download QR Code
@@ -252,7 +254,7 @@ ${data.selectedCities.map(city => `
         <p className="text-gray-600">مراجعة أخيرة لتفاصيل حجزك قبل التأكيد</p>
       </div>
 
-      {/* Reference Number */}
+      {/* Reference Number - Only in green section */}
       {referenceNumber && (
         <Card className="bg-emerald-50 border-emerald-200">
           <CardContent className="p-4 text-center">
@@ -265,13 +267,13 @@ ${data.selectedCities.map(city => `
         </Card>
       )}
 
-      {/* QR Code */}
+      {/* QR Code - Shows only reference number */}
       {referenceNumber && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <QrCode className="w-5 h-5" />
-              QR Code للحجز - {referenceNumber}
+              QR Code للحجز
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
@@ -284,7 +286,7 @@ ${data.selectedCities.map(city => `
               />
             </div>
             <p className="text-sm text-gray-600">
-              امسح الكود لعرض رقم الحجز المرجعي وتفاصيل الحجز
+              امسح الكود لعرض رقم الحجز المرجعي
             </p>
             <div className="flex gap-2 justify-center">
               <Button onClick={downloadQRCode} variant="outline" size="sm">
