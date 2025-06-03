@@ -87,10 +87,16 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   const addCity = () => {
     const newCity = {
       city: '',
+      name: '',
       hotel: '',
+      selectedHotelId: '',
       nights: 1,
       tours: 0,
       mandatoryTours: 1,
+      roomType: 'dbl_wv',
+      pricePerNight: 0,
+      totalPrice: 0,
+      availableTours: [],
       roomSelections: Array.from({ length: data.rooms }, (_, index) => ({
         roomNumber: index + 1,
         roomType: 'dbl_wv'
