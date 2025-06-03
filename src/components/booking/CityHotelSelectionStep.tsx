@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,22 +52,20 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   console.log('بيانات الفنادق:', hotels);
   console.log('بيانات النقل:', transports);
 
-  // حساب عدد الليالي المطلوبة من تواريخ الوصول والمغادرة
+  // حساب عدد الليالي المطلوبة من تواريخ الوصول والمغادرة - تم تصحيح الحساب
   const getRequiredNights = () => {
     if (!data.arrivalDate || !data.departureDate) return 0;
     const arrivalDate = new Date(data.arrivalDate);
     const departureDate = new Date(data.departureDate);
     const diffTime = Math.abs(departureDate.getTime() - arrivalDate.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) - 1;
+    // تصحيح: عدد الليالي = عدد الأيام (بدون طرح 1)
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   // حساب مجموع الليالي المختارة
   const getTotalSelectedNights = () => {
     return selectedCities.reduce((total, city) => total + city.nights, 0);
   };
-
-  const requiredNights = getRequiredNights();
-  const totalSelectedNights = getTotalSelectedNights();
 
   // حساب الجولات الإجبارية
   const calculateMandatoryTours = (cityName: string, cityIndex: number) => {
@@ -228,7 +225,10 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     }
   };
 
-  // تحديث الجولات الإجبارية تلقائياً - Fixed: Always called, no conditions
+  const requiredNights = getRequiredNights();
+  const totalSelectedNights = getTotalSelectedNights();
+
+  // حساب الجولات الإجبارية تلقائياً - Fixed: Always called, no conditions
   useEffect(() => {
     const updatedCities = selectedCities.map((city, index) => ({
       ...city,
