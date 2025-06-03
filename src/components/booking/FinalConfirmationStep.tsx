@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { BookingData } from '@/types/booking';
 import { CheckCircle, AlertTriangle, QrCode, Download, Share2, MessageCircle } from 'lucide-react';
 import { useBookings } from '@/hooks/useBookings';
 import { WhatsAppVerification } from './WhatsAppVerification';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface FinalConfirmationStepProps {
   data: BookingData;
@@ -87,50 +86,68 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
 
   // Download QR Code
   const downloadQRCode = () => {
-    const canvas = document.querySelector('#qr-code canvas') as HTMLCanvasElement;
-    if (canvas) {
-      const url = canvas.toDataURL();
-      const link = document.createElement('a');
-      link.download = `booking-qr-${referenceNumber}.png`;
-      link.href = url;
-      link.click();
+    const svg = document.querySelector('#qr-code svg') as SVGElement;
+    if (svg) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      canvas.width = 200;
+      canvas.height = 200;
+      
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      
+      img.onload = () => {
+        ctx?.drawImage(img, 0, 0);
+        const link = document.createElement('a');
+        link.download = `booking-qr-${referenceNumber}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+        URL.revokeObjectURL(url);
+      };
+      
+      img.src = url;
     }
   };
 
   // Share QR Code
   const shareQRCode = async () => {
-    const canvas = document.querySelector('#qr-code canvas') as HTMLCanvasElement;
-    if (canvas && navigator.share) {
-      canvas.toBlob(async (blob) => {
-        if (blob) {
-          const file = new File([blob], `booking-qr-${referenceNumber}.png`, { type: 'image/png' });
-          try {
-            await navigator.share({
-              title: `QR Code للحجز ${referenceNumber}`,
-              files: [file]
-            });
-          } catch (error) {
-            console.log('Error sharing QR code:', error);
-          }
-        }
-      });
-    } else {
-      // Fallback - copy to clipboard
-      const canvas = document.querySelector('#qr-code canvas') as HTMLCanvasElement;
-      if (canvas) {
+    const svg = document.querySelector('#qr-code svg') as SVGElement;
+    if (svg && navigator.share) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      canvas.width = 200;
+      canvas.height = 200;
+      
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      
+      img.onload = async () => {
+        ctx?.drawImage(img, 0, 0);
         canvas.toBlob(async (blob) => {
           if (blob) {
+            const file = new File([blob], `booking-qr-${referenceNumber}.png`, { type: 'image/png' });
             try {
-              await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-              ]);
-              alert('تم نسخ QR Code إلى الحافظة');
+              await navigator.share({
+                title: `QR Code للحجز ${referenceNumber}`,
+                files: [file]
+              });
             } catch (error) {
-              console.log('Error copying QR code:', error);
+              console.log('Error sharing QR code:', error);
             }
           }
         });
-      }
+        URL.revokeObjectURL(url);
+      };
+      
+      img.src = url;
+    } else {
+      alert('مشاركة الملفات غير مدعومة في هذا المتصفح');
     }
   };
 
@@ -239,7 +256,7 @@ ${data.selectedCities.map(city => `
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <div id="qr-code" className="flex justify-center">
-              <QRCode 
+              <QRCodeSVG 
                 value={generateQRData()} 
                 size={200}
                 level="M"
