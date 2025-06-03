@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { BookingData, CityStay } from '@/types/booking';
-import { transportPricing, mandatoryToursRules } from '@/data/transportRules';
+import { transportPricing, calculateMandatoryTours } from '@/data/transportRules';
 import { useCitiesData } from '@/hooks/useCitiesData';
 import { useAllHotelsData } from '@/hooks/useHotelsData';
 import { useTransportData } from '@/hooks/useTransportData';
@@ -67,42 +67,18 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     return selectedCities.reduce((total, city) => total + city.nights, 0);
   };
 
-  // حساب الجولات الإجبارية
-  const calculateMandatoryTours = (cityName: string, cityIndex: number) => {
+  // حساب الجولات الإجبارية - تم تبسيط الحساب حسب القواعد الجديدة
+  const calculateCityMandatoryTours = (cityName: string, cityIndex: number) => {
     if (!carType) return 0;
 
-    let mandatoryTours = 0;
-    
-    if (cityName === 'باتومي') {
-      mandatoryTours = mandatoryToursRules.batumi;
-    } else {
-      mandatoryTours = mandatoryToursRules.default;
-    }
-    
-    const isFirstCity = cityIndex === 0;
-    const isLastCity = cityIndex === selectedCities.length - 1;
-    
-    if (isFirstCity && data.arrivalAirport) {
-      if (data.arrivalAirport === 'TBS') {
-        mandatoryTours = mandatoryToursRules.arrivalRules.TBS;
-      } else if (data.arrivalAirport === 'BUS') {
-        mandatoryTours = mandatoryToursRules.arrivalRules.BUS;
-      } else if (data.arrivalAirport === 'KUT') {
-        mandatoryTours = mandatoryToursRules.arrivalRules.KUT;
-      }
-    }
-    
-    if (isLastCity && data.departureAirport) {
-      if (data.departureAirport === 'TBS') {
-        mandatoryTours = mandatoryToursRules.departureRules.TBS;
-      } else if (data.departureAirport === 'BUS') {
-        mandatoryTours = mandatoryToursRules.departureRules.BUS;
-      } else if (data.departureAirport === 'KUT') {
-        mandatoryTours = mandatoryToursRules.departureRules.KUT;
-      }
-    }
-    
-    return mandatoryTours;
+    // استخدام الدالة الجديدة من transportRules
+    return calculateMandatoryTours(
+      cityName, 
+      data.arrivalAirport || '', 
+      data.departureAirport || '',
+      cityIndex === 0,
+      cityIndex === selectedCities.length - 1
+    );
   };
 
   // إضافة مدينة جديدة
@@ -232,7 +208,7 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   useEffect(() => {
     const updatedCities = selectedCities.map((city, index) => ({
       ...city,
-      mandatoryTours: calculateMandatoryTours(city.city, index)
+      mandatoryTours: calculateCityMandatoryTours(city.city, index)
     }));
     
     if (JSON.stringify(updatedCities) !== JSON.stringify(selectedCities)) {

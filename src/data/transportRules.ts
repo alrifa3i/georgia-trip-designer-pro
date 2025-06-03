@@ -50,22 +50,14 @@ export const transportPricing = {
 
 // قواعد الجولات الإجبارية المحدثة والدقيقة
 export const mandatoryToursRules = {
-  // القواعد العامة للمدن
-  batumi: 2, // باتومي دائماً 2 جولة إجبارية
-  default: 1, // باقي المدن 1 جولة إجبارية
+  // القواعد العامة للمدن - جولة واحدة إجبارية لكل المدن عدا باتومي
+  default: 1,
   
-  // قواعد خاصة حسب مطار الوصول والمغادرة
-  arrivalRules: {
-    'TBS': 0, // إذا كان الوصول تبليسي فلا توجد جولات إجبارية
-    'BUS': 2, // إذا كان الوصول باتومي فهناك 2 جولة إجبارية
-    'KUT': 2  // إذا كان الوصول كوتايسي فهناك 2 جولة إجبارية
-  },
+  // المدن التي لها جولة واحدة إجبارية
+  singleTourCities: ['داش باش', 'كاخيتي', 'كوتايسي', 'برجومي', 'باكورياني', 'كوداوري', 'تبليسي'],
   
-  departureRules: {
-    'TBS': 0, // إذا كانت المغادرة من تبليسي فلا توجد جولات إجبارية
-    'BUS': 2, // إذا كانت المغادرة من باتومي فهناك 2 جولة إجبارية
-    'KUT': 2  // إذا كانت المغادرة من كوتايسي فهناك 2 جولة إجبارية
-  }
+  // المدن التي لها جولتان إجباريتان
+  doubleTourCities: ['باتومي']
 };
 
 // ربط المطارات بالمدن
@@ -85,34 +77,13 @@ export const calculateMandatoryTours = (
 ): number => {
   let mandatoryTours = 0;
 
-  // القاعدة الأساسية: باتومي = 2 جولات، باقي المدن = 1 جولة
-  if (cityName === 'باتومي') {
-    mandatoryTours = 2;
+  // القاعدة الأساسية: تحديد عدد الجولات حسب المدينة
+  if (mandatoryToursRules.doubleTourCities.includes(cityName)) {
+    mandatoryTours = 2; // باتومي = 2 جولات
+  } else if (mandatoryToursRules.singleTourCities.includes(cityName)) {
+    mandatoryTours = 1; // باقي المدن = 1 جولة
   } else {
-    mandatoryTours = 1;
-  }
-
-  // تطبيق قواعد المطارات على المدينة الأولى والأخيرة فقط
-  if (isFirstCity) {
-    // إذا كانت المدينة الأولى وكان مطار الوصول تبليسي
-    if (arrivalAirport === 'TBS') {
-      mandatoryTours = 0;
-    }
-    // إذا كان مطار الوصول باتومي أو كوتايسي
-    else if (arrivalAirport === 'BUS' || arrivalAirport === 'KUT') {
-      mandatoryTours = 2;
-    }
-  }
-  
-  if (isLastCity) {
-    // إذا كانت المدينة الأخيرة وكان مطار المغادرة تبليسي
-    if (departureAirport === 'TBS') {
-      mandatoryTours = 0;
-    }
-    // إذا كان مطار المغادرة باتومي أو كوتايسي
-    else if (departureAirport === 'BUS' || departureAirport === 'KUT') {
-      mandatoryTours = 2;
-    }
+    mandatoryTours = mandatoryToursRules.default; // افتراضي = 1 جولة
   }
 
   return mandatoryTours;
