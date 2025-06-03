@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { BookingData } from '@/types/booking';
-import { hotelData, transportData, additionalServicesData, currencies } from '@/data/hotels';
+import { additionalServicesData } from '@/data/hotels';
 import { transportPricing, calculateTransportServicesCosts } from '@/data/transportRules';
+import { useHotelData } from '@/hooks/useHotelData';
 import { Calculator, DollarSign, Users, Building, MapPin, Car, Plane } from 'lucide-react';
 
 interface PricingDetailsStepProps {
@@ -17,6 +18,7 @@ interface PricingDetailsStepProps {
 export const PricingDetailsStep = ({ data, updateData, onValidationChange }: PricingDetailsStepProps) => {
   const [totalCost, setTotalCost] = useState(0);
   const [breakdown, setBreakdown] = useState<any>({});
+  const { hotels: databaseHotels, loading: hotelsLoading } = useHotelData();
 
   // Function to get incomplete fields
   const getIncompleteFields = useCallback(() => {
@@ -42,62 +44,82 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
 
     console.log('=== CALCULATING COSTS ===');
     console.log('Selected cities:', data.selectedCities);
+    console.log('Database hotels:', databaseHotels);
 
-    // حساب تكلفة الفنادق - Fixed calculation
+    // حساب تكلفة الفنادق - إصلاح الحساب
     data.selectedCities.forEach((city, cityIndex) => {
       console.log(`Processing city ${cityIndex + 1}: ${city.city}`);
       
-      const cityHotels = hotelData[city.city] || [];
-      const selectedHotel = cityHotels.find(hotel => hotel.name === city.hotel);
-      
-      if (selectedHotel && city.roomSelections && city.roomSelections.length > 0) {
-        let cityRoomCostPerNight = 0;
+      if (city.city && city.hotel && city.roomSelections && city.roomSelections.length > 0) {
+        // البحث عن الفندق في قاعدة البيانات
+        const cityHotels = databaseHotels[city.city] || [];
+        const selectedHotel = cityHotels.find(hotel => hotel.name === city.hotel);
         
-        // حساب تكلفة جميع الغرف في هذه المدينة
-        city.roomSelections.forEach((room, roomIndex) => {
-          let roomPrice = 0;
+        if (selectedHotel) {
+          let cityRoomCostPerNight = 0;
           
-          console.log(`Room ${roomIndex + 1} type: ${room.roomType}`);
+          console.log(`Found hotel: ${selectedHotel.name}`);
+          console.log('Hotel prices:', {
+            single_price: selectedHotel.single_price,
+            single_view_price: selectedHotel.single_view_price,
+            double_without_view_price: selectedHotel.double_without_view_price,
+            double_view_price: selectedHotel.double_view_price,
+            triple_without_view_price: selectedHotel.triple_without_view_price,
+            triple_view_price: selectedHotel.triple_view_price
+          });
           
-          switch (room.roomType) {
-            case 'single':
-              roomPrice = selectedHotel.single_price || 0;
-              break;
-            case 'single_v':
-              roomPrice = selectedHotel.single_view_price || 0;
-              break;
-            case 'dbl_wv':
-              roomPrice = selectedHotel.double_without_view_price || 0;
-              break;
-            case 'dbl_v':
-              roomPrice = selectedHotel.double_view_price || 0;
-              break;
-            case 'trbl_wv':
-              roomPrice = selectedHotel.triple_without_view_price || 0;
-              break;
-            case 'trbl_v':
-              roomPrice = selectedHotel.triple_view_price || 0;
-              break;
-          }
-          
-          console.log(`Room ${roomIndex + 1} price per night: $${roomPrice}`);
-          cityRoomCostPerNight += roomPrice;
-        });
+          // حساب تكلفة جميع الغرف في هذه المدينة
+          city.roomSelections.forEach((room, roomIndex) => {
+            let roomPrice = 0;
+            
+            console.log(`Room ${roomIndex + 1} type: ${room.roomType}`);
+            
+            switch (room.roomType) {
+              case 'single':
+                roomPrice = selectedHotel.single_price || 0;
+                break;
+              case 'single_v':
+                roomPrice = selectedHotel.single_view_price || 0;
+                break;
+              case 'dbl_wv':
+                roomPrice = selectedHotel.double_without_view_price || 0;
+                break;
+              case 'dbl_v':
+                roomPrice = selectedHotel.double_view_price || 0;
+                break;
+              case 'trbl_wv':
+                roomPrice = selectedHotel.triple_without_view_price || 0;
+                break;
+              case 'trbl_v':
+                roomPrice = selectedHotel.triple_view_price || 0;
+                break;
+            }
+            
+            console.log(`Room ${roomIndex + 1} price per night: $${roomPrice}`);
+            cityRoomCostPerNight += roomPrice;
+          });
 
-        // المجموع = (مجموع أسعار الغرف) × عدد الليالي
-        const cityTotalCost = cityRoomCostPerNight * city.nights;
-        hotelsCost += cityTotalCost;
-        
-        console.log(`City ${city.city}: $${cityRoomCostPerNight}/night × ${city.nights} nights = $${cityTotalCost}`);
+          // المجموع = (مجموع أسعار الغرف) × عدد الليالي
+          const cityTotalCost = cityRoomCostPerNight * city.nights;
+          hotelsCost += cityTotalCost;
+          
+          console.log(`City ${city.city}: $${cityRoomCostPerNight}/night × ${city.nights} nights = $${cityTotalCost}`);
+        } else {
+          console.log(`Hotel not found: ${city.hotel} in ${city.city}`);
+        }
       }
     });
 
-    // حساب تكلفة الجولات
-    const selectedTransport = transportData.find(t => t.type === data.carType);
-    if (selectedTransport) {
+    // حساب تكلفة الجولات باستخدام transportPricing
+    if (data.carType && transportPricing[data.carType as keyof typeof transportPricing]) {
+      const transport = transportPricing[data.carType as keyof typeof transportPricing];
+      console.log('Transport pricing for', data.carType, ':', transport);
+      
       data.selectedCities.forEach(city => {
         const totalTours = (city.tours || 0) + (city.mandatoryTours || 0);
-        toursCost += totalTours * selectedTransport.daily_price;
+        const cityTourCost = totalTours * transport.dailyPrice;
+        toursCost += cityTourCost;
+        console.log(`${city.city}: ${totalTours} tours × $${transport.dailyPrice} = $${cityTourCost}`);
       });
     }
 
@@ -109,6 +131,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         data.carType
       );
       transportServicesCost = transportCosts.total;
+      console.log('Transport services cost:', transportCosts);
     }
 
     // حساب تكلفة الخدمات الإضافية
@@ -146,11 +169,15 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     const withProfitMargin = afterDiscount * 1.22;
     const finalTotal = Math.round(withProfitMargin / 10) * 10;
 
-    console.log('Total hotel cost:', hotelsCost);
-    console.log('Total tour cost:', toursCost);
-    console.log('Total transport cost:', transportServicesCost);
-    console.log('Total additional services:', additionalServicesCost);
-    console.log('Final total:', finalTotal);
+    console.log('=== FINAL COST BREAKDOWN ===');
+    console.log('Hotel costs: $', hotelsCost);
+    console.log('Tour costs: $', toursCost);
+    console.log('Transport services costs: $', transportServicesCost);
+    console.log('Additional services costs: $', additionalServicesCost);
+    console.log('Subtotal: $', subtotal);
+    console.log('After discount: $', afterDiscount);
+    console.log('With profit margin (22%): $', withProfitMargin);
+    console.log('Final total (rounded): $', finalTotal);
 
     return {
       hotels: hotelsCost,
@@ -167,7 +194,8 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     data.arrivalAirport,
     data.departureAirport,
     data.additionalServices,
-    data.discountAmount
+    data.discountAmount,
+    databaseHotels
   ]);
 
   // Update state only when calculations change
@@ -188,12 +216,20 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     }
   }, [onValidationChange]);
 
-  const currentCurrency = currencies.find(c => c.code === data.currency);
-  const exchangeRate = currentCurrency?.exchangeRate || 1;
+  // إذا كانت البيانات لا تزال تحمل
+  if (hotelsLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري تحميل بيانات الفنادق...</p>
+        </div>
+      </div>
+    );
+  }
 
   const formatPrice = (amount: number) => {
-    const convertedAmount = amount * exchangeRate;
-    return `${convertedAmount.toFixed(2)} ${currentCurrency?.symbol || '$'}`;
+    return `${amount.toFixed(2)} $`;
   };
 
   // حساب عدد الأشخاص
@@ -300,6 +336,67 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardContent>
       </Card>
 
+      {/* تفاصيل التكلفة */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-green-600" />
+            تفصيل التكلفة
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center text-lg">
+              <span className="font-semibold">تكلفة الإقامة</span>
+              <span className="font-bold">{formatPrice(breakdown.hotels || 0)}</span>
+            </div>
+            
+            <div className="flex justify-between items-center text-lg">
+              <span className="font-semibold">تكلفة الجولات</span>
+              <span className="font-bold">{formatPrice(breakdown.tours || 0)}</span>
+            </div>
+            
+            <div className="flex justify-between items-center text-lg">
+              <span className="font-semibold">خدمات النقل (استقبال + توديع)</span>
+              <span className="font-bold">{formatPrice(breakdown.transportServices || 0)}</span>
+            </div>
+            
+            {breakdown.additionalServices > 0 && (
+              <div className="flex justify-between items-center text-lg">
+                <span className="font-semibold">الخدمات الإضافية</span>
+                <span className="font-bold">{formatPrice(breakdown.additionalServices)}</span>
+              </div>
+            )}
+            
+            <Separator className="border-t-2" />
+            
+            <div className="flex justify-between items-center text-lg">
+              <span className="font-semibold">المجموع الفرعي</span>
+              <span className="font-bold">{formatPrice(breakdown.subtotal || 0)}</span>
+            </div>
+            
+            {breakdown.discount > 0 && (
+              <div className="flex justify-between items-center text-green-600">
+                <span>الخصم</span>
+                <span>-{formatPrice(breakdown.discount)}</span>
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center text-lg">
+              <span className="font-semibold">هامش الربح (22%)</span>
+              <span className="font-bold">{formatPrice((breakdown.subtotal - (breakdown.discount || 0)) * 0.22)}</span>
+            </div>
+            
+            <Separator className="border-t-2" />
+            
+            <div className="flex justify-between items-center text-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-200">
+              <span className="font-bold text-green-800">المجموع النهائي</span>
+              <span className="font-bold text-green-800">{formatPrice(breakdown.total || 0)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* تفاصيل خدمات النقل - بدون أسعار */}
       {data.carType && data.arrivalAirport && data.departureAirport && (
         <Card className="bg-orange-50 border-orange-200">
@@ -346,40 +443,6 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
           </CardContent>
         </Card>
       )}
-
-      {/* السعر النهائي فقط */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-green-600" />
-            السعر الإجمالي
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            {breakdown.discount > 0 && (
-              <>
-                <div className="flex justify-between items-center text-lg">
-                  <span className="font-semibold">المجموع قبل الخصم</span>
-                  <span className="font-bold">{formatPrice(breakdown.subtotal || 0)}</span>
-                </div>
-                
-                <div className="flex justify-between items-center text-green-600">
-                  <span>الخصم</span>
-                  <span>-{formatPrice(breakdown.discount)}</span>
-                </div>
-                
-                <Separator className="border-t-2" />
-              </>
-            )}
-            
-            <div className="flex justify-between items-center text-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-200">
-              <span className="font-bold text-green-800">المجموع النهائي</span>
-              <span className="font-bold text-green-800">{formatPrice(breakdown.total || 0)}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* معلومات إضافية */}
       <Card className="bg-blue-50 border-blue-200">
