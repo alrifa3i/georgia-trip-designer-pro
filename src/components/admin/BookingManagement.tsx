@@ -62,6 +62,7 @@ interface Booking {
   created_at: string;
   updated_at?: string;
   booking_files?: BookingFile[];
+  discount_amount?: number;
 }
 
 export const BookingManagement = () => {
@@ -307,6 +308,31 @@ export const BookingManagement = () => {
     const totalNights = Math.ceil((departureDate.getTime() - arrivalDate.getTime()) / (1000 * 3600 * 24));
     const nightsPerCity = Math.ceil(totalNights / selectedCities.length);
 
+    // Calculate hotel totals for each city
+    const hotelTotals = selectedCities.map((city: any, index: number) => {
+      const roomType = roomTypes[index];
+      const pricePerNight = roomType?.price || city.pricePerNight || 0;
+      const nights = city.nights || nightsPerCity;
+      return {
+        cityName: typeof city === 'string' ? city : city.name,
+        hotelName: city.selectedHotel?.name || city.hotel || 'فندق مختار',
+        nights,
+        pricePerNight,
+        total: nights * pricePerNight * booking.rooms
+      };
+    });
+
+    // Calculate tours total
+    const toursTotal = selectedCities.reduce((total: number, city: any) => {
+      const tours = city.tours || city.mandatoryTours || 1;
+      const tourPrice = city.tourPrice || 50; // Default tour price
+      return total + (tours * tourPrice);
+    }, 0);
+
+    // Calculate reception and farewell costs
+    const receptionCost = 50; // Default reception cost
+    const farewellCost = 50; // Default farewell cost
+
     return {
       booking,
       selectedCities,
@@ -315,7 +341,11 @@ export const BookingManagement = () => {
       additionalServices,
       totalNights,
       nightsPerCity,
-      totalPeople: booking.adults + children.length
+      totalPeople: booking.adults + children.length,
+      hotelTotals,
+      toursTotal,
+      receptionCost,
+      farewellCost
     };
   };
 
@@ -759,42 +789,77 @@ export const BookingManagement = () => {
                       </div>
                     </div>
 
-                    {/* Hotels and Rooms */}
+                    {/* Hotels and Rooms with individual totals */}
                     <div className="border-b pb-4">
                       <h3 className="font-bold text-lg mb-3">الفنادق ونوع الغرف</h3>
                       <div className="space-y-4">
-                        {invoiceData.selectedCities.map((city: any, index: number) => {
-                          const cityName = typeof city === 'string' ? city : city.name;
-                          const roomType = invoiceData.roomTypes[index];
-                          return (
-                            <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                              <div className="grid md:grid-cols-3 gap-4">
-                                <div>
-                                  <p><strong>المدينة:</strong> {cityName}</p>
-                                  <p><strong>الفندق:</strong> {city.selectedHotel?.name || 'فندق مختار'}</p>
-                                </div>
-                                <div>
-                                  <p><strong>نوع الغرفة:</strong> {roomType?.type || 'غرفة مزدوجة'}</p>
-                                  <p><strong>عدد الغرف:</strong> {selectedBooking.rooms}</p>
-                                </div>
-                                <div>
-                                  <p><strong>عدد الليالي:</strong> {invoiceData.nightsPerCity} ليلة</p>
-                                  <p><strong>السعر لكل ليلة:</strong> {roomType?.price || 0} {selectedBooking.currency}</p>
+                        {invoiceData.hotelTotals.map((hotel: any, index: number) => (
+                          <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                            <div className="grid md:grid-cols-4 gap-4">
+                              <div>
+                                <p><strong>المدينة:</strong> {hotel.cityName}</p>
+                                <p><strong>الفندق:</strong> {hotel.hotelName}</p>
+                              </div>
+                              <div>
+                                <p><strong>عدد الليالي:</strong> {hotel.nights}</p>
+                                <p><strong>عدد الغرف:</strong> {selectedBooking.rooms}</p>
+                              </div>
+                              <div>
+                                <p><strong>السعر لكل ليلة:</strong> {hotel.pricePerNight} {selectedBooking.currency}</p>
+                              </div>
+                              <div>
+                                <p><strong>إجمالي الفندق:</strong></p>
+                                <div className="text-lg font-bold text-blue-600">
+                                  {hotel.total.toLocaleString()} {selectedBooking.currency}
                                 </div>
                               </div>
                             </div>
-                          );
-                        })}
+                          </div>
+                        ))}
                       </div>
                     </div>
 
-                    {/* Additional Services */}
-                    {Object.keys(invoiceData.additionalServices).length > 0 && (
+                    {/* Reception and Farewell */}
+                    <div className="border-b pb-4">
+                      <h3 className="font-bold text-lg mb-3">خدمات النقل</h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <p><strong>سعر الاستقبال:</strong></p>
+                          <div className="text-lg font-bold text-blue-600">
+                            {invoiceData.receptionCost.toLocaleString()} {selectedBooking.currency}
+                          </div>
+                        </div>
+                        <div className="bg-orange-50 p-3 rounded-lg">
+                          <p><strong>سعر التوديع:</strong></p>
+                          <div className="text-lg font-bold text-orange-600">
+                            {invoiceData.farewellCost.toLocaleString()} {selectedBooking.currency}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tours Total */}
+                    <div className="border-b pb-4">
+                      <h3 className="font-bold text-lg mb-3">الجولات</h3>
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <p><strong>إجمالي الجولات:</strong></p>
+                          <div className="text-xl font-bold text-purple-600">
+                            {invoiceData.toursTotal.toLocaleString()} {selectedBooking.currency}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional Services (excluding those with 0 price) */}
+                    {Object.entries(invoiceData.additionalServices).filter(([key, serviceData]: [string, any]) => serviceData.price && serviceData.price > 0).length > 0 && (
                       <div className="border-b pb-4">
                         <h3 className="font-bold text-lg mb-3">الخدمات الإضافية</h3>
                         <div className="space-y-3">
-                          {Object.entries(invoiceData.additionalServices).map(([serviceKey, serviceData]: [string, any]) => (
-                            <div key={serviceKey} className="bg-blue-50 p-3 rounded-lg">
+                          {Object.entries(invoiceData.additionalServices)
+                            .filter(([key, serviceData]: [string, any]) => serviceData.price && serviceData.price > 0)
+                            .map(([serviceKey, serviceData]: [string, any]) => (
+                            <div key={serviceKey} className="bg-green-50 p-3 rounded-lg">
                               <div className="grid md:grid-cols-4 gap-4">
                                 <div>
                                   <p><strong>الخدمة:</strong> {serviceData.name || serviceKey}</p>
@@ -819,7 +884,7 @@ export const BookingManagement = () => {
                     {selectedBooking.car_type && (
                       <div className="border-b pb-4">
                         <h3 className="font-bold text-lg mb-3">النقل</h3>
-                        <div className="bg-green-50 p-3 rounded-lg">
+                        <div className="bg-indigo-50 p-3 rounded-lg">
                           <p><strong>نوع المركبة:</strong> {selectedBooking.car_type}</p>
                           <p><strong>مدة الاستخدام:</strong> {invoiceData.totalNights} يوم</p>
                         </div>
