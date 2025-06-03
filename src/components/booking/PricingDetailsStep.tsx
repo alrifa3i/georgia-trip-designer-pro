@@ -264,6 +264,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
       additionalServices: additionalServicesCost,
       subtotal,
       discount: discountAmount,
+      afterDiscount,
       total: finalTotal
     };
   }, [
@@ -497,7 +498,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardContent>
       </Card>
 
-      {/* Final Cost Summary - Only showing final total */}
+      {/* Final Cost Summary */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -508,10 +509,17 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         <CardContent className="space-y-4">
           <div className="space-y-3">
             {breakdown.discount > 0 && (
-              <div className="flex justify-between items-center text-green-600">
-                <span>الخصم ({data.discountCode})</span>
-                <span>-{formatPrice(breakdown.discount)}</span>
-              </div>
+              <>
+                <div className="flex justify-between items-center text-green-600">
+                  <span>الخصم ({data.discountCode})</span>
+                  <span>-{formatPrice(breakdown.discount)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center text-lg font-semibold bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <span className="text-blue-800">السعر بعد الخصم</span>
+                  <span className="text-blue-800">{formatPrice(breakdown.afterDiscount || 0)}</span>
+                </div>
+              </>
             )}
             
             <Separator className="border-t-2" />
