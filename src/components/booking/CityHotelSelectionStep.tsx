@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -201,6 +202,36 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     }
   };
 
+  // Function to get missing required fields
+  const getMissingFields = () => {
+    const missing = [];
+    
+    if (!carType) missing.push('نوع السيارة');
+    if (selectedCities.length === 0) missing.push('إضافة مدينة واحدة على الأقل');
+    
+    selectedCities.forEach((city, index) => {
+      if (!city.city) missing.push(`اختيار المدينة ${index + 1}`);
+      if (!city.hotel) missing.push(`اختيار الفندق للمدينة ${index + 1}`);
+      if (!city.roomSelections || city.roomSelections.length === 0) {
+        missing.push(`إضافة غرفة للمدينة ${index + 1}`);
+      } else {
+        city.roomSelections.forEach((room, roomIndex) => {
+          if (!room.roomType || room.roomType === '') {
+            missing.push(`اختيار نوع الغرفة ${roomIndex + 1} في المدينة ${index + 1}`);
+          }
+        });
+      }
+    });
+
+    const totalNights = getTotalSelectedNights();
+    const requiredNights = getRequiredNights();
+    if (totalNights !== requiredNights) {
+      missing.push(`تطابق عدد الليالي (${totalNights} من ${requiredNights})`);
+    }
+    
+    return missing;
+  };
+
   const requiredNights = getRequiredNights();
   const totalSelectedNights = getTotalSelectedNights();
 
@@ -227,7 +258,8 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
                      city.nights > 0 && 
                      city.hotel &&
                      city.roomSelections &&
-                     city.roomSelections.length > 0
+                     city.roomSelections.length > 0 &&
+                     city.roomSelections.every(room => room.roomType && room.roomType !== '')
                    ) &&
                    totalSelectedNights === requiredNights;
 
@@ -525,6 +557,25 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
           </CardContent>
         </Card>
       </div>
+
+      {/* مؤشر الحقول المطلوبة */}
+      {getMissingFields().length > 0 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4">
+            <div className="text-center">
+              <AlertTriangle className="w-6 h-6 text-amber-600 mx-auto mb-2" />
+              <h4 className="font-semibold text-amber-800 mb-2">يرجى إكمال البيانات التالية:</h4>
+              <div className="flex flex-wrap justify-center gap-2">
+                {getMissingFields().map((field, index) => (
+                  <Badge key={index} variant="outline" className="border-amber-300 text-amber-700 bg-white">
+                    {field}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ملخص المسار */}
       {selectedCities.length > 0 && (
