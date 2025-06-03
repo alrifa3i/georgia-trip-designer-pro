@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,14 +87,20 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
   const addCity = () => {
     const newCity = {
       city: '',
+      name: '', // اسم المدينة
       hotel: '',
+      selectedHotelId: '', // معرف الفندق المختار
       nights: 1,
       tours: 0,
       mandatoryTours: 1,
+      roomType: 'dbl_wv', // نوع الغرفة الافتراضي
       roomSelections: Array.from({ length: data.rooms }, (_, index) => ({
         roomNumber: index + 1,
         roomType: 'dbl_wv'
-      }))
+      })),
+      pricePerNight: 0, // سعر الليلة الواحدة
+      totalPrice: 0, // إجمالي السعر
+      availableTours: [] // الجولات المتاحة
     };
     const updatedCities = [...selectedCities, newCity];
     setSelectedCities(updatedCities);
@@ -112,6 +119,16 @@ export const CityHotelSelectionStep = ({ data, updateData, onValidationChange }:
     
     if (field === 'city') {
       updatedCities[index].hotel = '';
+      updatedCities[index].name = value; // تحديث اسم المدينة
+    }
+    
+    if (field === 'hotel') {
+      // البحث عن الفندق المختار للحصول على معرفه
+      const cityHotels = databaseHotels[updatedCities[index].city] || [];
+      const selectedHotel = cityHotels.find(hotel => hotel.name === value);
+      if (selectedHotel) {
+        updatedCities[index].selectedHotelId = selectedHotel.id || '';
+      }
     }
     
     setSelectedCities(updatedCities);
