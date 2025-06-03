@@ -39,6 +39,8 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passportFile, setPassportFile] = useState<File | null>(null);
   const [ticketFile, setTicketFile] = useState<File | null>(null);
+  const [passportUploaded, setPassportUploaded] = useState(false);
+  const [ticketUploaded, setTicketUploaded] = useState(false);
   const { toast } = useToast();
 
   const formatDate = (dateString: string) => {
@@ -68,6 +70,7 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
     const file = event.target.files?.[0];
     if (file) {
       setPassportFile(file);
+      // محاكاة رفع الملف
       toast({
         title: "تم تحديد ملف الجواز",
         description: "سيتم رفع الملف عند تأكيد الحجز",
@@ -79,6 +82,7 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
     const file = event.target.files?.[0];
     if (file) {
       setTicketFile(file);
+      // محاكاة رفع الملف
       toast({
         title: "تم تحديد ملف التذكرة",
         description: "سيتم رفع الملف عند تأكيد الحجز",
@@ -88,10 +92,12 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
 
   const removePassportFile = () => {
     setPassportFile(null);
+    setPassportUploaded(false);
   };
 
   const removeTicketFile = () => {
     setTicketFile(null);
+    setTicketUploaded(false);
   };
 
   const submitBooking = async () => {
@@ -100,13 +106,13 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
     try {
       const referenceNumber = generateReferenceNumber();
       
-      // إعداد بيانات الحجز للحفظ - تحويل البيانات للصيغة المطلوبة
+      // إعداد بيانات الحجز للحفظ
       const bookingDataToSave = {
         reference_number: referenceNumber,
         customer_name: bookingData.customerName,
         phone_number: bookingData.phoneNumber,
         adults: bookingData.adults,
-        children: JSON.stringify(bookingData.children || []), // تحويل إلى JSON string
+        children: bookingData.children || [],
         arrival_date: bookingData.arrivalDate,
         departure_date: bookingData.departureDate,
         arrival_airport: bookingData.arrivalAirport,
@@ -115,16 +121,14 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
         budget: bookingData.budget,
         currency: bookingData.currency || 'USD',
         car_type: bookingData.carType,
-        room_types: JSON.stringify(bookingData.roomTypes || []), // تحويل إلى JSON string
-        selected_cities: JSON.stringify(bookingData.selectedCities || []), // تحويل إلى JSON string
+        room_types: bookingData.roomTypes || [],
+        selected_cities: bookingData.selectedCities || [],
         total_cost: calculateFinalCost(),
-        additional_services: JSON.stringify(bookingData.additionalServices || {}), // تحويل إلى JSON string
+        additional_services: bookingData.additionalServices || {},
         discount_amount: bookingData.discountAmount || 0,
         discount_coupon: bookingData.discountCoupon || null,
         status: 'pending'
       };
-
-      console.log('Saving booking to database:', bookingDataToSave);
 
       // حفظ الحجز في قاعدة البيانات
       const { data: booking, error: bookingError } = await supabase
@@ -226,12 +230,12 @@ export const FinalConfirmationStep: React.FC<FinalConfirmationStepProps> = ({
                     <span className="font-medium">{city.name}</span>
                     <Badge variant="outline">{city.nights} ليلة</Badge>
                   </div>
-                  {city.selectedHotelId && (
-                    <div className="text-sm text-gray-600 mr-6">
+                  {city.selectedHotels?.map((hotel, hotelIndex) => (
+                    <div key={hotelIndex} className="text-sm text-gray-600 mr-6">
                       <Hotel className="w-3 h-3 inline mr-1" />
-                      فندق محدد في {city.name}
+                      {hotel.name} - {hotel.roomType}
                     </div>
-                  )}
+                  ))}
                 </Card>
               ))}
             </div>
