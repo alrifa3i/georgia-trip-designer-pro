@@ -33,7 +33,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     return incompleteFields;
   }, [totalCost, data.currency, data.selectedCities.length]);
 
-  // حساب تكلفة الفنادق المحدث
+  // حساب تكلفة الفنادق المحدث - الطريقة الصحيحة
   const calculateHotelCosts = useMemo(() => {
     let totalHotelCost = 0;
 
@@ -43,48 +43,55 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     data.selectedCities.forEach((city, cityIndex) => {
       console.log(`معالجة المدينة ${cityIndex + 1}: ${city.city}`);
       
-      const cityHotels = hotelData[city.city] || [];
-      const selectedHotel = cityHotels.find(hotel => hotel.name === city.hotel);
-      
-      if (selectedHotel && city.roomSelections && city.roomSelections.length > 0) {
-        // حساب مجموع تكلفة جميع الغرف في هذه المدينة لليلة الواحدة
-        let totalRoomCostPerNight = 0;
+      if (city.city && city.hotel && city.roomSelections && city.roomSelections.length > 0) {
+        // البحث عن الفندق في hotelData
+        const cityHotels = hotelData[city.city] || [];
+        const selectedHotel = cityHotels.find(hotel => hotel.name === city.hotel);
         
-        city.roomSelections.forEach((room, roomIndex) => {
-          let roomPrice = 0;
+        if (selectedHotel) {
+          console.log(`تم العثور على الفندق: ${selectedHotel.name}`);
           
-          console.log(`الغرفة ${roomIndex + 1} نوع: ${room.roomType}`);
+          // حساب مجموع تكلفة جميع الغرف في هذه المدينة لليلة الواحدة
+          let totalRoomCostPerNight = 0;
           
-          switch (room.roomType) {
-            case 'single':
-              roomPrice = selectedHotel.single_price || 0;
-              break;
-            case 'single_v':
-              roomPrice = selectedHotel.single_view_price || 0;
-              break;
-            case 'dbl_wv':
-              roomPrice = selectedHotel.double_without_view_price || 0;
-              break;
-            case 'dbl_v':
-              roomPrice = selectedHotel.double_view_price || 0;
-              break;
-            case 'trbl_wv':
-              roomPrice = selectedHotel.triple_without_view_price || 0;
-              break;
-            case 'trbl_v':
-              roomPrice = selectedHotel.triple_view_price || 0;
-              break;
-          }
-          
-          console.log(`الغرفة ${roomIndex + 1} سعر الليلة: $${roomPrice}`);
-          totalRoomCostPerNight += roomPrice;
-        });
+          city.roomSelections.forEach((room, roomIndex) => {
+            let roomPrice = 0;
+            
+            console.log(`الغرفة ${roomIndex + 1} نوع: ${room.roomType}`);
+            
+            switch (room.roomType) {
+              case 'single':
+                roomPrice = selectedHotel.single_price || 0;
+                break;
+              case 'single_v':
+                roomPrice = selectedHotel.single_view_price || 0;
+                break;
+              case 'dbl_wv':
+                roomPrice = selectedHotel.double_without_view_price || 0;
+                break;
+              case 'dbl_v':
+                roomPrice = selectedHotel.double_view_price || 0;
+                break;
+              case 'trbl_wv':
+                roomPrice = selectedHotel.triple_without_view_price || 0;
+                break;
+              case 'trbl_v':
+                roomPrice = selectedHotel.triple_view_price || 0;
+                break;
+            }
+            
+            console.log(`الغرفة ${roomIndex + 1} سعر الليلة: $${roomPrice}`);
+            totalRoomCostPerNight += roomPrice;
+          });
 
-        // حساب التكلفة الإجمالية = مجموع الغرف × عدد الليالي
-        const cityTotalCost = totalRoomCostPerNight * city.nights;
-        totalHotelCost += cityTotalCost;
-        
-        console.log(`${city.city}: مجموع الغرف $${totalRoomCostPerNight}/ليلة × ${city.nights} ليالي = $${cityTotalCost}`);
+          // حساب التكلفة الإجمالية = مجموع الغرف × عدد الليالي
+          const cityTotalCost = totalRoomCostPerNight * city.nights;
+          totalHotelCost += cityTotalCost;
+          
+          console.log(`${city.city}: مجموع الغرف $${totalRoomCostPerNight}/ليلة × ${city.nights} ليالي = $${cityTotalCost}`);
+        } else {
+          console.log(`لم يتم العثور على الفندق: ${city.hotel} في المدينة: ${city.city}`);
+        }
       }
     });
 
@@ -92,11 +99,12 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     return totalHotelCost;
   }, [data.selectedCities]);
 
-  // حساب تكلفة الجولات المحدث
+  // حساب تكلفة الجولات المحدث - الطريقة الصحيحة
   const calculateTourCosts = useMemo(() => {
     console.log('=== بداية حساب تكلفة الجولات ===');
     console.log('نوع السيارة المختار:', data.carType);
     
+    // استخدام transportData بدلاً من transportPricing
     const selectedTransport = transportData.find(t => t.type === data.carType);
     if (!selectedTransport) {
       console.log('لم يتم العثور على معلومات السيارة');
@@ -120,7 +128,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     return totalTourCost;
   }, [data.selectedCities, data.carType]);
 
-  // حساب تكلفة خدمات النقل (الاستقبال والتوديع) المحدث
+  // حساب تكلفة خدمات النقل (الاستقبال والتوديع) المحدث - الطريقة الصحيحة
   const calculateTransportCosts = useMemo(() => {
     console.log('=== بداية حساب تكلفة خدمات النقل ===');
     
