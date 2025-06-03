@@ -33,31 +33,27 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
     return incompleteFields;
   }, [totalCost, data.currency, data.selectedCities.length]);
 
-  // Memoized cost calculations to prevent infinite loops
-  const costCalculations = useMemo(() => {
-    let hotelsCost = 0;
-    let toursCost = 0;
-    let transportServicesCost = 0;
-    let additionalServicesCost = 0;
+  // حساب تكلفة الفنادق المحدث
+  const calculateHotelCosts = useMemo(() => {
+    let totalHotelCost = 0;
 
-    console.log('=== CALCULATING COSTS ===');
-    console.log('Selected cities:', data.selectedCities);
+    console.log('=== بداية حساب تكلفة الفنادق ===');
+    console.log('المدن المختارة:', data.selectedCities);
 
-    // حساب تكلفة الفنادق - Fixed calculation
     data.selectedCities.forEach((city, cityIndex) => {
-      console.log(`Processing city ${cityIndex + 1}: ${city.city}`);
+      console.log(`معالجة المدينة ${cityIndex + 1}: ${city.city}`);
       
       const cityHotels = hotelData[city.city] || [];
       const selectedHotel = cityHotels.find(hotel => hotel.name === city.hotel);
       
       if (selectedHotel && city.roomSelections && city.roomSelections.length > 0) {
-        let cityRoomCostPerNight = 0;
+        // حساب مجموع تكلفة جميع الغرف في هذه المدينة لليلة الواحدة
+        let totalRoomCostPerNight = 0;
         
-        // حساب تكلفة جميع الغرف في هذه المدينة
         city.roomSelections.forEach((room, roomIndex) => {
           let roomPrice = 0;
           
-          console.log(`Room ${roomIndex + 1} type: ${room.roomType}`);
+          console.log(`الغرفة ${roomIndex + 1} نوع: ${room.roomType}`);
           
           switch (room.roomType) {
             case 'single':
@@ -80,77 +76,146 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
               break;
           }
           
-          console.log(`Room ${roomIndex + 1} price per night: $${roomPrice}`);
-          cityRoomCostPerNight += roomPrice;
+          console.log(`الغرفة ${roomIndex + 1} سعر الليلة: $${roomPrice}`);
+          totalRoomCostPerNight += roomPrice;
         });
 
-        // المجموع = (مجموع أسعار الغرف) × عدد الليالي
-        const cityTotalCost = cityRoomCostPerNight * city.nights;
-        hotelsCost += cityTotalCost;
+        // حساب التكلفة الإجمالية = مجموع الغرف × عدد الليالي
+        const cityTotalCost = totalRoomCostPerNight * city.nights;
+        totalHotelCost += cityTotalCost;
         
-        console.log(`City ${city.city}: $${cityRoomCostPerNight}/night × ${city.nights} nights = $${cityTotalCost}`);
+        console.log(`${city.city}: مجموع الغرف $${totalRoomCostPerNight}/ليلة × ${city.nights} ليالي = $${cityTotalCost}`);
       }
     });
 
-    // حساب تكلفة الجولات
+    console.log('إجمالي تكلفة الفنادق:', totalHotelCost);
+    return totalHotelCost;
+  }, [data.selectedCities]);
+
+  // حساب تكلفة الجولات المحدث
+  const calculateTourCosts = useMemo(() => {
+    console.log('=== بداية حساب تكلفة الجولات ===');
+    console.log('نوع السيارة المختار:', data.carType);
+    
     const selectedTransport = transportData.find(t => t.type === data.carType);
-    if (selectedTransport) {
-      data.selectedCities.forEach(city => {
-        const totalTours = (city.tours || 0) + (city.mandatoryTours || 0);
-        toursCost += totalTours * selectedTransport.daily_price;
-      });
+    if (!selectedTransport) {
+      console.log('لم يتم العثور على معلومات السيارة');
+      return 0;
     }
 
-    // حساب تكلفة خدمات النقل (الاستقبال والتوديع)
-    if (data.carType && data.arrivalAirport && data.departureAirport) {
-      const transportCosts = calculateTransportServicesCosts(
-        data.arrivalAirport,
-        data.departureAirport,
-        data.carType
-      );
-      transportServicesCost = transportCosts.total;
+    let totalTourCost = 0;
+    
+    data.selectedCities.forEach(city => {
+      const regularTours = city.tours || 0;
+      const mandatoryTours = city.mandatoryTours || 1;
+      const totalTours = regularTours + mandatoryTours;
+      
+      const cityTourCost = totalTours * selectedTransport.daily_price;
+      totalTourCost += cityTourCost;
+      
+      console.log(`${city.city}: ${totalTours} جولات (${regularTours} اختيارية + ${mandatoryTours} إجبارية) × $${selectedTransport.daily_price} = $${cityTourCost}`);
+    });
+
+    console.log('إجمالي تكلفة الجولات:', totalTourCost);
+    return totalTourCost;
+  }, [data.selectedCities, data.carType]);
+
+  // حساب تكلفة خدمات النقل (الاستقبال والتوديع) المحدث
+  const calculateTransportCosts = useMemo(() => {
+    console.log('=== بداية حساب تكلفة خدمات النقل ===');
+    
+    if (!data.carType || !data.arrivalAirport || !data.departureAirport) {
+      console.log('بيانات النقل غير مكتملة');
+      return 0;
     }
 
-    // حساب تكلفة الخدمات الإضافية
+    const transportCosts = calculateTransportServicesCosts(
+      data.arrivalAirport,
+      data.departureAirport,
+      data.carType
+    );
+
+    console.log('تكلفة الاستقبال:', transportCosts.reception);
+    console.log('تكلفة التوديع:', transportCosts.farewell);
+    console.log('إجمالي تكلفة النقل:', transportCosts.total);
+    
+    return transportCosts.total;
+  }, [data.carType, data.arrivalAirport, data.departureAirport]);
+
+  // حساب تكلفة الخدمات الإضافية
+  const calculateAdditionalServicesCosts = useMemo(() => {
+    let totalCost = 0;
     const services = data.additionalServices;
+
+    console.log('=== بداية حساب تكلفة الخدمات الإضافية ===');
     
     if (services.travelInsurance.enabled) {
-      additionalServicesCost += services.travelInsurance.persons * additionalServicesData.travelInsurance.pricePerPerson;
+      const cost = services.travelInsurance.persons * additionalServicesData.travelInsurance.pricePerPerson;
+      totalCost += cost;
+      console.log(`تأمين السفر: ${services.travelInsurance.persons} أشخاص × $${additionalServicesData.travelInsurance.pricePerPerson} = $${cost}`);
     }
     
     if (services.phoneLines.enabled) {
-      additionalServicesCost += services.phoneLines.quantity * additionalServicesData.phoneLines.pricePerLine;
+      const cost = services.phoneLines.quantity * additionalServicesData.phoneLines.pricePerLine;
+      totalCost += cost;
+      console.log(`خطوط الهاتف: ${services.phoneLines.quantity} خطوط × $${additionalServicesData.phoneLines.pricePerLine} = $${cost}`);
     }
     
     if (services.roomDecoration.enabled) {
-      additionalServicesCost += additionalServicesData.roomDecoration.price;
+      totalCost += additionalServicesData.roomDecoration.price;
+      console.log(`تزيين الغرفة: $${additionalServicesData.roomDecoration.price}`);
     }
     
     if (services.airportReception.enabled) {
-      additionalServicesCost += services.airportReception.persons * additionalServicesData.airportReception.pricePerPerson;
+      const cost = services.airportReception.persons * additionalServicesData.airportReception.pricePerPerson;
+      totalCost += cost;
+      console.log(`استقبال المطار VIP: ${services.airportReception.persons} أشخاص × $${additionalServicesData.airportReception.pricePerPerson} = $${cost}`);
     }
     
     if (services.photoSession.enabled) {
-      additionalServicesCost += additionalServicesData.photoSession.price;
+      totalCost += additionalServicesData.photoSession.price;
+      console.log(`جلسة تصوير: $${additionalServicesData.photoSession.price}`);
     }
     
     if (services.flowerReception.enabled) {
-      additionalServicesCost += additionalServicesData.flowerReception.price;
+      totalCost += additionalServicesData.flowerReception.price;
+      console.log(`استقبال بالورود: $${additionalServicesData.flowerReception.price}`);
     }
 
-    const subtotal = hotelsCost + toursCost + transportServicesCost + additionalServicesCost;
-    const discountAmount = data.discountAmount || 0;
+    console.log('إجمالي تكلفة الخدمات الإضافية:', totalCost);
+    return totalCost;
+  }, [data.additionalServices]);
+
+  // حساب التكلفة الإجمالية النهائية
+  const finalCalculations = useMemo(() => {
+    const hotelsCost = calculateHotelCosts;
+    const toursCost = calculateTourCosts;
+    const transportServicesCost = calculateTransportCosts;
+    const additionalServicesCost = calculateAdditionalServicesCosts;
     
-    // إضافة هامش الربح 22% مع التقريب لأقرب 10
+    // المجموع الفرعي
+    const subtotal = hotelsCost + toursCost + transportServicesCost + additionalServicesCost;
+    
+    // تطبيق الخصم إن وجد
+    const discountAmount = data.discountAmount || 0;
     const afterDiscount = subtotal - discountAmount;
+    
+    // إضافة هامش الربح 22%
     const withProfitMargin = afterDiscount * 1.22;
+    
+    // التقريب لأقرب 10
     const finalTotal = Math.round(withProfitMargin / 10) * 10;
 
-    console.log('Total hotel cost:', hotelsCost);
-    console.log('Total tour cost:', toursCost);
-    console.log('Total transport cost:', transportServicesCost);
-    console.log('Total additional services:', additionalServicesCost);
-    console.log('Final total:', finalTotal);
+    console.log('=== الحساب النهائي ===');
+    console.log('تكلفة الفنادق:', hotelsCost);
+    console.log('تكلفة الجولات:', toursCost);
+    console.log('تكلفة خدمات النقل:', transportServicesCost);
+    console.log('تكلفة الخدمات الإضافية:', additionalServicesCost);
+    console.log('المجموع الفرعي:', subtotal);
+    console.log('الخصم:', discountAmount);
+    console.log('بعد الخصم:', afterDiscount);
+    console.log('مع هامش الربح 22%:', withProfitMargin);
+    console.log('الإجمالي النهائي:', finalTotal);
 
     return {
       hotels: hotelsCost,
@@ -161,27 +226,16 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
       discount: discountAmount,
       total: finalTotal
     };
-  }, [
-    data.selectedCities,
-    data.carType,
-    data.arrivalAirport,
-    data.departureAirport,
-    data.additionalServices,
-    data.discountAmount
-  ]);
+  }, [calculateHotelCosts, calculateTourCosts, calculateTransportCosts, calculateAdditionalServicesCosts, data.discountAmount]);
 
-  // Update state only when calculations change
+  // تحديث الحالة عند تغير الحسابات
   useEffect(() => {
-    setTotalCost(costCalculations.total);
-    setBreakdown(costCalculations);
-  }, [costCalculations]);
+    setTotalCost(finalCalculations.total);
+    setBreakdown(finalCalculations);
+    updateData({ totalCost: finalCalculations.total });
+  }, [finalCalculations, updateData]);
 
-  // Update parent data only when total cost changes
-  useEffect(() => {
-    updateData({ totalCost: costCalculations.total });
-  }, [costCalculations.total, updateData]);
-
-  // Validation check
+  // التحقق من صحة البيانات
   useEffect(() => {
     if (onValidationChange) {
       onValidationChange(true);
