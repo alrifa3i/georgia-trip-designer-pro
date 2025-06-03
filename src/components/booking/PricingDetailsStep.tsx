@@ -21,17 +21,17 @@ import {
 import { BookingData } from '@/types/booking';
 
 interface PricingDetailsStepProps {
-  bookingData: BookingData;
-  onNext: (data: Partial<BookingData>) => void;
-  onPrevious: () => void;
+  data: BookingData;
+  updateData: (data: Partial<BookingData>) => void;
+  onValidationChange: (isValid: boolean) => void;
 }
 
 export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
-  bookingData,
-  onNext,
-  onPrevious
+  data,
+  updateData,
+  onValidationChange
 }) => {
-  const [discountCode, setDiscountCode] = useState(bookingData.discountCoupon || '');
+  const [discountCode, setDiscountCode] = useState(data?.discountCoupon || '');
   const [discountApplied, setDiscountApplied] = useState(false);
   const [discountPercentage, setDiscountPercentage] = useState(0);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
@@ -39,14 +39,19 @@ export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
 
   // تطبيق الخصم المحفوظ مسبقاً عند تحميل المكون
   useEffect(() => {
-    if (bookingData.discountCoupon && bookingData.discountAmount && bookingData.discountAmount > 0) {
-      setDiscountCode(bookingData.discountCoupon);
+    if (data?.discountCoupon && data?.discountAmount && data.discountAmount > 0) {
+      setDiscountCode(data.discountCoupon);
       setDiscountApplied(true);
       // حساب نسبة الخصم من المبلغ المحفوظ
-      const percentage = (bookingData.discountAmount / (bookingData.totalCost || 0)) * 100;
+      const percentage = (data.discountAmount / (data.totalCost || 0)) * 100;
       setDiscountPercentage(percentage);
     }
-  }, [bookingData.discountCoupon, bookingData.discountAmount, bookingData.totalCost]);
+  }, [data?.discountCoupon, data?.discountAmount, data?.totalCost]);
+
+  // تحديث حالة التحقق دائماً
+  useEffect(() => {
+    onValidationChange(true);
+  }, [onValidationChange]);
 
   const validateDiscountCode = async () => {
     if (!discountCode.trim()) {
@@ -61,14 +66,14 @@ export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
     setIsValidatingCode(true);
     
     try {
-      const { data, error } = await supabase
+      const { data: discountData, error } = await supabase
         .from('discount_codes')
         .select('*')
         .eq('code', discountCode.toUpperCase())
         .eq('is_active', true)
         .single();
 
-      if (error || !data) {
+      if (error || !discountData) {
         toast({
           title: "كود خصم غير صالح",
           description: "الكود المدخل غير موجود أو غير فعال",
@@ -78,7 +83,7 @@ export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
       }
 
       // فحص انتهاء الصلاحية
-      if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      if (discountData.expires_at && new Date(discountData.expires_at) < new Date()) {
         toast({
           title: "كود منتهي الصلاحية",
           description: "كود الخصم المدخل منتهي الصلاحية",
@@ -88,7 +93,7 @@ export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
       }
 
       // فحص الحد الأقصى للاستخدام
-      if (data.max_uses && data.current_uses >= data.max_uses) {
+      if (discountData.max_uses && discountData.current_uses >= discountData.max_uses) {
         toast({
           title: "كود مستنفد",
           description: "تم استنفاد عدد مرات استخدام هذا الكود",
@@ -98,12 +103,19 @@ export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
       }
 
       // تطبيق الخصم
-      setDiscountPercentage(data.discount_percentage);
+      setDiscountPercentage(discountData.discount_percentage);
       setDiscountApplied(true);
+      
+      // تحديث البيانات
+      const discountAmount = (data?.totalCost || 0) * (discountData.discount_percentage / 100);
+      updateData({
+        discountCoupon: discountCode.toUpperCase(),
+        discountAmount: discountAmount
+      });
       
       toast({
         title: "تم تطبيق الخصم",
-        description: `تم تطبيق خصم ${data.discount_percentage}% بنجاح`,
+        description: `تم تطبيق خصم ${discountData.discount_percentage}% بنجاح`,
       });
 
     } catch (error) {
@@ -123,6 +135,11 @@ export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
     setDiscountPercentage(0);
     setDiscountApplied(false);
     
+    updateData({
+      discountCoupon: '',
+      discountAmount: 0
+    });
+    
     toast({
       title: "تم إلغاء الخصم",
       description: "تم إلغاء كود الخصم",
@@ -131,28 +148,22 @@ export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
 
   const calculateDiscountAmount = () => {
     if (!discountApplied || discountPercentage === 0) return 0;
-    return (bookingData.totalCost || 0) * (discountPercentage / 100);
+    return (data?.totalCost || 0) * (discountPercentage / 100);
   };
 
   const calculateFinalTotal = () => {
-    const baseTotal = bookingData.totalCost || 0;
+    const baseTotal = data?.totalCost || 0;
     const discountAmount = calculateDiscountAmount();
     return baseTotal - discountAmount;
   };
 
-  const handleNext = () => {
-    const discountAmount = calculateDiscountAmount();
-    
-    onNext({
-      discountCoupon: discountApplied ? discountCode.toUpperCase() : null,
-      discountAmount: discountAmount,
-      finalTotal: calculateFinalTotal()
-    });
+  const formatCurrency = (amount: number) => {
+    return `${amount.toFixed(2)} ${data?.currency || 'USD'}`;
   };
 
-  const formatCurrency = (amount: number) => {
-    return `${amount.toFixed(2)} ${bookingData.currency || 'USD'}`;
-  };
+  if (!data) {
+    return <div>جاري التحميل...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -230,7 +241,7 @@ export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
                 <>
                   <div className="flex justify-between text-sm">
                     <span>المجموع قبل الخصم:</span>
-                    <span>{formatCurrency(bookingData.totalCost || 0)}</span>
+                    <span>{formatCurrency(data.totalCost || 0)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-green-600">
                     <span>خصم ({discountPercentage}%):</span>
@@ -256,21 +267,6 @@ export const PricingDetailsStep: React.FC<PricingDetailsStepProps> = ({
                 <strong>ملاحظة:</strong> لا يوجد دفع عبر الموقع - الدفع فقط عند الوصول
               </p>
             </div>
-          </div>
-
-          <Separator />
-
-          {/* أزرار التنقل */}
-          <div className="flex justify-between pt-4">
-            <Button variant="outline" onClick={onPrevious}>
-              السابق
-            </Button>
-            <Button 
-              onClick={handleNext}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              متابعة للتأكيد النهائي
-            </Button>
           </div>
         </CardContent>
       </Card>
