@@ -24,7 +24,8 @@ import {
   Trash2,
   RefreshCw,
   Info,
-  Plane
+  Plane,
+  Receipt
 } from 'lucide-react';
 
 interface BookingFile {
@@ -70,6 +71,7 @@ export const BookingManagement = () => {
   const [uploadingFiles, setUploadingFiles] = useState<{ [key: string]: boolean }>({});
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<Booking | null>(null);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const { toast } = useToast();
   
   const {
@@ -133,6 +135,12 @@ export const BookingManagement = () => {
     setShowDetailsDialog(true);
   };
 
+  const showInvoice = (booking: Booking) => {
+    const invoiceData = generateInvoiceContent(booking);
+    setSelectedBooking(booking);
+    setShowInvoiceDialog(true);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed': return 'default';
@@ -155,7 +163,7 @@ export const BookingManagement = () => {
 
   const formatDateArabic = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ar-SA', {
+    return date.toLocaleDateString('ar-IQ', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -287,6 +295,30 @@ export const BookingManagement = () => {
     return defaultValue;
   };
 
+  const generateInvoiceContent = (booking: Booking) => {
+    const selectedCities = parseJsonField(booking.selected_cities, []);
+    const roomTypes = parseJsonField(booking.room_types, []);
+    const children = parseJsonField(booking.children, []);
+    const additionalServices = parseJsonField(booking.additional_services, {});
+    
+    // Calculate nights for each city based on arrival and departure dates
+    const arrivalDate = new Date(booking.arrival_date);
+    const departureDate = new Date(booking.departure_date);
+    const totalNights = Math.ceil((departureDate.getTime() - arrivalDate.getTime()) / (1000 * 3600 * 24));
+    const nightsPerCity = Math.ceil(totalNights / selectedCities.length);
+
+    return {
+      booking,
+      selectedCities,
+      roomTypes,
+      children,
+      additionalServices,
+      totalNights,
+      nightsPerCity,
+      totalPeople: booking.adults + children.length
+    };
+  };
+
   const getBookingDetailsText = (booking: Booking) => {
     const selectedCities = parseJsonField(booking.selected_cities, []);
     const roomTypes = parseJsonField(booking.room_types, []);
@@ -370,7 +402,20 @@ export const BookingManagement = () => {
                   return (
                     <TableRow key={booking.id}>
                       <TableCell className="font-medium">{booking.reference_number}</TableCell>
-                      <TableCell>{booking.customer_name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{booking.customer_name}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => showInvoice(booking)}
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            <Receipt className="w-4 h-4 mr-1" />
+                            فاتورة
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell>{booking.phone_number}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -663,6 +708,156 @@ export const BookingManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Invoice Dialog */}
+      <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="w-5 h-5" />
+              فاتورة الحجز - {selectedBooking?.reference_number}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedBooking && (
+            <div className="space-y-6">
+              {(() => {
+                const invoiceData = generateInvoiceContent(selectedBooking);
+                return (
+                  <div className="space-y-6">
+                    {/* Header Information */}
+                    <div className="border-b pb-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="font-bold text-lg">معلومات العميل</h3>
+                          <p><strong>الاسم:</strong> {selectedBooking.customer_name}</p>
+                          <p><strong>الهاتف:</strong> {selectedBooking.phone_number}</p>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg">معلومات الحجز</h3>
+                          <p><strong>رقم المرجع:</strong> {selectedBooking.reference_number}</p>
+                          <p><strong>تاريخ الحجز:</strong> {formatDateArabic(selectedBooking.created_at)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Trip Details */}
+                    <div className="border-b pb-4">
+                      <h3 className="font-bold text-lg mb-3">تفاصيل الرحلة</h3>
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div>
+                          <p><strong>تاريخ الوصول:</strong> {formatDateArabic(selectedBooking.arrival_date)}</p>
+                          <p><strong>مطار الوصول:</strong> {selectedBooking.arrival_airport || 'غير محدد'}</p>
+                        </div>
+                        <div>
+                          <p><strong>تاريخ المغادرة:</strong> {formatDateArabic(selectedBooking.departure_date)}</p>
+                          <p><strong>مطار المغادرة:</strong> {selectedBooking.departure_airport || 'غير محدد'}</p>
+                        </div>
+                        <div>
+                          <p><strong>إجمالي الليالي:</strong> {invoiceData.totalNights} ليلة</p>
+                          <p><strong>عدد المسافرين:</strong> {invoiceData.totalPeople} شخص</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Hotels and Rooms */}
+                    <div className="border-b pb-4">
+                      <h3 className="font-bold text-lg mb-3">الفنادق ونوع الغرف</h3>
+                      <div className="space-y-4">
+                        {invoiceData.selectedCities.map((city: any, index: number) => {
+                          const cityName = typeof city === 'string' ? city : city.name;
+                          const roomType = invoiceData.roomTypes[index];
+                          return (
+                            <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                              <div className="grid md:grid-cols-3 gap-4">
+                                <div>
+                                  <p><strong>المدينة:</strong> {cityName}</p>
+                                  <p><strong>الفندق:</strong> {city.selectedHotel?.name || 'فندق مختار'}</p>
+                                </div>
+                                <div>
+                                  <p><strong>نوع الغرفة:</strong> {roomType?.type || 'غرفة مزدوجة'}</p>
+                                  <p><strong>عدد الغرف:</strong> {selectedBooking.rooms}</p>
+                                </div>
+                                <div>
+                                  <p><strong>عدد الليالي:</strong> {invoiceData.nightsPerCity} ليلة</p>
+                                  <p><strong>السعر لكل ليلة:</strong> {roomType?.price || 0} {selectedBooking.currency}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Additional Services */}
+                    {Object.keys(invoiceData.additionalServices).length > 0 && (
+                      <div className="border-b pb-4">
+                        <h3 className="font-bold text-lg mb-3">الخدمات الإضافية</h3>
+                        <div className="space-y-3">
+                          {Object.entries(invoiceData.additionalServices).map(([serviceKey, serviceData]: [string, any]) => (
+                            <div key={serviceKey} className="bg-blue-50 p-3 rounded-lg">
+                              <div className="grid md:grid-cols-4 gap-4">
+                                <div>
+                                  <p><strong>الخدمة:</strong> {serviceData.name || serviceKey}</p>
+                                </div>
+                                <div>
+                                  <p><strong>الكمية:</strong> {serviceData.quantity || 1}</p>
+                                </div>
+                                <div>
+                                  <p><strong>السعر:</strong> {serviceData.price || 0} {selectedBooking.currency}</p>
+                                </div>
+                                <div>
+                                  <p><strong>المجموع:</strong> {(serviceData.price || 0) * (serviceData.quantity || 1)} {selectedBooking.currency}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Transport */}
+                    {selectedBooking.car_type && (
+                      <div className="border-b pb-4">
+                        <h3 className="font-bold text-lg mb-3">النقل</h3>
+                        <div className="bg-green-50 p-3 rounded-lg">
+                          <p><strong>نوع المركبة:</strong> {selectedBooking.car_type}</p>
+                          <p><strong>مدة الاستخدام:</strong> {invoiceData.totalNights} يوم</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Total Cost */}
+                    <div className="bg-emerald-50 p-6 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-2xl">إجمالي التكلفة</h3>
+                        <div className="text-3xl font-bold text-emerald-600">
+                          {(selectedBooking.total_cost || 0).toLocaleString()} {selectedBooking.currency}
+                        </div>
+                      </div>
+                      {selectedBooking.discount_amount && selectedBooking.discount_amount > 0 && (
+                        <div className="mt-2 text-sm text-gray-600">
+                          <p>تم تطبيق خصم: -{selectedBooking.discount_amount} {selectedBooking.currency}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Print Button */}
+                    <div className="flex justify-center pt-4">
+                      <Button 
+                        onClick={() => window.print()}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        طباعة الفاتورة
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Booking Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
