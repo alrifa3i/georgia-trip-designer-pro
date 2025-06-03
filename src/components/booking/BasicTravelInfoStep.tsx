@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { BookingData, Child } from '@/types/booking';
 import { currencies, additionalCurrencies } from '@/data/currencies';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Plus, Minus, Users, Calendar, DollarSign, MapPin, Info } from 'lucide-react';
 
 interface BasicTravelInfoStepProps {
@@ -86,24 +87,6 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
     { label: '3500+ دولار', min: 3500, max: 5000, value: 4000 }
   ];
 
-  const addChild = () => {
-    updateData({
-      children: [...data.children, { age: 5 }]
-    });
-  };
-
-  const removeChild = (index: number) => {
-    const updatedChildren = data.children.filter((_, i) => i !== index);
-    updateData({ children: updatedChildren });
-  };
-
-  const updateChild = (index: number, age: number) => {
-    const updatedChildren = data.children.map((child, i) => 
-      i === index ? { ...child, age } : child
-    );
-    updateData({ children: updatedChildren });
-  };
-
   const handleCustomBudget = () => {
     const amount = parseFloat(customBudgetAmount);
     if (amount && amount > 0) {
@@ -119,6 +102,10 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
     const selectedCurrency = allCurrencies.find(c => c.code === data.currency) || allCurrencies[0];
     const budgetInSelectedCurrency = budgetValue * selectedCurrency.exchangeRate;
     updateData({ budget: budgetInSelectedCurrency });
+  };
+
+  const handleDateChange = (arrivalDate: string, departureDate: string) => {
+    updateData({ arrivalDate, departureDate });
   };
 
   return (
@@ -172,29 +159,13 @@ export const BasicTravelInfoStep = ({ data, updateData, onValidationChange }: Ba
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="arrivalDate">تاريخ الوصول *</Label>
-              <Input
-                id="arrivalDate"
-                type="date"
-                value={data.arrivalDate}
-                onChange={(e) => updateData({ arrivalDate: e.target.value })}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="departureDate">تاريخ المغادرة *</Label>
-              <Input
-                id="departureDate"
-                type="date"
-                value={data.departureDate}
-                onChange={(e) => updateData({ departureDate: e.target.value })}
-                required
-              />
-            </div>
-          </div>
+          <DateRangePicker
+            arrivalDate={data.arrivalDate}
+            departureDate={data.departureDate}
+            onDateChange={handleDateChange}
+            label="اختر تواريخ الوصول والمغادرة"
+            required
+          />
         </CardContent>
       </Card>
 
