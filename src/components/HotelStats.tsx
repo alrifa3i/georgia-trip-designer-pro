@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Building, Home, Mountain, Trees, Car } from 'lucide-react';
+import { MapPin, Building, Home, Mountain, Trees, Car, Castle } from 'lucide-react';
 
 const cityStats = [
-  { name: 'تبليسي', hotels: 16, chalets: 8, resorts: 5, apartments: 15, cars: 25 },
-  { name: 'باتومي', hotels: 12, chalets: 6, resorts: 4, apartments: 12, cars: 20 },
-  { name: 'كوداوري', hotels: 8, chalets: 3, resorts: 2, apartments: 8, cars: 15 },
-  { name: 'باكورياني', hotels: 6, chalets: 2, resorts: 1, apartments: 6, cars: 12 },
-  { name: 'برجومي', hotels: 5, chalets: 1, resorts: 1, apartments: 4, cars: 10 },
-  { name: 'كوتايسي', hotels: 4, chalets: 1, resorts: 0, apartments: 3, cars: 8 },
-  { name: 'كاخيتي', hotels: 3, chalets: 1, resorts: 0, apartments: 2, cars: 6 },
-  { name: 'داش باش', hotels: 2, chalets: 1, resorts: 0, apartments: 1, cars: 4 }
+  { name: 'تبليسي', hotels: 16, chalets: 8, resorts: 5, apartments: 15, cars: 25, villas: 3 },
+  { name: 'باتومي', hotels: 12, chalets: 6, resorts: 4, apartments: 12, cars: 20, villas: 2 },
+  { name: 'كوداوري', hotels: 8, chalets: 3, resorts: 2, apartments: 8, cars: 15, villas: 2 },
+  { name: 'باكورياني', hotels: 6, chalets: 2, resorts: 1, apartments: 6, cars: 12, villas: 2 },
+  { name: 'برجومي', hotels: 5, chalets: 1, resorts: 1, apartments: 4, cars: 10, villas: 2 },
+  { name: 'كوتايسي', hotels: 4, chalets: 1, resorts: 0, apartments: 3, cars: 8, villas: 2 },
+  { name: 'كاخيتي', hotels: 3, chalets: 1, resorts: 0, apartments: 2, cars: 6, villas: 1 },
+  { name: 'داش باش', hotels: 2, chalets: 1, resorts: 0, apartments: 1, cars: 4, villas: 1 }
 ];
 
 const accommodationTypes = [
@@ -18,43 +18,24 @@ const accommodationTypes = [
   { key: 'chalets', name: 'أكواخ', icon: Home, color: 'blue' },
   { key: 'resorts', name: 'منتجعات', icon: Trees, color: 'green' },
   { key: 'apartments', name: 'شقق', icon: Mountain, color: 'purple' },
+  { key: 'villas', name: 'الفلل والشاليهات', icon: Castle, color: 'indigo' },
   { key: 'cars', name: 'سيارات', icon: Car, color: 'orange' }
 ];
 
 export const HotelStats = () => {
   const [currentCityIndex, setCurrentCityIndex] = useState(0);
-  const [currentTypeIndex, setCurrentTypeIndex] = useState(0);
 
   useEffect(() => {
     const cityInterval = setInterval(() => {
       setCurrentCityIndex((prev) => (prev + 1) % cityStats.length);
     }, 3000);
 
-    const typeInterval = setInterval(() => {
-      setCurrentTypeIndex((prev) => (prev + 1) % accommodationTypes.length);
-    }, 2000);
-
     return () => {
       clearInterval(cityInterval);
-      clearInterval(typeInterval);
     };
   }, []);
 
   const currentCity = cityStats[currentCityIndex];
-  const currentType = accommodationTypes[currentTypeIndex];
-  const CurrentIcon = currentType.icon;
-  const currentCount = currentCity[currentType.key as keyof typeof currentCity] as number;
-
-  const getColorClasses = (color: string) => {
-    const colors = {
-      emerald: 'from-emerald-500 to-emerald-600 text-emerald-100',
-      blue: 'from-blue-500 to-blue-600 text-blue-100',
-      green: 'from-green-500 to-green-600 text-green-100',
-      purple: 'from-purple-500 to-purple-600 text-purple-100',
-      orange: 'from-orange-500 to-orange-600 text-orange-100'
-    };
-    return colors[color as keyof typeof colors] || colors.emerald;
-  };
 
   const formatCount = (count: number, type: string) => {
     if (count === 1) {
@@ -62,15 +43,29 @@ export const HotelStats = () => {
       if (type === 'أكواخ') return 'كوخ واحد';
       if (type === 'منتجعات') return 'منتجع واحد';
       if (type === 'شقق') return 'شقة واحدة';
+      if (type === 'الفلل والشاليهات') return 'فيلا واحدة';
       if (type === 'سيارات') return 'سيارة واحدة';
     } else if (count === 2) {
       if (type === 'فنادق') return 'فندقان';
       if (type === 'أكواخ') return 'كوخان';
       if (type === 'منتجعات') return 'منتجعان';
       if (type === 'شقق') return 'شقتان';
+      if (type === 'الفلل والشاليهات') return 'فيلتان';
       if (type === 'سيارات') return 'سيارتان';
     }
     return `${count} ${type}`;
+  };
+
+  const getColorClasses = (color: string) => {
+    const colors = {
+      emerald: 'text-emerald-300',
+      blue: 'text-blue-300',
+      green: 'text-green-300',
+      purple: 'text-purple-300',
+      indigo: 'text-indigo-300',
+      orange: 'text-orange-300'
+    };
+    return colors[color as keyof typeof colors] || colors.emerald;
   };
 
   return (
@@ -100,13 +95,14 @@ export const HotelStats = () => {
                 <div>{formatCount(city.chalets, 'أكواخ')}</div>
                 <div>{formatCount(city.resorts, 'منتجعات')}</div>
                 <div>{formatCount(city.apartments, 'شقق')}</div>
+                <div>{formatCount(city.villas, 'الفلل والشاليهات')}</div>
                 <div>{formatCount(city.cars, 'سيارات')}</div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Mobile View - Single Rotating Card */}
+        {/* Mobile View - Single Rotating Card for Cities and Hotels */}
         <div className="md:hidden mb-6">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-2xl transform transition-all duration-500 hover:scale-105 animate-fade-in">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -117,21 +113,15 @@ export const HotelStats = () => {
             </div>
             
             <div className="flex items-center justify-center gap-3 mb-4">
-              <CurrentIcon className={`w-8 h-8 animate-pulse ${
-                currentType.color === 'emerald' ? 'text-emerald-300' :
-                currentType.color === 'blue' ? 'text-blue-300' :
-                currentType.color === 'green' ? 'text-green-300' :
-                currentType.color === 'purple' ? 'text-purple-300' :
-                'text-orange-300'
-              }`} />
+              <Building className="w-8 h-8 animate-pulse text-emerald-300" />
               <span className="text-white font-semibold text-lg">
-                {currentType.name}
+                فنادق
               </span>
             </div>
             
             <div className="text-center">
               <span className="text-white text-2xl font-bold">
-                {formatCount(currentCount, currentType.name)}
+                {formatCount(currentCity.hotels, 'فنادق')}
               </span>
             </div>
             
@@ -150,10 +140,27 @@ export const HotelStats = () => {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4">
           {accommodationTypes.map((type, index) => {
             const Icon = type.icon;
-            const totalCount = cityStats.reduce((sum, city) => sum + (city[type.key as keyof typeof city] as number), 0);
+            let totalCount;
+            
+            // تعديل الأعداد الإجمالية حسب المطلوب
+            if (type.key === 'hotels') {
+              totalCount = 46;
+            } else if (type.key === 'chalets') {
+              totalCount = 19;
+            } else if (type.key === 'resorts') {
+              totalCount = 13;
+            } else if (type.key === 'apartments') {
+              totalCount = 40;
+            } else if (type.key === 'villas') {
+              totalCount = 15;
+            } else if (type.key === 'cars') {
+              totalCount = 100;
+            } else {
+              totalCount = cityStats.reduce((sum, city) => sum + (city[type.key as keyof typeof city] as number), 0);
+            }
             
             return (
               <div 
@@ -162,13 +169,7 @@ export const HotelStats = () => {
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 animate-pulse ${
-                    type.color === 'emerald' ? 'text-emerald-300' :
-                    type.color === 'blue' ? 'text-blue-300' :
-                    type.color === 'green' ? 'text-green-300' :
-                    type.color === 'purple' ? 'text-purple-300' :
-                    'text-orange-300'
-                  }`} />
+                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 animate-pulse ${getColorClasses(type.color)}`} />
                   <span className="font-semibold text-sm sm:text-base text-white">
                     {type.name}
                   </span>
