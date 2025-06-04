@@ -1,23 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Building, Home, Mountain, Trees } from 'lucide-react';
+import { MapPin, Building, Home, Mountain, Trees, Car } from 'lucide-react';
 
 const cityStats = [
-  { name: 'تبليسي', hotels: 16, chalets: 3, resorts: 2, apartments: 8 },
-  { name: 'باتومي', hotels: 10, chalets: 5, resorts: 4, apartments: 6 },
-  { name: 'كوداوري', hotels: 5, chalets: 8, resorts: 3, apartments: 2 },
-  { name: 'باكورياني', hotels: 3, chalets: 6, resorts: 2, apartments: 4 },
-  { name: 'برجومي', hotels: 3, chalets: 4, resorts: 3, apartments: 3 },
-  { name: 'كوتايسي', hotels: 2, chalets: 2, resorts: 1, apartments: 3 },
-  { name: 'كاخيتي', hotels: 2, chalets: 3, resorts: 2, apartments: 2 },
-  { name: 'داش باش', hotels: 1, chalets: 2, resorts: 1, apartments: 1 }
+  { name: 'تبليسي', hotels: 16, chalets: 8, resorts: 5, apartments: 15, cars: 25 },
+  { name: 'باتومي', hotels: 12, chalets: 6, resorts: 4, apartments: 12, cars: 20 },
+  { name: 'كوداوري', hotels: 8, chalets: 3, resorts: 2, apartments: 8, cars: 15 },
+  { name: 'باكورياني', hotels: 6, chalets: 2, resorts: 1, apartments: 6, cars: 12 },
+  { name: 'برجومي', hotels: 5, chalets: 1, resorts: 1, apartments: 4, cars: 10 },
+  { name: 'كوتايسي', hotels: 4, chalets: 1, resorts: 0, apartments: 3, cars: 8 },
+  { name: 'كاخيتي', hotels: 3, chalets: 1, resorts: 0, apartments: 2, cars: 6 },
+  { name: 'داش باش', hotels: 2, chalets: 1, resorts: 0, apartments: 1, cars: 4 }
 ];
 
 const accommodationTypes = [
   { key: 'hotels', name: 'فنادق', icon: Building, color: 'emerald' },
   { key: 'chalets', name: 'أكواخ', icon: Home, color: 'blue' },
   { key: 'resorts', name: 'منتجعات', icon: Trees, color: 'green' },
-  { key: 'apartments', name: 'شقق', icon: Mountain, color: 'purple' }
+  { key: 'apartments', name: 'شقق', icon: Mountain, color: 'purple' },
+  { key: 'cars', name: 'سيارات', icon: Car, color: 'orange' }
 ];
 
 export const HotelStats = () => {
@@ -49,7 +50,8 @@ export const HotelStats = () => {
       emerald: 'from-emerald-500 to-emerald-600 text-emerald-100',
       blue: 'from-blue-500 to-blue-600 text-blue-100',
       green: 'from-green-500 to-green-600 text-green-100',
-      purple: 'from-purple-500 to-purple-600 text-purple-100'
+      purple: 'from-purple-500 to-purple-600 text-purple-100',
+      orange: 'from-orange-500 to-orange-600 text-orange-100'
     };
     return colors[color as keyof typeof colors] || colors.emerald;
   };
@@ -60,11 +62,13 @@ export const HotelStats = () => {
       if (type === 'أكواخ') return 'كوخ واحد';
       if (type === 'منتجعات') return 'منتجع واحد';
       if (type === 'شقق') return 'شقة واحدة';
+      if (type === 'سيارات') return 'سيارة واحدة';
     } else if (count === 2) {
       if (type === 'فنادق') return 'فندقان';
       if (type === 'أكواخ') return 'كوخان';
       if (type === 'منتجعات') return 'منتجعان';
       if (type === 'شقق') return 'شقتان';
+      if (type === 'سيارات') return 'سيارتان';
     }
     return `${count} ${type}`;
   };
@@ -96,6 +100,7 @@ export const HotelStats = () => {
                 <div>{formatCount(city.chalets, 'أكواخ')}</div>
                 <div>{formatCount(city.resorts, 'منتجعات')}</div>
                 <div>{formatCount(city.apartments, 'شقق')}</div>
+                <div>{formatCount(city.cars, 'سيارات')}</div>
               </div>
             </div>
           ))}
@@ -103,16 +108,22 @@ export const HotelStats = () => {
 
         {/* Mobile View - Single Rotating Card */}
         <div className="md:hidden mb-6">
-          <div className={`bg-gradient-to-r ${getColorClasses(currentType.color)} backdrop-blur-sm rounded-xl p-6 border-2 border-white/30 shadow-2xl transform transition-all duration-500 hover:scale-105 animate-fade-in`}>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-2xl transform transition-all duration-500 hover:scale-105 animate-fade-in">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <MapPin className="w-6 h-6 text-white/90" />
+              <MapPin className="w-6 h-6 text-emerald-300" />
               <span className="text-white font-bold text-xl">
                 {currentCity.name}
               </span>
             </div>
             
             <div className="flex items-center justify-center gap-3 mb-4">
-              <CurrentIcon className="w-8 h-8 text-white animate-pulse" />
+              <CurrentIcon className={`w-8 h-8 animate-pulse ${
+                currentType.color === 'emerald' ? 'text-emerald-300' :
+                currentType.color === 'blue' ? 'text-blue-300' :
+                currentType.color === 'green' ? 'text-green-300' :
+                currentType.color === 'purple' ? 'text-purple-300' :
+                'text-orange-300'
+              }`} />
               <span className="text-white font-semibold text-lg">
                 {currentType.name}
               </span>
@@ -139,7 +150,7 @@ export const HotelStats = () => {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
           {accommodationTypes.map((type, index) => {
             const Icon = type.icon;
             const totalCount = cityStats.reduce((sum, city) => sum + (city[type.key as keyof typeof city] as number), 0);
@@ -147,16 +158,22 @@ export const HotelStats = () => {
             return (
               <div 
                 key={index}
-                className={`bg-gradient-to-r ${getColorClasses(type.color)} backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/20 transition-all duration-300 hover:scale-105 animate-fade-in`}
+                className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/20 transition-all duration-300 hover:scale-105 animate-fade-in hover:bg-white/20"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
-                  <span className="font-semibold text-sm sm:text-base">
+                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 animate-pulse ${
+                    type.color === 'emerald' ? 'text-emerald-300' :
+                    type.color === 'blue' ? 'text-blue-300' :
+                    type.color === 'green' ? 'text-green-300' :
+                    type.color === 'purple' ? 'text-purple-300' :
+                    'text-orange-300'
+                  }`} />
+                  <span className="font-semibold text-sm sm:text-base text-white">
                     {type.name}
                   </span>
                 </div>
-                <div className="text-center text-xl sm:text-2xl font-bold">
+                <div className="text-center text-xl sm:text-2xl font-bold text-white">
                   {totalCount}
                 </div>
               </div>
