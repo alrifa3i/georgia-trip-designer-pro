@@ -3,14 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Building, Home, Mountain, Trees, Car, Castle } from 'lucide-react';
 
 const cityStats = [
-  { name: 'تبليسي', hotels: 16, chalets: 8, resorts: 5, apartments: 15, cars: 25, villas: 3 },
-  { name: 'باتومي', hotels: 12, chalets: 6, resorts: 4, apartments: 12, cars: 20, villas: 2 },
-  { name: 'كوداوري', hotels: 8, chalets: 3, resorts: 2, apartments: 8, cars: 15, villas: 2 },
-  { name: 'باكورياني', hotels: 6, chalets: 2, resorts: 1, apartments: 6, cars: 12, villas: 2 },
-  { name: 'برجومي', hotels: 5, chalets: 1, resorts: 1, apartments: 4, cars: 10, villas: 2 },
-  { name: 'كوتايسي', hotels: 4, chalets: 1, resorts: 0, apartments: 3, cars: 8, villas: 2 },
-  { name: 'كاخيتي', hotels: 3, chalets: 1, resorts: 0, apartments: 2, cars: 6, villas: 1 },
-  { name: 'داش باش', hotels: 2, chalets: 1, resorts: 0, apartments: 1, cars: 4, villas: 1 }
+  { name: 'تبليسي', hotels: 26, displayText: '26 فندق' },
+  { name: 'باتومي', hotels: 16, displayText: '16 فندق' },
+  { name: 'كوداوري', hotels: 4, displayText: '4 فنادق' },
+  { name: 'داش باش', hotels: 1, displayText: 'منتجع واحد' },
+  { name: 'باكورياني', hotels: 4, displayText: '4 فنادق و منتجعات' },
+  { name: 'كوتايسي', hotels: 2, displayText: 'فندقان' },
+  { name: 'كاخيتي', hotels: 2, displayText: 'منتجعان' }
 ];
 
 const accommodationTypes = [
@@ -37,25 +36,6 @@ export const HotelStats = () => {
 
   const currentCity = cityStats[currentCityIndex];
 
-  const formatCount = (count: number, type: string) => {
-    if (count === 1) {
-      if (type === 'فنادق') return 'فندق واحد';
-      if (type === 'أكواخ') return 'كوخ واحد';
-      if (type === 'منتجعات') return 'منتجع واحد';
-      if (type === 'شقق') return 'شقة واحدة';
-      if (type === 'الفلل والشاليهات') return 'فيلا واحدة';
-      if (type === 'سيارات') return 'سيارة واحدة';
-    } else if (count === 2) {
-      if (type === 'فنادق') return 'فندقان';
-      if (type === 'أكواخ') return 'كوخان';
-      if (type === 'منتجعات') return 'منتجعان';
-      if (type === 'شقق') return 'شقتان';
-      if (type === 'الفلل والشاليهات') return 'فيلتان';
-      if (type === 'سيارات') return 'سيارتان';
-    }
-    return `${count} ${type}`;
-  };
-
   const getColorClasses = (color: string) => {
     const colors = {
       emerald: 'text-emerald-300',
@@ -76,7 +56,7 @@ export const HotelStats = () => {
           مرافقنا المتاحة في جميع أنحاء جورجيا
         </h3>
         
-        {/* Desktop View */}
+        {/* Desktop View - Hidden on mobile */}
         <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {cityStats.map((city, index) => (
             <div 
@@ -90,38 +70,26 @@ export const HotelStats = () => {
                   {city.name}
                 </span>
               </div>
-              <div className="text-emerald-200 text-xs sm:text-sm space-y-1">
-                <div>{formatCount(city.hotels, 'فنادق')}</div>
-                <div>{formatCount(city.chalets, 'أكواخ')}</div>
-                <div>{formatCount(city.resorts, 'منتجعات')}</div>
-                <div>{formatCount(city.apartments, 'شقق')}</div>
-                <div>{formatCount(city.villas, 'الفلل والشاليهات')}</div>
-                <div>{formatCount(city.cars, 'سيارات')}</div>
+              <div className="text-emerald-200 text-xs sm:text-sm">
+                <div>{city.displayText}</div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Mobile View - Single Rotating Card for Cities and Hotels */}
+        {/* Mobile View - Single Rotating Card for Cities */}
         <div className="md:hidden mb-6">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-2xl transform transition-all duration-500 hover:scale-105 animate-fade-in">
             <div className="flex items-center justify-center gap-3 mb-4">
               <MapPin className="w-6 h-6 text-emerald-300" />
               <span className="text-white font-bold text-xl">
-                {currentCity.name}
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Building className="w-8 h-8 animate-pulse text-emerald-300" />
-              <span className="text-white font-semibold text-lg">
-                فنادق
+                مدينة {currentCity.name}
               </span>
             </div>
             
             <div className="text-center">
-              <span className="text-white text-2xl font-bold">
-                {formatCount(currentCity.hotels, 'فنادق')}
+              <span className="text-white text-xl font-bold">
+                {currentCity.displayText}
               </span>
             </div>
             
@@ -145,7 +113,7 @@ export const HotelStats = () => {
             const Icon = type.icon;
             let totalCount;
             
-            // تعديل الأعداد الإجمالية حسب المطلوب
+            // الأعداد الإجمالية المحدثة
             if (type.key === 'hotels') {
               totalCount = 46;
             } else if (type.key === 'chalets') {
@@ -158,8 +126,6 @@ export const HotelStats = () => {
               totalCount = 15;
             } else if (type.key === 'cars') {
               totalCount = 100;
-            } else {
-              totalCount = cityStats.reduce((sum, city) => sum + (city[type.key as keyof typeof city] as number), 0);
             }
             
             return (
