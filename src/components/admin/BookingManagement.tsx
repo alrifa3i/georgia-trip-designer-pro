@@ -335,6 +335,10 @@ export const BookingManagement = () => {
         pricePerNight = city.totalPrice / nights / booking.rooms;
       } else if (roomTypes[index]?.price && roomTypes[index].price > 0) {
         pricePerNight = roomTypes[index].price;
+      } else if (city.selectedHotel?.single_price) {
+        pricePerNight = city.selectedHotel.single_price;
+      } else if (city.selectedHotel?.double_without_view_price) {
+        pricePerNight = city.selectedHotel.double_without_view_price;
       } else {
         // محاولة حساب السعر من إجمالي التكلفة
         const averagePrice = (booking.total_cost || 0) / selectedCities.length / nights / booking.rooms;
@@ -355,7 +359,7 @@ export const BookingManagement = () => {
         nights,
         pricePerNight: Math.round(pricePerNight),
         total: Math.round(total),
-        roomType: roomTypes[index]?.type || roomTypes[index]?.roomType || 'غرفة مزدوجة'
+        roomType: roomTypes[index]?.type || roomTypes[index]?.roomType || roomTypes[index] || 'غرفة مزدوجة'
       };
     });
 
@@ -370,17 +374,17 @@ export const BookingManagement = () => {
     const receptionCost = 50; // Default reception cost
     const farewellCost = 50; // Default farewell cost
 
-    // معالجة الخدمات الإضافية المحسنة
-    const processedAdditionalServices = {};
+    // معالجة الخدمات الإضافية المحسنة مع التحقق من النوع
+    const processedAdditionalServices: any = {};
     
-    if (additionalServices) {
+    if (additionalServices && typeof additionalServices === 'object') {
       // التأمين الصحي
       if (additionalServices.travelInsurance && additionalServices.travelInsurance.enabled) {
         processedAdditionalServices.travelInsurance = {
           name: 'التأمين الصحي',
           enabled: true,
           quantity: additionalServices.travelInsurance.persons || booking.adults + children.length,
-          pricePerUnit: 10, // سعر افتراضي لكل شخص لكل يوم
+          pricePerUnit: 10,
           totalPrice: (additionalServices.travelInsurance.persons || booking.adults + children.length) * 10 * totalNights
         };
       }
@@ -391,7 +395,7 @@ export const BookingManagement = () => {
           name: 'خطوط الهاتف',
           enabled: true,
           quantity: additionalServices.phoneLines.quantity || 1,
-          pricePerUnit: 20, // سعر افتراضي لكل خط
+          pricePerUnit: 20,
           totalPrice: (additionalServices.phoneLines.quantity || 1) * 20
         };
       }
@@ -402,7 +406,7 @@ export const BookingManagement = () => {
           name: 'تزيين الغرفة',
           enabled: true,
           quantity: booking.rooms,
-          pricePerUnit: 30, // سعر افتراضي لكل غرفة
+          pricePerUnit: 30,
           totalPrice: booking.rooms * 30
         };
       }
@@ -413,7 +417,7 @@ export const BookingManagement = () => {
           name: 'استقبال المطار',
           enabled: true,
           quantity: additionalServices.airportReception.persons || booking.adults + children.length,
-          pricePerUnit: 15, // سعر افتراضي لكل شخص
+          pricePerUnit: 15,
           totalPrice: (additionalServices.airportReception.persons || booking.adults + children.length) * 15
         };
       }
@@ -424,7 +428,7 @@ export const BookingManagement = () => {
           name: 'جلسة تصوير',
           enabled: true,
           quantity: 1,
-          pricePerUnit: 100, // سعر افتراضي للجلسة
+          pricePerUnit: 100,
           totalPrice: 100
         };
       }
@@ -435,7 +439,7 @@ export const BookingManagement = () => {
           name: 'استقبال بالورود',
           enabled: true,
           quantity: 1,
-          pricePerUnit: 50, // سعر افتراضي
+          pricePerUnit: 50,
           totalPrice: 50
         };
       }
