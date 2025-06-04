@@ -1,28 +1,84 @@
 
-import React from 'react';
-import { MapPin, Building } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Building, Home, Mountain, Trees } from 'lucide-react';
 
 const cityStats = [
-  { name: 'تبليسي', count: 16 },
-  { name: 'باتومي', count: 10 },
-  { name: 'كوداوري', count: 5 },
-  { name: 'باكورياني', count: 3 },
-  { name: 'برجومي', count: 3 },
-  { name: 'كوتايسي', count: 2 },
-  { name: 'كاخيتي', count: 2 },
-  { name: 'داش باش', count: 1 }
+  { name: 'تبليسي', hotels: 16, chalets: 3, resorts: 2, apartments: 8 },
+  { name: 'باتومي', hotels: 10, chalets: 5, resorts: 4, apartments: 6 },
+  { name: 'كوداوري', hotels: 5, chalets: 8, resorts: 3, apartments: 2 },
+  { name: 'باكورياني', hotels: 3, chalets: 6, resorts: 2, apartments: 4 },
+  { name: 'برجومي', hotels: 3, chalets: 4, resorts: 3, apartments: 3 },
+  { name: 'كوتايسي', hotels: 2, chalets: 2, resorts: 1, apartments: 3 },
+  { name: 'كاخيتي', hotels: 2, chalets: 3, resorts: 2, apartments: 2 },
+  { name: 'داش باش', hotels: 1, chalets: 2, resorts: 1, apartments: 1 }
+];
+
+const accommodationTypes = [
+  { key: 'hotels', name: 'فنادق', icon: Building, color: 'emerald' },
+  { key: 'chalets', name: 'أكواخ', icon: Home, color: 'blue' },
+  { key: 'resorts', name: 'منتجعات', icon: Trees, color: 'green' },
+  { key: 'apartments', name: 'شقق', icon: Mountain, color: 'purple' }
 ];
 
 export const HotelStats = () => {
+  const [currentCityIndex, setCurrentCityIndex] = useState(0);
+  const [currentTypeIndex, setCurrentTypeIndex] = useState(0);
+
+  useEffect(() => {
+    const cityInterval = setInterval(() => {
+      setCurrentCityIndex((prev) => (prev + 1) % cityStats.length);
+    }, 3000);
+
+    const typeInterval = setInterval(() => {
+      setCurrentTypeIndex((prev) => (prev + 1) % accommodationTypes.length);
+    }, 2000);
+
+    return () => {
+      clearInterval(cityInterval);
+      clearInterval(typeInterval);
+    };
+  }, []);
+
+  const currentCity = cityStats[currentCityIndex];
+  const currentType = accommodationTypes[currentTypeIndex];
+  const CurrentIcon = currentType.icon;
+  const currentCount = currentCity[currentType.key as keyof typeof currentCity] as number;
+
+  const getColorClasses = (color: string) => {
+    const colors = {
+      emerald: 'from-emerald-500 to-emerald-600 text-emerald-100',
+      blue: 'from-blue-500 to-blue-600 text-blue-100',
+      green: 'from-green-500 to-green-600 text-green-100',
+      purple: 'from-purple-500 to-purple-600 text-purple-100'
+    };
+    return colors[color as keyof typeof colors] || colors.emerald;
+  };
+
+  const formatCount = (count: number, type: string) => {
+    if (count === 1) {
+      if (type === 'فنادق') return 'فندق واحد';
+      if (type === 'أكواخ') return 'كوخ واحد';
+      if (type === 'منتجعات') return 'منتجع واحد';
+      if (type === 'شقق') return 'شقة واحدة';
+    } else if (count === 2) {
+      if (type === 'فنادق') return 'فندقان';
+      if (type === 'أكواخ') return 'كوخان';
+      if (type === 'منتجعات') return 'منتجعان';
+      if (type === 'شقق') return 'شقتان';
+    }
+    return `${count} ${type}`;
+  };
+
   return (
-    <div className="text-center mt-8">
+    <div className="text-center mt-6 sm:mt-8">
       <div className="max-w-4xl mx-auto px-4">
-        <h3 className="text-white text-xl sm:text-2xl font-bold mb-6 flex items-center justify-center gap-2 animate-fade-in">
-          <Building className="w-6 h-6 animate-pulse" />
-          فنادقنا المتاحة في جميع أنحاء جورجيا
+        <h3 className="text-white text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 flex items-center justify-center gap-2 animate-fade-in">
+          <Building className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
+          مرافقنا المتاحة في جميع أنحاء جورجيا
         </h3>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* Desktop View */}
+        <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {cityStats.map((city, index) => (
             <div 
               key={index}
@@ -35,13 +91,77 @@ export const HotelStats = () => {
                   {city.name}
                 </span>
               </div>
-              <div className="text-emerald-200 text-xs sm:text-sm">
-                {city.count === 1 ? 'فندق واحد' : 
-                 city.count === 2 ? 'فندقان' : 
-                 `${city.count} فنادق`}
+              <div className="text-emerald-200 text-xs sm:text-sm space-y-1">
+                <div>{formatCount(city.hotels, 'فنادق')}</div>
+                <div>{formatCount(city.chalets, 'أكواخ')}</div>
+                <div>{formatCount(city.resorts, 'منتجعات')}</div>
+                <div>{formatCount(city.apartments, 'شقق')}</div>
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Mobile View - Single Rotating Card */}
+        <div className="md:hidden mb-6">
+          <div className={`bg-gradient-to-r ${getColorClasses(currentType.color)} backdrop-blur-sm rounded-xl p-6 border-2 border-white/30 shadow-2xl transform transition-all duration-500 hover:scale-105 animate-fade-in`}>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <MapPin className="w-6 h-6 text-white/90" />
+              <span className="text-white font-bold text-xl">
+                {currentCity.name}
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <CurrentIcon className="w-8 h-8 text-white animate-pulse" />
+              <span className="text-white font-semibold text-lg">
+                {currentType.name}
+              </span>
+            </div>
+            
+            <div className="text-center">
+              <span className="text-white text-2xl font-bold">
+                {formatCount(currentCount, currentType.name)}
+              </span>
+            </div>
+            
+            {/* Progress indicators */}
+            <div className="flex justify-center mt-4 gap-2">
+              {cityStats.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentCityIndex ? 'bg-white' : 'bg-white/30'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          {accommodationTypes.map((type, index) => {
+            const Icon = type.icon;
+            const totalCount = cityStats.reduce((sum, city) => sum + (city[type.key as keyof typeof city] as number), 0);
+            
+            return (
+              <div 
+                key={index}
+                className={`bg-gradient-to-r ${getColorClasses(type.color)} backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/20 transition-all duration-300 hover:scale-105 animate-fade-in`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
+                  <span className="font-semibold text-sm sm:text-base">
+                    {type.name}
+                  </span>
+                </div>
+                <div className="text-center text-xl sm:text-2xl font-bold">
+                  {totalCount}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
