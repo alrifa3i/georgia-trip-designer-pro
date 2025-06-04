@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -302,23 +303,59 @@ export const BookingManagement = () => {
     const children = parseJsonField(booking.children, []);
     const additionalServices = parseJsonField(booking.additional_services, {});
     
+    console.log('Invoice Data Debug:', {
+      selectedCities,
+      roomTypes,
+      additionalServices,
+      booking
+    });
+    
     // Calculate nights for each city based on arrival and departure dates
     const arrivalDate = new Date(booking.arrival_date);
     const departureDate = new Date(booking.departure_date);
     const totalNights = Math.ceil((departureDate.getTime() - arrivalDate.getTime()) / (1000 * 3600 * 24));
-    const nightsPerCity = Math.ceil(totalNights / selectedCities.length);
+    const nightsPerCity = Math.ceil(totalNights / (selectedCities.length || 1));
 
-    // Calculate hotel totals for each city
+    // Calculate hotel totals for each city with improved price extraction
     const hotelTotals = selectedCities.map((city: any, index: number) => {
-      const roomType = roomTypes[index];
-      const pricePerNight = roomType?.price || city.pricePerNight || 0;
-      const nights = city.nights || nightsPerCity;
-      return {
-        cityName: typeof city === 'string' ? city : city.name,
-        hotelName: city.selectedHotel?.name || city.hotel || 'فندق مختار',
-        nights,
+      console.log('Processing city:', city, 'Index:', index);
+      
+      const cityName = typeof city === 'string' ? city : (city.name || city.city || city);
+      const hotelName = city.selectedHotel?.name || city.hotel || city.hotelName || 'فندق مختار';
+      const nights = city.nights || nightsPerCity || 1;
+      
+      // محاولة الحصول على السعر من مصادر متعددة
+      let pricePerNight = 0;
+      
+      if (city.pricePerNight && city.pricePerNight > 0) {
+        pricePerNight = city.pricePerNight;
+      } else if (city.selectedHotel?.price && city.selectedHotel.price > 0) {
+        pricePerNight = city.selectedHotel.price;
+      } else if (city.totalPrice && nights > 0) {
+        pricePerNight = city.totalPrice / nights / booking.rooms;
+      } else if (roomTypes[index]?.price && roomTypes[index].price > 0) {
+        pricePerNight = roomTypes[index].price;
+      } else {
+        // محاولة حساب السعر من إجمالي التكلفة
+        const averagePrice = (booking.total_cost || 0) / selectedCities.length / nights / booking.rooms;
+        pricePerNight = averagePrice * 0.7; // تقدير أن 70% من التكلفة للفنادق
+      }
+      
+      console.log('Price calculation for', cityName, ':', {
         pricePerNight,
-        total: nights * pricePerNight * booking.rooms
+        nights,
+        rooms: booking.rooms
+      });
+      
+      const total = nights * pricePerNight * booking.rooms;
+      
+      return {
+        cityName,
+        hotelName,
+        nights,
+        pricePerNight: Math.round(pricePerNight),
+        total: Math.round(total),
+        roomType: roomTypes[index]?.type || roomTypes[index]?.roomType || 'غرفة مزدوجة'
       };
     });
 
@@ -333,12 +370,83 @@ export const BookingManagement = () => {
     const receptionCost = 50; // Default reception cost
     const farewellCost = 50; // Default farewell cost
 
+    // معالجة الخدمات الإضافية المحسنة
+    const processedAdditionalServices = {};
+    
+    if (additionalServices) {
+      // التأمين الصحي
+      if (additionalServices.travelInsurance && additionalServices.travelInsurance.enabled) {
+        processedAdditionalServices.travelInsurance = {
+          name: 'التأمين الصحي',
+          enabled: true,
+          quantity: additionalServices.travelInsurance.persons || booking.adults + children.length,
+          pricePerUnit: 10, // سعر افتراضي لكل شخص لكل يوم
+          totalPrice: (additionalServices.travelInsurance.persons || booking.adults + children.length) * 10 * totalNights
+        };
+      }
+
+      // خطوط الهاتف
+      if (additionalServices.phoneLines && additionalServices.phoneLines.enabled) {
+        processedAdditionalServices.phoneLines = {
+          name: 'خطوط الهاتف',
+          enabled: true,
+          quantity: additionalServices.phoneLines.quantity || 1,
+          pricePerUnit: 20, // سعر افتراضي لكل خط
+          totalPrice: (additionalServices.phoneLines.quantity || 1) * 20
+        };
+      }
+
+      // تزيين الغرفة
+      if (additionalServices.roomDecoration && additionalServices.roomDecoration.enabled) {
+        processedAdditionalServices.roomDecoration = {
+          name: 'تزيين الغرفة',
+          enabled: true,
+          quantity: booking.rooms,
+          pricePerUnit: 30, // سعر افتراضي لكل غرفة
+          totalPrice: booking.rooms * 30
+        };
+      }
+
+      // استقبال المطار
+      if (additionalServices.airportReception && additionalServices.airportReception.enabled) {
+        processedAdditionalServices.airportReception = {
+          name: 'استقبال المطار',
+          enabled: true,
+          quantity: additionalServices.airportReception.persons || booking.adults + children.length,
+          pricePerUnit: 15, // سعر افتراضي لكل شخص
+          totalPrice: (additionalServices.airportReception.persons || booking.adults + children.length) * 15
+        };
+      }
+
+      // جلسة تصوير
+      if (additionalServices.photoSession && additionalServices.photoSession.enabled) {
+        processedAdditionalServices.photoSession = {
+          name: 'جلسة تصوير',
+          enabled: true,
+          quantity: 1,
+          pricePerUnit: 100, // سعر افتراضي للجلسة
+          totalPrice: 100
+        };
+      }
+
+      // استقبال بالورود
+      if (additionalServices.flowerReception && additionalServices.flowerReception.enabled) {
+        processedAdditionalServices.flowerReception = {
+          name: 'استقبال بالورود',
+          enabled: true,
+          quantity: 1,
+          pricePerUnit: 50, // سعر افتراضي
+          totalPrice: 50
+        };
+      }
+    }
+
     return {
       booking,
       selectedCities,
       roomTypes,
       children,
-      additionalServices,
+      additionalServices: processedAdditionalServices,
       totalNights,
       nightsPerCity,
       totalPeople: booking.adults + children.length,
@@ -822,7 +930,7 @@ export const BookingManagement = () => {
                       <div className="space-y-4">
                         {invoiceData.hotelTotals.map((hotel: any, index: number) => (
                           <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                            <div className="grid md:grid-cols-4 gap-4">
+                            <div className="grid md:grid-cols-5 gap-4">
                               <div>
                                 <p><strong>المدينة:</strong> {hotel.cityName}</p>
                                 <p><strong>الفندق:</strong> {hotel.hotelName}</p>
@@ -830,6 +938,9 @@ export const BookingManagement = () => {
                               <div>
                                 <p><strong>عدد الليالي:</strong> {hotel.nights}</p>
                                 <p><strong>عدد الغرف:</strong> {selectedBooking.rooms}</p>
+                              </div>
+                              <div>
+                                <p><strong>نوع الغرفة:</strong> {hotel.roomType}</p>
                               </div>
                               <div>
                                 <p><strong>السعر لكل ليلة:</strong> {hotel.pricePerNight} {selectedBooking.currency}</p>
@@ -878,27 +989,28 @@ export const BookingManagement = () => {
                       </div>
                     </div>
 
-                    {/* Additional Services (excluding those with 0 price) */}
-                    {Object.entries(invoiceData.additionalServices).filter(([key, serviceData]: [string, any]) => serviceData.price && serviceData.price > 0).length > 0 && (
+                    {/* Additional Services */}
+                    {Object.keys(invoiceData.additionalServices).length > 0 && (
                       <div className="border-b pb-4">
                         <h3 className="font-bold text-lg mb-3">الخدمات الإضافية</h3>
                         <div className="space-y-3">
-                          {Object.entries(invoiceData.additionalServices)
-                            .filter(([key, serviceData]: [string, any]) => serviceData.price && serviceData.price > 0)
-                            .map(([serviceKey, serviceData]: [string, any]) => (
+                          {Object.entries(invoiceData.additionalServices).map(([serviceKey, serviceData]: [string, any]) => (
                             <div key={serviceKey} className="bg-green-50 p-3 rounded-lg">
                               <div className="grid md:grid-cols-4 gap-4">
                                 <div>
-                                  <p><strong>الخدمة:</strong> {serviceData.name || serviceKey}</p>
+                                  <p><strong>الخدمة:</strong> {serviceData.name}</p>
                                 </div>
                                 <div>
-                                  <p><strong>الكمية:</strong> {serviceData.quantity || 1}</p>
+                                  <p><strong>الكمية:</strong> {serviceData.quantity}</p>
                                 </div>
                                 <div>
-                                  <p><strong>السعر:</strong> {serviceData.price || 0} {selectedBooking.currency}</p>
+                                  <p><strong>السعر لكل وحدة:</strong> {serviceData.pricePerUnit} {selectedBooking.currency}</p>
                                 </div>
                                 <div>
-                                  <p><strong>المجموع:</strong> {(serviceData.price || 0) * (serviceData.quantity || 1)} {selectedBooking.currency}</p>
+                                  <p><strong>المجموع:</strong></p>
+                                  <div className="text-lg font-bold text-green-600">
+                                    {serviceData.totalPrice.toLocaleString()} {selectedBooking.currency}
+                                  </div>
                                 </div>
                               </div>
                             </div>
