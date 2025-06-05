@@ -17,7 +17,8 @@ import {
   Clock,
   X,
   FileText,
-  Download
+  Download,
+  Tag
 } from 'lucide-react';
 
 export const BookingSearch = () => {
@@ -372,24 +373,42 @@ export const BookingSearch = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                {searchResult.budget && (
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  {searchResult.budget && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">الميزانية المحددة:</span>
+                      <div className="text-xl font-bold text-blue-600">
+                        {searchResult.budget.toLocaleString()} {searchResult.currency}
+                      </div>
+                    </div>
+                  )}
                   <div>
-                    <span className="text-sm font-medium text-gray-600">الميزانية المحددة:</span>
-                    <div className="text-xl font-bold text-blue-600">
-                      {searchResult.budget.toLocaleString()} {searchResult.currency}
+                    <span className="text-sm font-medium text-gray-600">التكلفة الإجمالية:</span>
+                    <div className="text-xl font-bold text-emerald-600">
+                      {(searchResult.total_cost || 0).toLocaleString()} {searchResult.currency}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* إظهار كود الخصم إذا كان موجوداً */}
+                {searchResult.discount_coupon && searchResult.discount_amount && searchResult.discount_amount > 0 && (
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-green-600" />
+                        <span className="text-green-800 font-medium">كود الخصم المطبق: {searchResult.discount_coupon}</span>
+                      </div>
+                      <span className="text-green-600 font-bold">
+                        -{searchResult.discount_amount.toFixed(2)} {searchResult.currency}
+                      </span>
                     </div>
                   </div>
                 )}
-                <div>
-                  <span className="text-sm font-medium text-gray-600">التكلفة الإجمالية:</span>
-                  <div className="text-xl font-bold text-emerald-600">
-                    {(searchResult.total_cost || 0).toLocaleString()} {searchResult.currency}
-                  </div>
+                
+                <div className="text-sm text-gray-500 mt-4">
+                  تاريخ الحجز: {formatDateArabic(searchResult.created_at)}
                 </div>
-              </div>
-              <div className="text-sm text-gray-500 mt-4">
-                تاريخ الحجز: {formatDateArabic(searchResult.created_at)}
               </div>
             </CardContent>
           </Card>

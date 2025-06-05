@@ -64,6 +64,8 @@ export const useBookings = () => {
                         typeof data.selected_cities === 'string' ? JSON.parse(data.selected_cities || '[]') : [],
         additional_services: typeof data.additional_services === 'object' ? data.additional_services :
                            typeof data.additional_services === 'string' ? JSON.parse(data.additional_services || '{}') : {},
+        discount_coupon: data.discount_coupon,
+        discount_amount: data.discount_amount,
         booking_files: data.booking_files || []
       };
 
@@ -87,7 +89,7 @@ export const useBookings = () => {
     
     try {
       // إنشاء رقم مرجعي فريد
-      const referenceNumber = `GEO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999) + 1).padStart(3, '0')}`;
+      const referenceNumber = bookingData.referenceNumber || `GEO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999) + 1).padStart(3, '0')}`;
       
       const bookingToSave = {
         reference_number: referenceNumber,
@@ -107,6 +109,8 @@ export const useBookings = () => {
         selected_cities: JSON.stringify(bookingData.selectedCities || []),
         total_cost: bookingData.totalCost || 0,
         additional_services: JSON.stringify(bookingData.additionalServices || {}),
+        discount_coupon: bookingData.discountCode || null,
+        discount_amount: bookingData.discountAmount || 0,
         status: 'confirmed'
       };
 
