@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -494,7 +495,7 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardContent>
       </Card>
 
-      {/* Final Cost Summary - Only showing final total */}
+      {/* Final Cost Summary - مع إظهار كود الخصم */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -504,6 +505,17 @@ export const PricingDetailsStep = ({ data, updateData, onValidationChange }: Pri
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
+            {/* إظهار كود الخصم المطبق إذا وجد */}
+            {data.discountCode && data.discountAmount && data.discountAmount > 0 && (
+              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-green-600" />
+                  <span className="text-green-800 font-medium">كود الخصم: {data.discountCode}</span>
+                </div>
+                <span className="text-green-600 font-bold">-{formatPrice(data.discountAmount)}</span>
+              </div>
+            )}
+            
             <Separator className="border-t-2" />
             
             <div className="flex justify-between items-center text-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-200">

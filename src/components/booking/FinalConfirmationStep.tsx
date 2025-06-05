@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BookingData } from '@/types/booking';
-import { CheckCircle, AlertTriangle, QrCode, Download, Share2, MessageCircle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, QrCode, Download, Share2, MessageCircle, Tag } from 'lucide-react';
 import { useBookings } from '@/hooks/useBookings';
 import { WhatsAppVerification } from './WhatsAppVerification';
 import { FileUploadSection } from './FileUploadSection';
@@ -485,16 +486,29 @@ ${data.selectedCities.map(city => `
         </CardContent>
       </Card>
 
-      {/* Pricing Summary */}
+      {/* Pricing Summary - مع إظهار كود الخصم */}
       <Card>
         <CardHeader>
           <CardTitle>ملخص الأسعار</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="text-xl font-bold">إجمالي التكلفة:</div>
-            <div className="text-2xl font-bold text-emerald-600">
-              {data.totalCost} {data.currency}
+          <div className="space-y-3">
+            {/* إظهار كود الخصم المطبق إذا وجد */}
+            {data.discountCode && data.discountAmount && data.discountAmount > 0 && (
+              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-green-600" />
+                  <span className="text-green-800 font-medium">كود الخصم: {data.discountCode}</span>
+                </div>
+                <span className="text-green-600 font-bold">-{data.discountAmount?.toFixed(2)} {data.currency}</span>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-between">
+              <div className="text-xl font-bold">إجمالي التكلفة:</div>
+              <div className="text-2xl font-bold text-emerald-600">
+                {data.totalCost} {data.currency}
+              </div>
             </div>
           </div>
         </CardContent>
