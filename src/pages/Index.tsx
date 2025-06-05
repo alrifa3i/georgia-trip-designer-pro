@@ -164,7 +164,7 @@ const Index = () => {
       {/* نص نهاية الموقع - محسن للموبايل */}
       <div className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 z-20 px-2">
         <p className="text-white/70 text-xs sm:text-sm font-medium drop-shadow-lg text-center">
-          هذه الأداة خاصة لعالم الفخامة في جورجيا
+          منصة حجز الرحلات السياحية في جورجيا
         </p>
       </div>
     </div>
