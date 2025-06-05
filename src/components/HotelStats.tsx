@@ -56,29 +56,8 @@ export const HotelStats = () => {
           مرافقنا المتاحة في جميع أنحاء جورجيا
         </h3>
         
-        {/* Desktop View - Hidden on mobile */}
-        <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {cityStats.map((city, index) => (
-            <div 
-              key={index}
-              className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-fade-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <MapPin className="w-4 h-4 text-emerald-300" />
-                <span className="text-white font-semibold text-sm sm:text-base">
-                  {city.name}
-                </span>
-              </div>
-              <div className="text-emerald-200 text-xs sm:text-sm">
-                <div>{city.displayText}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Mobile View - Single Rotating Card for Cities */}
-        <div className="md:hidden mb-6">
+        {/* Single Rotating Card for Cities - Visible on all screen sizes */}
+        <div className="mb-6">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-2xl transform transition-all duration-500 hover:scale-105 animate-fade-in">
             <div className="flex items-center justify-center gap-3 mb-4">
               <MapPin className="w-6 h-6 text-emerald-300" />

@@ -91,17 +91,34 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     
     // تحديد الحد الأقصى للأرقام
     if (formattedValue.length <= currentCountry.digitCount) {
-      onChange(formattedValue);
+      // حفظ الرقم مع كود الدولة
+      const fullPhoneNumber = formattedValue ? `${currentCountry.dialCode}${formattedValue}` : '';
+      onChange(fullPhoneNumber);
     }
   };
 
-  // الحصول على الرقم الكامل
-  const getFullPhoneNumber = (): string => {
+  // استخراج الرقم بدون كود الدولة للعرض
+  const getDisplayPhoneNumber = (): string => {
     if (!value) return '';
-    return `${currentCountry.dialCode}${value}`;
+    
+    // إذا كان الرقم يحتوي على كود الدولة، أزله للعرض
+    const dialCode = currentCountry.dialCode;
+    if (value.startsWith(dialCode)) {
+      return value.substring(dialCode.length);
+    }
+    
+    return value;
   };
 
-  const isValid = value ? isValidPhoneNumber(value) : true;
+  // الحصول على الرقم الكامل للعرض
+  const getFullPhoneNumber = (): string => {
+    const displayNumber = getDisplayPhoneNumber();
+    if (!displayNumber) return '';
+    return `${currentCountry.dialCode}${displayNumber}`;
+  };
+
+  const displayNumber = getDisplayPhoneNumber();
+  const isValid = displayNumber ? isValidPhoneNumber(displayNumber) : true;
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -130,13 +147,13 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
         
         <Input
           type="tel"
-          value={value}
+          value={displayNumber}
           onChange={handlePhoneChange}
           placeholder={`${currentCountry.digitCount} أرقام`}
           disabled={disabled}
           className={cn(
             "flex-1",
-            !isValid && value && "border-red-500 focus:border-red-500"
+            !isValid && displayNumber && "border-red-500 focus:border-red-500"
           )}
           dir="ltr"
         />
@@ -146,18 +163,18 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
       <div className="flex justify-between text-xs text-gray-500">
         <span>الرقم الكامل: {getFullPhoneNumber() || `${currentCountry.dialCode}xxxxxxxxx`}</span>
         <span>
-          {value ? `${value.length}/${currentCountry.digitCount}` : `0/${currentCountry.digitCount}`}
+          {displayNumber ? `${displayNumber.length}/${currentCountry.digitCount}` : `0/${currentCountry.digitCount}`}
         </span>
       </div>
 
       {/* رسائل التحقق */}
-      {value && !isValid && (
+      {displayNumber && !isValid && (
         <p className="text-red-500 text-xs">
           يجب أن يكون الرقم {currentCountry.digitCount} أرقام لدولة {currentCountry.nameAr}
         </p>
       )}
       
-      {value && isValid && (
+      {displayNumber && isValid && (
         <p className="text-green-600 text-xs">
           ✅ رقم صحيح
         </p>
