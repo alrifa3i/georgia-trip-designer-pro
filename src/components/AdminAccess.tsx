@@ -3,10 +3,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Shield, Lock, Eye, EyeOff, LogOut } from 'lucide-react';
+import { Shield, Lock, Eye, EyeOff, LogOut, ArrowRight } from 'lucide-react';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 
-export const AdminAccess = () => {
+interface AdminAccessProps {
+  onBackToHome?: () => void;
+}
+
+export const AdminAccess = ({ onBackToHome }: AdminAccessProps) => {
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState('');
@@ -36,6 +40,20 @@ export const AdminAccess = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 flex items-center justify-center">
+      {/* زر العودة للقائمة الرئيسية */}
+      {onBackToHome && (
+        <div className="absolute top-4 left-4 z-20">
+          <Button 
+            variant="outline" 
+            onClick={onBackToHome}
+            className="flex items-center gap-2"
+          >
+            <ArrowRight className="w-4 h-4" />
+            العودة للقائمة الرئيسية
+          </Button>
+        </div>
+      )}
+
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
