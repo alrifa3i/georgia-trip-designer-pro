@@ -200,7 +200,7 @@ const handler = async (req: Request): Promise<Response> => {
     // إرسال الإيميل
     const emailResponse = await resend.emails.send({
       from: "نظام الحجز <onboarding@resend.dev>",
-      to: ["info@georgia-luxury.com"], // يمكن تغيير هذا الإيميل حسب إيميل الشركة
+      to: ["info@lwiat.com"], // تم تغيير الإيميل هنا
       subject: `حجز جديد - ${bookingData.referenceNumber} - ${bookingData.customerName}`,
       html: emailContent,
     });
