@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { useBookings } from '@/hooks/useBookings';
 import { WhatsAppVerification } from './WhatsAppVerification';
 import { FileUploadSection } from './FileUploadSection';
 import { QRCodeSVG } from 'qrcode.react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FinalConfirmationStepProps {
   data: BookingData;
@@ -21,6 +21,7 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
   const [bookingId, setBookingId] = useState('');
   const [showWhatsAppVerification, setShowWhatsAppVerification] = useState(false);
   const [isWhatsAppVerified, setIsWhatsAppVerified] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const { saveBooking, loading } = useBookings();
 
   // Generate unique reference number with random letters
@@ -52,6 +53,43 @@ export const FinalConfirmationStep = ({ data, onConfirm }: FinalConfirmationStep
 
     saveBookingData();
   }, [data, saveBooking, referenceNumber]);
+
+  // Function to send booking email to company
+  const sendBookingEmailToCompany = async () => {
+    try {
+      console.log('Sending booking email to company...');
+      
+      const { data: emailData, error } = await supabase.functions.invoke('send-booking-email', {
+        body: {
+          referenceNumber,
+          customerName: data.customerName,
+          phoneNumber: data.phoneNumber,
+          arrivalDate: data.arrivalDate,
+          departureDate: data.departureDate,
+          arrivalAirport: data.arrivalAirport,
+          departureAirport: data.departureAirport,
+          selectedCities: data.selectedCities,
+          carType: data.carType,
+          totalCost: data.totalCost,
+          currency: data.currency,
+          adults: data.adults,
+          children: data.children || []
+        }
+      });
+
+      if (error) {
+        console.error('Error sending booking email:', error);
+        return false;
+      }
+
+      console.log('Booking email sent successfully:', emailData);
+      setEmailSent(true);
+      return true;
+    } catch (error) {
+      console.error('Failed to send booking email:', error);
+      return false;
+    }
+  };
 
   // Format phone number with country code
   const formatPhoneNumber = (phoneNumber: string) => {
@@ -229,13 +267,22 @@ ${data.selectedCities.map(city => `
   const handleConfirm = async () => {
     setIsConfirming(true);
     
-    // Send booking details to company
-    sendBookingToCompany();
-    
-    // Simulate final confirmation process
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsConfirming(false);
-    onConfirm();
+    try {
+      // Send booking details to company via WhatsApp
+      sendBookingToCompany();
+      
+      // Send booking email to company
+      await sendBookingEmailToCompany();
+      
+      // Simulate final confirmation process
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      
+      onConfirm();
+    } catch (error) {
+      console.error('Error during confirmation:', error);
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
   if (showWhatsAppVerification) {
@@ -311,6 +358,20 @@ ${data.selectedCities.map(city => `
                 مشاركة
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Email Status Indicator */}
+      {emailSent && (
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="p-4 text-center">
+            <div className="text-green-800 font-semibold mb-2">
+              ✅ تم إرسال تفاصيل الحجز إلى الشركة بنجاح
+            </div>
+            <p className="text-green-700 text-sm">
+              تم إرسال جميع تفاصيل حجزك إلى إيميل الشركة للمراجعة والمتابعة
+            </p>
           </CardContent>
         </Card>
       )}
